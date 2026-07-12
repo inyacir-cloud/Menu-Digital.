@@ -1,8 +1,11 @@
 create table if not exists public.categories (
   id text primary key,
   name text not null,
-  icon text null
+  icon text null,
+  sort_order integer not null default 0
 );
+
+alter table public.categories add column if not exists sort_order integer not null default 0;
 
 create table if not exists public.complements (
   id text primary key,

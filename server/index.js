@@ -41,7 +41,7 @@ app.post('/api/categories', (req, res) => {
   const categories = db.categories || [];
   const { name } = req.body;
   const id = Date.now().toString();
-  const newCat = { id, name };
+  const newCat = { id, name, sortOrder: categories.length };
   categories.push(newCat);
   db.categories = categories;
   writeDB(db);
@@ -52,8 +52,8 @@ app.put('/api/categories/:id', (req, res) => {
   const db = readDB();
   const categories = db.categories || [];
   const { id } = req.params;
-  const { name } = req.body;
-  const updated = categories.map(c => c.id === id ? { ...c, name } : c);
+  const { name, sortOrder } = req.body;
+  const updated = categories.map(c => c.id === id ? { ...c, ...(name !== undefined ? { name } : {}), ...(sortOrder !== undefined ? { sortOrder } : {}) } : c);
   db.categories = updated;
   writeDB(db);
   res.json({ ok: true });

@@ -15,6 +15,13 @@ type ProductRow = {
   sizes: Product['sizes'] | null;
 };
 
+type CategoryRow = {
+  id: string;
+  name: string;
+  icon: string | null;
+  sort_order: number | null;
+};
+
 type BusinessConfigRow = {
   id: string;
   name: string;
@@ -50,6 +57,24 @@ function mapProductRow(row: ProductRow): Product {
     isDailyWater: row.is_daily_water ?? undefined,
     isAvailable: row.is_available ?? undefined,
     sizes: row.sizes || undefined,
+  };
+}
+
+function mapCategoryRow(row: CategoryRow): Category {
+  return {
+    id: row.id,
+    name: row.name,
+    icon: row.icon || undefined,
+    sortOrder: row.sort_order ?? 0,
+  };
+}
+
+function mapCategoryToRow(category: Category): CategoryRow {
+  return {
+    id: category.id,
+    name: category.name,
+    icon: category.icon || null,
+    sort_order: category.sortOrder ?? 0,
   };
 }
 
@@ -109,7 +134,7 @@ export async function loadSupabaseData() {
 
   const [configRes, categoriesRes, productsRes, complementsRes] = await Promise.all([
     client.from('business_config').select('*').eq('id', 'main').maybeSingle<BusinessConfigRow>(),
-    client.from('categories').select('*').returns<Category[]>(),
+    client.from('categories').select('*').order('sort_order', { ascending: true }).returns<CategoryRow[]>(),
     client.from('products').select('*').returns<ProductRow[]>(),
     client.from('complements').select('*').returns<Complement[]>(),
   ]);
@@ -121,7 +146,9 @@ export async function loadSupabaseData() {
 
   return {
     config: mapBusinessConfigRow(configRes.data),
-    categories: categoriesRes.data || initialCategories,
+    categories: (categoriesRes.data || initialCategories).map((category) =>
+      'sort_order' in category ? mapCategoryRow(category as CategoryRow) : category
+    ),
     products: (productsRes.data || []).map(mapProductRow),
     complements: complementsRes.data || initialComplements,
   };
@@ -135,7 +162,7 @@ export async function saveSupabaseConfig(config: BusinessConfig) {
 
 export async function saveSupabaseCategory(category: Category) {
   const client = requireSupabase();
-  const { error } = await client.from('categories').upsert(category);
+  const { error } = await client.from('categories').upsert(mapCategoryToRow(category));
   if (error) throw error;
 }
 

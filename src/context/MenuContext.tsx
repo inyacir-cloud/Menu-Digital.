@@ -25,6 +25,7 @@ interface MenuContextType {
   toggleBusinessOpen: () => Promise<void>;
   addCategory: (name: string) => Promise<void>;
   updateCategory: (id: string, name: string) => Promise<void>;
+  reorderCategories: (orderedIds: string[]) => Promise<void>;
   deleteCategory: (id: string) => Promise<void>;
   addProduct: (product: Omit<Product, 'id'>) => Promise<void>;
   updateProduct: (id: string, product: Partial<Product>) => Promise<void>;
@@ -53,6 +54,15 @@ function createId() {
   return Date.now().toString();
 }
 
+function normalizeCategories(items: Category[]) {
+  return [...items]
+    .map((category, index) => ({
+      ...category,
+      sortOrder: typeof category.sortOrder === 'number' ? category.sortOrder : index,
+    }))
+    .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+}
+
 export function MenuProvider({ children }: { children: ReactNode }) {
   const [apiAvailable, setApiAvailable] = useState(false);
   const [storageEnabled] = useState(hasSupabaseConfig);
@@ -65,7 +75,7 @@ export function MenuProvider({ children }: { children: ReactNode }) {
 
   const [categories, setCategories] = useState<Category[]>(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.CATEGORIES);
-    return saved ? JSON.parse(saved) : initialCategories;
+    return saved ? normalizeCategories(JSON.parse(saved)) : normalizeCategories(initialCategories);
   });
 
   const [products, setProducts] = useState<Product[]>(() => {
@@ -107,7 +117,7 @@ export function MenuProvider({ children }: { children: ReactNode }) {
           setDataSource('supabase');
           setApiAvailable(false);
           setConfig(remote.config);
-          setCategories(remote.categories.length > 0 ? remote.categories : initialCategories);
+          setCategories(normalizeCategories(remote.categories.length > 0 ? remote.categories : initialCategories));
           setProducts(remote.products.length > 0 ? remote.products : initialProducts);
           setComplements(remote.complements.length > 0 ? remote.complements : initialComplements);
           return;
@@ -131,7 +141,7 @@ export function MenuProvider({ children }: { children: ReactNode }) {
           ]);
 
           if (cfgRes.ok) setConfig({ ...initialConfig, ...(await cfgRes.json()) });
-          if (catsRes.ok) setCategories(await catsRes.json());
+          if (catsRes.ok) setCategories(normalizeCategories(await catsRes.json()));
           if (prodsRes.ok) setProducts(await prodsRes.json());
           if (compsRes.ok) setComplements(await compsRes.json());
           return;
@@ -187,8 +197,8 @@ export function MenuProvider({ children }: { children: ReactNode }) {
   };
 
   const addCategory = async (name: string) => {
-    const newCategory: Category = { id: createId(), name };
-    setCategories((prev) => [...prev, newCategory]);
+    const newCategory: Category = { id: createId(), name, sortOrder: categories.length };
+    setCategories((prev) => normalizeCategories([...prev, newCategory]));
 
     if (dataSource === 'supabase') {
       await saveSupabaseCategory(newCategory);
@@ -205,7 +215,7 @@ export function MenuProvider({ children }: { children: ReactNode }) {
   };
 
   const updateCategory = async (id: string, name: string) => {
-    const updated = categories.map((category) => (category.id === id ? { ...category, name } : category));
+    const updated = normalizeCategories(categories.map((category) => (category.id === id ? { ...category, name } : category)));
     setCategories(updated);
 
     if (dataSource === 'supabase') {
@@ -220,6 +230,37 @@ export function MenuProvider({ children }: { children: ReactNode }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name }),
       });
+    }
+  };
+
+  const reorderCategories = async (orderedIds: string[]) => {
+    const byId = new Map(categories.map((category) => [category.id, category]));
+    const updated = normalizeCategories(
+      orderedIds
+        .map((id, index) => {
+          const category = byId.get(id);
+          return category ? { ...category, sortOrder: index } : null;
+        })
+        .filter(Boolean) as Category[]
+    );
+
+    setCategories(updated);
+
+    if (dataSource === 'supabase') {
+      await Promise.all(updated.map(saveSupabaseCategory));
+      return;
+    }
+
+    if (apiAvailable) {
+      await Promise.all(
+        updated.map((category) =>
+          fetch(`${API}/api/categories/${category.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: category.name, sortOrder: category.sortOrder }),
+          })
+        )
+      );
     }
   };
 
@@ -378,14 +419,14 @@ export function MenuProvider({ children }: { children: ReactNode }) {
             fetch(`${API}/api/complements`),
           ]);
           setConfig({ ...initialConfig, ...(seed || {}) });
-          setCategories((await cats.json()) || initialCategories);
+          setCategories(normalizeCategories((await cats.json()) || initialCategories));
           setProducts((await prods.json()) || initialProducts);
           setComplements((await comps.json()) || initialComplements);
         }
         return;
       } catch {
         setConfig(initialConfig);
-        setCategories(initialCategories);
+        setCategories(normalizeCategories(initialCategories));
         setProducts(initialProducts);
         setComplements(initialComplements);
         return;
@@ -393,7 +434,7 @@ export function MenuProvider({ children }: { children: ReactNode }) {
     }
 
     setConfig(initialConfig);
-    setCategories(initialCategories);
+    setCategories(normalizeCategories(initialCategories));
     setProducts(initialProducts);
     setComplements(initialComplements);
     localStorage.removeItem(STORAGE_KEYS.CONFIG);
@@ -413,6 +454,7 @@ export function MenuProvider({ children }: { children: ReactNode }) {
       toggleBusinessOpen,
       addCategory,
       updateCategory,
+      reorderCategories,
       deleteCategory,
       addProduct,
       updateProduct,

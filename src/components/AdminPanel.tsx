@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { 
   Power, Plus, Trash2, Edit2, ArrowLeft, Check, X, 
-  Settings, Utensils, Tag, Layers, RefreshCw, Droplets
+  Settings, Utensils, Tag, Layers, RefreshCw, Droplets, GripVertical, ChevronDown, ChevronUp
 } from 'lucide-react';
 import { useMenu } from '../context/MenuContext';
 import { Product } from '../types';
@@ -15,7 +15,7 @@ interface AdminPanelProps {
 export function AdminPanel({ onBack }: AdminPanelProps) {
   const { 
     config, updateConfig, toggleBusinessOpen,
-    categories, addCategory, updateCategory, deleteCategory,
+    categories, addCategory, updateCategory, reorderCategories, deleteCategory,
     products, addProduct, updateProduct, deleteProduct,
     complements, addComplement, updateComplement, deleteComplement,
     storageEnabled, uploadProductImage, resetToDefault
@@ -86,12 +86,35 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
   const [newCatName, setNewCatName] = useState('');
   const [editingCatId, setEditingCatId] = useState<string | null>(null);
   const [editingCatName, setEditingCatName] = useState('');
+  const [draggingCategoryId, setDraggingCategoryId] = useState<string | null>(null);
 
   const handleAddCategory = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCatName.trim()) return;
     addCategory(newCatName.trim());
     setNewCatName('');
+  };
+
+  const handleCategoryDrop = (targetId: string) => {
+    if (!draggingCategoryId || draggingCategoryId === targetId) {
+      setDraggingCategoryId(null);
+      return;
+    }
+
+    const orderedIds = categories.map((category) => category.id);
+    const fromIndex = orderedIds.indexOf(draggingCategoryId);
+    const toIndex = orderedIds.indexOf(targetId);
+
+    if (fromIndex === -1 || toIndex === -1) {
+      setDraggingCategoryId(null);
+      return;
+    }
+
+    const nextIds = [...orderedIds];
+    const [movedId] = nextIds.splice(fromIndex, 1);
+    nextIds.splice(toIndex, 0, movedId);
+    setDraggingCategoryId(null);
+    reorderCategories(nextIds);
   };
 
   // --- COMPLEMENT STATE ---
@@ -124,6 +147,7 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
   const [prodComplements, setProdComplements] = useState<string[]>([]);
   const [productSaveError, setProductSaveError] = useState<string | null>(null);
   const [isSavingProduct, setIsSavingProduct] = useState(false);
+  const [collapsedProductCategories, setCollapsedProductCategories] = useState<string[]>([]);
 
   const openNewProductForm = () => {
     setIsEditingProd(true);
@@ -192,6 +216,19 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
   const toggleProdComplement = (id: string) => {
     setProdComplements(prev => 
       prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]
+    );
+  };
+
+  const groupedProducts = categories
+    .map((category) => ({
+      category,
+      items: products.filter((product) => !product.isDailyWater && product.categoryId === category.id),
+    }))
+    .filter((group) => group.items.length > 0);
+
+  const toggleProductCategory = (categoryId: string) => {
+    setCollapsedProductCategories((prev) =>
+      prev.includes(categoryId) ? prev.filter((id) => id !== categoryId) : [...prev, categoryId]
     );
   };
 
@@ -601,49 +638,69 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
                   </button>
                 </div>
 
-                {/* Products Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {products.filter(p => !p.isDailyWater).map(product => {
-                    const categoryName = categories.find(c => c.id === product.categoryId)?.name || 'Sin Categoría';
-                    return (
-                      <div key={product.id} className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm flex gap-4 items-center justify-between">
-                        <div className="flex items-center gap-3 overflow-hidden">
-                          <img
-                            src={product.image}
-                            alt={product.name}
-                            onError={handleProductImageError}
-                            className="w-16 h-16 object-cover rounded-xl shrink-0 bg-gray-100"
-                          />
-                          <div className="overflow-hidden">
-                            <span className="text-[10px] font-bold uppercase tracking-wider bg-orange-50 text-orange-600 px-2 py-0.5 rounded-md">
-                              {categoryName}
-                            </span>
-                            <h4 className="font-bold text-gray-800 text-sm truncate mt-1">{product.name}</h4>
-                            <p className="text-orange-500 font-extrabold text-sm">${product.price.toFixed(2)}</p>
-                          </div>
+                <div className="space-y-6">
+                  {groupedProducts.map(({ category, items }) => (
+                    <section key={category.id} className="space-y-3">
+                      <button
+                        type="button"
+                        onClick={() => toggleProductCategory(category.id)}
+                        className="w-full flex items-center justify-between gap-3 rounded-2xl border border-gray-200 bg-white px-4 py-3 text-left hover:border-orange-300 hover:bg-orange-50/30 transition-colors"
+                      >
+                        <div>
+                          <h4 className="text-xl font-bold text-gray-900">{category.name}</h4>
+                          <span className="text-xs text-gray-400">{items.length} producto(s)</span>
                         </div>
+                        {collapsedProductCategories.includes(category.id) ? (
+                          <ChevronDown className="w-5 h-5 text-gray-500 shrink-0" />
+                        ) : (
+                          <ChevronUp className="w-5 h-5 text-gray-500 shrink-0" />
+                        )}
+                      </button>
 
-                        <div className="flex items-center gap-2 shrink-0">
-                          <button
-                            onClick={() => openEditProductForm(product)}
-                            title="Editar producto"
-                            className="p-2 bg-gray-100 hover:bg-orange-50 hover:text-orange-600 rounded-xl text-gray-600 transition-colors"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => {
-                              if (window.confirm(`¿Eliminar "${product.name}"?`)) deleteProduct(product.id);
-                            }}
-                            title="Eliminar producto"
-                            className="p-2 bg-gray-100 hover:bg-red-50 hover:text-red-600 rounded-xl text-gray-600 transition-colors"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                      {!collapsedProductCategories.includes(category.id) && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {items.map((product) => (
+                            <div key={product.id} className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm flex gap-4 items-center justify-between">
+                              <div className="flex items-center gap-3 overflow-hidden">
+                                <img
+                                  src={product.image}
+                                  alt={product.name}
+                                  onError={handleProductImageError}
+                                  className="w-16 h-16 object-cover rounded-xl shrink-0 bg-gray-100"
+                                />
+                                <div className="overflow-hidden">
+                                  <span className="text-[10px] font-bold uppercase tracking-wider bg-orange-50 text-orange-600 px-2 py-0.5 rounded-md">
+                                    {category.name}
+                                  </span>
+                                  <h4 className="font-bold text-gray-800 text-sm truncate mt-1">{product.name}</h4>
+                                  <p className="text-orange-500 font-extrabold text-sm">${product.price.toFixed(2)}</p>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-2 shrink-0">
+                                <button
+                                  onClick={() => openEditProductForm(product)}
+                                  title="Editar producto"
+                                  className="p-2 bg-gray-100 hover:bg-orange-50 hover:text-orange-600 rounded-xl text-gray-600 transition-colors"
+                                >
+                                  <Edit2 className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    if (window.confirm(`¿Eliminar "${product.name}"?`)) deleteProduct(product.id);
+                                  }}
+                                  title="Eliminar producto"
+                                  className="p-2 bg-gray-100 hover:bg-red-50 hover:text-red-600 rounded-xl text-gray-600 transition-colors"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                      </div>
-                    );
-                  })}
+                      )}
+                    </section>
+                  ))}
                 </div>
               </div>
             ) : (
@@ -857,7 +914,24 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
             <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 space-y-3">
               <h3 className="text-lg font-bold text-gray-900 mb-2">Categorías Actuales</h3>
               {categories.map(cat => (
-                <div key={cat.id} className="flex items-center justify-between p-3.5 bg-gray-50 rounded-2xl border border-gray-100">
+                <div
+                  key={cat.id}
+                  draggable
+                  onDragStart={() => setDraggingCategoryId(cat.id)}
+                  onDragOver={(event) => event.preventDefault()}
+                  onDrop={() => handleCategoryDrop(cat.id)}
+                  onDragEnd={() => setDraggingCategoryId(null)}
+                  className={`flex items-center justify-between p-3.5 bg-gray-50 rounded-2xl border ${draggingCategoryId === cat.id ? 'border-orange-300 bg-orange-50' : 'border-gray-100'}`}
+                >
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <button
+                      type="button"
+                      className="p-1.5 text-gray-400 cursor-grab active:cursor-grabbing"
+                      title="Arrastra para cambiar el orden"
+                    >
+                      <GripVertical className="w-4 h-4" />
+                    </button>
+
                   {editingCatId === cat.id ? (
                     <div className="flex items-center gap-2 flex-1 mr-4">
                       <input
@@ -884,8 +958,12 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
                       </button>
                     </div>
                   ) : (
-                    <span className="font-bold text-gray-800 text-sm">{cat.name}</span>
+                    <div className="min-w-0">
+                      <span className="font-bold text-gray-800 text-sm block truncate">{cat.name}</span>
+                      <span className="text-[11px] text-gray-400">Posición {(cat.sortOrder ?? 0) + 1}</span>
+                    </div>
                   )}
+                  </div>
 
                   <div className="flex items-center gap-2">
                     <button

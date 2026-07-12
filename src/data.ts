@@ -27,10 +27,10 @@ export const initialConfig: BusinessConfig = {
 };
 
 export const initialCategories: Category[] = [
-  { id: '1', name: 'Hamburguesas' },
-  { id: '2', name: 'Pizzas' },
-  { id: '3', name: 'Bebidas' },
-  { id: '4', name: 'Postres' },
+  { id: '1', name: 'Hamburguesas', sortOrder: 0 },
+  { id: '2', name: 'Pizzas', sortOrder: 1 },
+  { id: '3', name: 'Bebidas', sortOrder: 2 },
+  { id: '4', name: 'Postres', sortOrder: 3 },
 ];
 
 export const initialComplements: Complement[] = [
