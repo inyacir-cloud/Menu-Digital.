@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { ShoppingCart, Utensils, Clock, MapPin, AtSign, Share2, Globe, X } from 'lucide-react';
+import { ShoppingCart, Utensils, Clock, MapPin, AtSign, Share2, Globe, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { useMenu } from '../context/MenuContext';
 import { useCart } from '../context/CartContext';
 import { CategoryList } from './CategoryList';
@@ -16,6 +16,7 @@ export function MenuPage() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [showClosedOverlay, setShowClosedOverlay] = useState(true);
+  const [showBusinessDetails, setShowBusinessDetails] = useState(false);
 
   const currentCategoryId = categories.some(c => c.id === activeCategory)
     ? activeCategory
@@ -228,118 +229,123 @@ export function MenuPage() {
       {/* ============================================ */}
       <section className="max-w-5xl w-full mx-auto px-3 sm:px-4 py-6 sm:py-8">
         <div className="bg-white rounded-2xl sm:rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="p-5 sm:p-6 bg-gradient-to-r from-orange-500 to-orange-600 text-white">
-            <h3 className="text-xl sm:text-2xl font-bold">{config.name}</h3>
-            {config.description && (
-              <p className="text-orange-100 text-xs sm:text-sm mt-2 leading-relaxed">{config.description}</p>
-            )}
-          </div>
+          <button
+            onClick={() => setShowBusinessDetails((prev) => !prev)}
+            className="w-full px-5 sm:px-6 py-4 bg-gradient-to-r from-orange-500 to-orange-600 text-white flex items-center justify-between hover:from-orange-600 hover:to-orange-700 transition-colors"
+          >
+            <span className="text-sm sm:text-base font-semibold">Ver ubicación, horarios, servicios y redes</span>
+            {showBusinessDetails ? <ChevronUp className="w-4 h-4 text-white" /> : <ChevronDown className="w-4 h-4 text-white" />}
+          </button>
 
-          <div className="p-5 sm:p-6 grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
-            {/* Ubicación y Servicio */}
-            <div className="space-y-4">
-              <div className="flex items-start gap-3">
-                <div className="p-2 bg-orange-50 rounded-xl text-orange-500 shrink-0">
-                  <MapPin className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="font-semibold text-gray-800 text-sm">Ubicación</h4>
-                  <p className="text-sm text-gray-600 mt-0.5">{config.address || 'No especificada'}</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <div className="p-2 bg-orange-50 rounded-xl text-orange-500 shrink-0">
-                  <ShoppingCart className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="font-semibold text-gray-800 text-sm">Tipo de Servicio</h4>
-                  <p className="text-sm text-gray-600 mt-0.5">
-                    {config.serviceType === 'pickup' && 'Solo para recoger'}
-                    {config.serviceType === 'delivery' && 'Solo servicio a domicilio'}
-                    {config.serviceType === 'both' && 'Domicilio y recoger en local'}
-                    {!config.serviceType && 'No especificado'}
-                  </p>
-                  {config.deliveryRadius && (
-                    <p className="text-xs text-gray-500 mt-0.5">Radio de entrega: {config.deliveryRadius}</p>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Horarios Detallados */}
-            <div>
-              <div className="flex items-start gap-3 mb-3">
-                <div className="p-2 bg-orange-50 rounded-xl text-orange-500 shrink-0">
-                  <Clock className="w-5 h-5" />
-                </div>
-                <div className="flex-1">
-                  <h4 className="font-semibold text-gray-800 text-sm mb-3">Horarios de Atención</h4>
-                  
-                  {config.hours ? (
-                    <div className="space-y-1.5 text-xs">
-                      {Object.entries(config.hours).map(([day, hours]) => {
-                        const isClosed = hours?.toLowerCase().includes('cerrado') || hours === '';
-                        return (
-                          <div key={day} className="flex justify-between items-center">
-                            <span className="font-semibold text-gray-600">{dayLabels[day]}</span>
-                            <span className={isClosed ? 'text-red-500' : 'text-gray-800'}>
-                              {hours || 'No definido'}
-                            </span>
-                          </div>
-                        );
-                      })}
+          {showBusinessDetails && (
+            <>
+              <div className="p-5 sm:p-6 grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6 border-t border-gray-100">
+                {/* Ubicación y Servicio */}
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 bg-orange-50 rounded-xl text-orange-500 shrink-0">
+                      <MapPin className="w-5 h-5" />
                     </div>
-                  ) : (
-                    <p className="text-sm text-gray-600">{config.schedule}</p>
-                  )}
+                    <div>
+                      <h4 className="font-semibold text-gray-800 text-sm">Ubicación</h4>
+                      <p className="text-sm text-gray-600 mt-0.5">{config.address || 'No especificada'}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 bg-orange-50 rounded-xl text-orange-500 shrink-0">
+                      <ShoppingCart className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-gray-800 text-sm">Tipo de Servicio</h4>
+                      <p className="text-sm text-gray-600 mt-0.5">
+                        {config.serviceType === 'pickup' && 'Solo para recoger'}
+                        {config.serviceType === 'delivery' && 'Solo servicio a domicilio'}
+                        {config.serviceType === 'both' && 'Domicilio y recoger en local'}
+                        {!config.serviceType && 'No especificado'}
+                      </p>
+                      {config.deliveryRadius && (
+                        <p className="text-xs text-gray-500 mt-0.5">Radio de entrega: {config.deliveryRadius}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Horarios Detallados */}
+                <div>
+                  <div className="flex items-start gap-3 mb-3">
+                    <div className="p-2 bg-orange-50 rounded-xl text-orange-500 shrink-0">
+                      <Clock className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-gray-800 text-sm mb-3">Horarios de Atención</h4>
+                      
+                      {config.hours ? (
+                        <div className="space-y-1.5 text-xs">
+                          {Object.entries(config.hours).map(([day, hours]) => {
+                            const isClosed = hours?.toLowerCase().includes('cerrado') || hours === '';
+                            return (
+                              <div key={day} className="flex justify-between items-center">
+                                <span className="font-semibold text-gray-600">{dayLabels[day]}</span>
+                                <span className={isClosed ? 'text-red-500' : 'text-gray-800'}>
+                                  {hours || 'No definido'}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-gray-600">{config.schedule}</p>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
 
-          {/* Redes Sociales */}
-          {config.socialMedia && (
-            config.socialMedia.instagram || config.socialMedia.facebook || config.socialMedia.website
-          ) && (
-            <div className="px-6 pb-6 pt-2 border-t border-gray-100">
-              <h4 className="font-semibold text-gray-800 text-sm mb-3">Síguenos en redes</h4>
-              <div className="flex flex-wrap gap-3">
-                {config.socialMedia.instagram && (
-                  <a
-                    href={`https://instagram.com/${config.socialMedia.instagram.replace('@', '')}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full text-xs font-semibold hover:shadow-lg transition-all"
-                  >
-                    <AtSign className="w-3.5 h-3.5" />
-                    <span>@{config.socialMedia.instagram.replace('@', '')}</span>
-                  </a>
-                )}
-                {config.socialMedia.facebook && (
-                  <a
-                    href={`https://facebook.com/${config.socialMedia.facebook}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-full text-xs font-semibold hover:shadow-lg transition-all"
-                  >
-                    <Share2 className="w-3.5 h-3.5" />
-                    <span>{config.socialMedia.facebook}</span>
-                  </a>
-                )}
-                {config.socialMedia.website && (
-                  <a
-                    href={config.socialMedia.website}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-gray-800 text-white rounded-full text-xs font-semibold hover:shadow-lg transition-all"
-                  >
-                    <Globe className="w-3.5 h-3.5" />
-                    <span>Sitio Web</span>
-                  </a>
-                )}
-              </div>
-            </div>
+              {/* Redes Sociales */}
+              {config.socialMedia && (
+                config.socialMedia.instagram || config.socialMedia.facebook || config.socialMedia.website
+              ) && (
+                <div className="px-6 pb-6 pt-2 border-t border-gray-100">
+                  <h4 className="font-semibold text-gray-800 text-sm mb-3">Síguenos en redes</h4>
+                  <div className="flex flex-wrap gap-3">
+                    {config.socialMedia.instagram && (
+                      <a
+                        href={`https://instagram.com/${config.socialMedia.instagram.replace('@', '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full text-xs font-semibold hover:shadow-lg transition-all"
+                      >
+                        <AtSign className="w-3.5 h-3.5" />
+                        <span>@{config.socialMedia.instagram.replace('@', '')}</span>
+                      </a>
+                    )}
+                    {config.socialMedia.facebook && (
+                      <a
+                        href={`https://facebook.com/${config.socialMedia.facebook}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-full text-xs font-semibold hover:shadow-lg transition-all"
+                      >
+                        <Share2 className="w-3.5 h-3.5" />
+                        <span>{config.socialMedia.facebook}</span>
+                      </a>
+                    )}
+                    {config.socialMedia.website && (
+                      <a
+                        href={config.socialMedia.website}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-gray-800 text-white rounded-full text-xs font-semibold hover:shadow-lg transition-all"
+                      >
+                        <Globe className="w-3.5 h-3.5" />
+                        <span>Sitio Web</span>
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       </section>
