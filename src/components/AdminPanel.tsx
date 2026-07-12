@@ -132,7 +132,7 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
     setProdDesc('');
     setProdPrice('');
     setProdCat(categories[0]?.id || '');
-    setProdImg('/Logo.png');
+    setProdImg('');
     setProdImageFile(null);
     setProdComplements([]);
     setProductSaveError(null);
@@ -726,7 +726,7 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
                       URL de la Imagen (Foto del platillo)
                     </label>
                     <input
-                      type="url"
+                      type="text"
                       value={prodImg}
                       onChange={(e) => setProdImg(e.target.value)}
                       placeholder="https://images.unsplash.com/..."
