@@ -1,27 +1,39 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Category, Product, Complement, BusinessConfig } from '../types';
-import { initialCategories, initialProducts, initialComplements, initialConfig } from '../data';
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { initialCategories, initialComplements, initialConfig, initialProducts } from '../data';
+import {
+  deleteSupabaseCategory,
+  deleteSupabaseComplement,
+  deleteSupabaseProduct,
+  loadSupabaseData,
+  resetSupabaseData,
+  saveSupabaseCategory,
+  saveSupabaseComplement,
+  saveSupabaseConfig,
+  saveSupabaseProduct,
+  uploadSupabaseProductImage,
+} from '../lib/supabaseData';
+import { hasSupabaseConfig } from '../lib/supabase';
+import { BusinessConfig, Category, Complement, Product } from '../types';
 
 interface MenuContextType {
   config: BusinessConfig;
   categories: Category[];
   products: Product[];
   complements: Complement[];
-  updateConfig: (newConfig: Partial<BusinessConfig>) => void;
-  toggleBusinessOpen: () => void;
-  // Category CRUD
-  addCategory: (name: string) => void;
-  updateCategory: (id: string, name: string) => void;
-  deleteCategory: (id: string) => void;
-  // Product CRUD
-  addProduct: (product: Omit<Product, 'id'>) => void;
-  updateProduct: (id: string, product: Partial<Product>) => void;
-  deleteProduct: (id: string) => void;
-  // Complement CRUD
-  addComplement: (complement: Omit<Complement, 'id'>) => void;
-  updateComplement: (id: string, complement: Partial<Complement>) => void;
-  deleteComplement: (id: string) => void;
-  resetToDefault: () => void;
+  storageEnabled: boolean;
+  updateConfig: (newConfig: Partial<BusinessConfig>) => Promise<void>;
+  toggleBusinessOpen: () => Promise<void>;
+  addCategory: (name: string) => Promise<void>;
+  updateCategory: (id: string, name: string) => Promise<void>;
+  deleteCategory: (id: string) => Promise<void>;
+  addProduct: (product: Omit<Product, 'id'>) => Promise<void>;
+  updateProduct: (id: string, product: Partial<Product>) => Promise<void>;
+  deleteProduct: (id: string) => Promise<void>;
+  addComplement: (complement: Omit<Complement, 'id'>) => Promise<void>;
+  updateComplement: (id: string, complement: Partial<Complement>) => Promise<void>;
+  deleteComplement: (id: string) => Promise<void>;
+  uploadProductImage: (file: File) => Promise<string>;
+  resetToDefault: () => Promise<void>;
 }
 
 const MenuContext = createContext<MenuContextType | undefined>(undefined);
@@ -33,8 +45,18 @@ const STORAGE_KEYS = {
   COMPLEMENTS: 'menu_app_complements_v1',
 };
 
+function createId() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+
+  return Date.now().toString();
+}
+
 export function MenuProvider({ children }: { children: ReactNode }) {
-  const [apiAvailable, setApiAvailable] = useState<boolean>(false);
+  const [apiAvailable, setApiAvailable] = useState(false);
+  const [storageEnabled] = useState(hasSupabaseConfig);
+  const [dataSource, setDataSource] = useState<'local' | 'api' | 'supabase'>('local');
 
   const [config, setConfig] = useState<BusinessConfig>(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.CONFIG);
@@ -56,7 +78,6 @@ export function MenuProvider({ children }: { children: ReactNode }) {
     return saved ? JSON.parse(saved) : initialComplements;
   });
 
-  // Save to localStorage whenever states change
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.CONFIG, JSON.stringify(config));
   }, [config]);
@@ -73,144 +94,312 @@ export function MenuProvider({ children }: { children: ReactNode }) {
     localStorage.setItem(STORAGE_KEYS.COMPLEMENTS, JSON.stringify(complements));
   }, [complements]);
 
-  // Base URL configurado por Vite env var. Si está vacío usar rutas relativas.
   const API = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, '') ?? '';
 
-  // Detect API availability and optionally load remote data
   useEffect(() => {
     let mounted = true;
-    const ping = async () => {
+
+    const loadData = async () => {
+      if (hasSupabaseConfig) {
+        try {
+          const remote = await loadSupabaseData();
+          if (!mounted) return;
+          setDataSource('supabase');
+          setApiAvailable(false);
+          setConfig(remote.config);
+          setCategories(remote.categories.length > 0 ? remote.categories : initialCategories);
+          setProducts(remote.products.length > 0 ? remote.products : initialProducts);
+          setComplements(remote.complements.length > 0 ? remote.complements : initialComplements);
+          return;
+        } catch (error) {
+          console.error('No se pudo cargar Supabase; se intentará backend/local.', error);
+        }
+      }
+
       try {
         const res = await fetch(`${API}/api/ping`);
         if (!mounted) return;
         if (res.ok) {
           setApiAvailable(true);
-          // load remote state
+          setDataSource('api');
+
           const [cfgRes, catsRes, prodsRes, compsRes] = await Promise.all([
             fetch(`${API}/api/config`),
             fetch(`${API}/api/categories`),
             fetch(`${API}/api/products`),
-            fetch(`${API}/api/complements`)
+            fetch(`${API}/api/complements`),
           ]);
+
           if (cfgRes.ok) setConfig({ ...initialConfig, ...(await cfgRes.json()) });
           if (catsRes.ok) setCategories(await catsRes.json());
           if (prodsRes.ok) setProducts(await prodsRes.json());
           if (compsRes.ok) setComplements(await compsRes.json());
+          return;
         }
-      } catch (err) {
+      } catch {
         setApiAvailable(false);
       }
+
+      if (!mounted) return;
+      setDataSource('local');
     };
-    ping();
-    return () => { mounted = false; };
+
+    loadData();
+    return () => {
+      mounted = false;
+    };
   }, [API]);
 
-  const updateConfig = (newConfig: Partial<BusinessConfig>) => {
-    setConfig(prev => ({ ...prev, ...newConfig }));
+  const updateConfig = async (newConfig: Partial<BusinessConfig>) => {
+    const nextConfig = { ...config, ...newConfig };
+    setConfig(nextConfig);
+
+    if (dataSource === 'supabase') {
+      await saveSupabaseConfig(nextConfig);
+      return;
+    }
+
     if (apiAvailable) {
-      fetch(`${API}/api/config`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newConfig) }).catch(()=>{});
+      await fetch(`${API}/api/config`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newConfig),
+      });
     }
   };
 
-  const toggleBusinessOpen = () => {
-    setConfig(prev => {
-      const updated = { ...prev, isOpen: !prev.isOpen };
-      if (apiAvailable) fetch(`${API}/api/config`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ isOpen: updated.isOpen }) }).catch(()=>{});
-      return updated;
-    });
+  const toggleBusinessOpen = async () => {
+    const updated = { ...config, isOpen: !config.isOpen };
+    setConfig(updated);
+
+    if (dataSource === 'supabase') {
+      await saveSupabaseConfig(updated);
+      return;
+    }
+
+    if (apiAvailable) {
+      await fetch(`${API}/api/config`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isOpen: updated.isOpen }),
+      });
+    }
   };
 
-  // Categories
-  const addCategory = (name: string) => {
-    const id = Date.now().toString();
-    const newCat: Category = { id, name };
-    setCategories(prev => [...prev, newCat]);
-    if (apiAvailable) fetch(`${API}/api/categories`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) }).catch(()=>{});
+  const addCategory = async (name: string) => {
+    const newCategory: Category = { id: createId(), name };
+    setCategories((prev) => [...prev, newCategory]);
+
+    if (dataSource === 'supabase') {
+      await saveSupabaseCategory(newCategory);
+      return;
+    }
+
+    if (apiAvailable) {
+      await fetch(`${API}/api/categories`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      });
+    }
   };
 
-  const updateCategory = (id: string, name: string) => {
-    setCategories(prev => prev.map(c => c.id === id ? { ...c, name } : c));
-    if (apiAvailable) fetch(`${API}/api/categories/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) }).catch(()=>{});
+  const updateCategory = async (id: string, name: string) => {
+    const updated = categories.map((category) => (category.id === id ? { ...category, name } : category));
+    setCategories(updated);
+
+    if (dataSource === 'supabase') {
+      const category = updated.find((item) => item.id === id);
+      if (category) await saveSupabaseCategory(category);
+      return;
+    }
+
+    if (apiAvailable) {
+      await fetch(`${API}/api/categories/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      });
+    }
   };
 
-  const deleteCategory = (id: string) => {
-    setCategories(prev => prev.filter(c => c.id !== id));
-    // Optionally remove products in this category or set them to unassigned
-    setProducts(prev => prev.filter(p => p.categoryId !== id));
-    if (apiAvailable) fetch(`${API}/api/categories/${id}`, { method: 'DELETE' }).catch(()=>{});
+  const deleteCategory = async (id: string) => {
+    setCategories((prev) => prev.filter((category) => category.id !== id));
+    setProducts((prev) => prev.filter((product) => product.categoryId !== id));
+
+    if (dataSource === 'supabase') {
+      await deleteSupabaseCategory(id);
+      return;
+    }
+
+    if (apiAvailable) {
+      await fetch(`${API}/api/categories/${id}`, { method: 'DELETE' });
+    }
   };
 
-  // Products
-  const addProduct = (productData: Omit<Product, 'id'>) => {
-    const newProd: Product = { ...productData, id: Date.now().toString() };
-    setProducts(prev => [...prev, newProd]);
-    if (apiAvailable) fetch(`${API}/api/products`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(productData) }).catch(()=>{});
+  const addProduct = async (productData: Omit<Product, 'id'>) => {
+    const newProduct: Product = { ...productData, id: createId() };
+    setProducts((prev) => [...prev, newProduct]);
+
+    if (dataSource === 'supabase') {
+      await saveSupabaseProduct(newProduct);
+      return;
+    }
+
+    if (apiAvailable) {
+      await fetch(`${API}/api/products`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(productData),
+      });
+    }
   };
 
-  const updateProduct = (id: string, productData: Partial<Product>) => {
-    setProducts(prev => prev.map(p => p.id === id ? { ...p, ...productData } : p));
-    if (apiAvailable) fetch(`${API}/api/products/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(productData) }).catch(()=>{});
+  const updateProduct = async (id: string, productData: Partial<Product>) => {
+    const updated = products.map((product) => (product.id === id ? { ...product, ...productData } : product));
+    setProducts(updated);
+
+    if (dataSource === 'supabase') {
+      const product = updated.find((item) => item.id === id);
+      if (product) await saveSupabaseProduct(product);
+      return;
+    }
+
+    if (apiAvailable) {
+      await fetch(`${API}/api/products/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(productData),
+      });
+    }
   };
 
-  const deleteProduct = (id: string) => {
-    setProducts(prev => prev.filter(p => p.id !== id));
-    if (apiAvailable) fetch(`${API}/api/products/${id}`, { method: 'DELETE' }).catch(()=>{});
+  const deleteProduct = async (id: string) => {
+    setProducts((prev) => prev.filter((product) => product.id !== id));
+
+    if (dataSource === 'supabase') {
+      await deleteSupabaseProduct(id);
+      return;
+    }
+
+    if (apiAvailable) {
+      await fetch(`${API}/api/products/${id}`, { method: 'DELETE' });
+    }
   };
 
-  // Complements
-  const addComplement = (compData: Omit<Complement, 'id'>) => {
-    const newComp: Complement = { ...compData, id: Date.now().toString() };
-    setComplements(prev => [...prev, newComp]);
-    if (apiAvailable) fetch(`${API}/api/complements`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(compData) }).catch(()=>{});
+  const addComplement = async (complementData: Omit<Complement, 'id'>) => {
+    const newComplement: Complement = { ...complementData, id: createId() };
+    setComplements((prev) => [...prev, newComplement]);
+
+    if (dataSource === 'supabase') {
+      await saveSupabaseComplement(newComplement);
+      return;
+    }
+
+    if (apiAvailable) {
+      await fetch(`${API}/api/complements`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(complementData),
+      });
+    }
   };
 
-  const updateComplement = (id: string, compData: Partial<Complement>) => {
-    setComplements(prev => prev.map(c => c.id === id ? { ...c, ...compData } : c));
-    if (apiAvailable) fetch(`${API}/api/complements/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(compData) }).catch(()=>{});
+  const updateComplement = async (id: string, complementData: Partial<Complement>) => {
+    const updated = complements.map((complement) => (complement.id === id ? { ...complement, ...complementData } : complement));
+    setComplements(updated);
+
+    if (dataSource === 'supabase') {
+      const complement = updated.find((item) => item.id === id);
+      if (complement) await saveSupabaseComplement(complement);
+      return;
+    }
+
+    if (apiAvailable) {
+      await fetch(`${API}/api/complements/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(complementData),
+      });
+    }
   };
 
-  const deleteComplement = (id: string) => {
-    setComplements(prev => prev.filter(c => c.id !== id));
-    // Remove deleted complement from products
-    setProducts(prev => prev.map(p => ({
-      ...p,
-      complementIds: p.complementIds?.filter(cid => cid !== id)
-    })));
-    if (apiAvailable) fetch(`${API}/api/complements/${id}`, { method: 'DELETE' }).catch(()=>{});
+  const deleteComplement = async (id: string) => {
+    const productsToPersist = products.filter((product) => product.complementIds?.includes(id));
+    const updatedProducts = products.map((product) => ({
+      ...product,
+      complementIds: product.complementIds?.filter((complementId) => complementId !== id),
+    }));
+
+    setComplements((prev) => prev.filter((complement) => complement.id !== id));
+    setProducts(updatedProducts);
+
+    if (dataSource === 'supabase') {
+      await Promise.all(updatedProducts.filter((product) => productsToPersist.some((persisted) => persisted.id === product.id)).map(saveSupabaseProduct));
+      await deleteSupabaseComplement(id);
+      return;
+    }
+
+    if (apiAvailable) {
+      await fetch(`${API}/api/complements/${id}`, { method: 'DELETE' });
+    }
   };
 
-  const resetToDefault = () => {
-    if (window.confirm('¿Estás seguro de restablecer todos los datos del menú a los valores iniciales?')) {
-      if (apiAvailable) {
-        fetch(`${API}/api/reset`, { method: 'POST' })
-          .then(async res => {
-            if (res.ok) {
-              const seed = await fetch(`${API}/api/config`).then(r => r.json());
-              // reload all
-              const [cats, prods, comps] = await Promise.all([fetch(`${API}/api/categories`), fetch(`${API}/api/products`), fetch(`${API}/api/complements`)]);
-              setConfig({ ...initialConfig, ...(seed || {}) });
-              setCategories((await cats.json()) || initialCategories);
-              setProducts((await prods.json()) || initialProducts);
-              setComplements((await comps.json()) || initialComplements);
-            }
-          }).catch(()=>{
-            // fallback local
-            setConfig(initialConfig);
-            setCategories(initialCategories);
-            setProducts(initialProducts);
-            setComplements(initialComplements);
-          });
-      } else {
+  const uploadProductImage = async (file: File) => {
+    if (dataSource !== 'supabase') {
+      throw new Error('Configura Supabase para subir imágenes reales.');
+    }
+
+    return uploadSupabaseProductImage(file);
+  };
+
+  const resetToDefault = async () => {
+    if (!window.confirm('¿Estás seguro de restablecer todos los datos del menú a los valores iniciales?')) {
+      return;
+    }
+
+    if (dataSource === 'supabase') {
+      await resetSupabaseData();
+      setConfig(initialConfig);
+      setCategories(initialCategories);
+      setProducts(initialProducts);
+      setComplements(initialComplements);
+      return;
+    }
+
+    if (apiAvailable) {
+      try {
+        const res = await fetch(`${API}/api/reset`, { method: 'POST' });
+        if (res.ok) {
+          const seed = await fetch(`${API}/api/config`).then((response) => response.json());
+          const [cats, prods, comps] = await Promise.all([
+            fetch(`${API}/api/categories`),
+            fetch(`${API}/api/products`),
+            fetch(`${API}/api/complements`),
+          ]);
+          setConfig({ ...initialConfig, ...(seed || {}) });
+          setCategories((await cats.json()) || initialCategories);
+          setProducts((await prods.json()) || initialProducts);
+          setComplements((await comps.json()) || initialComplements);
+        }
+        return;
+      } catch {
         setConfig(initialConfig);
         setCategories(initialCategories);
         setProducts(initialProducts);
         setComplements(initialComplements);
-        localStorage.removeItem(STORAGE_KEYS.CONFIG);
-        localStorage.removeItem(STORAGE_KEYS.CATEGORIES);
-        localStorage.removeItem(STORAGE_KEYS.PRODUCTS);
-        localStorage.removeItem(STORAGE_KEYS.COMPLEMENTS);
+        return;
       }
     }
+
+    setConfig(initialConfig);
+    setCategories(initialCategories);
+    setProducts(initialProducts);
+    setComplements(initialComplements);
+    localStorage.removeItem(STORAGE_KEYS.CONFIG);
+    localStorage.removeItem(STORAGE_KEYS.CATEGORIES);
+    localStorage.removeItem(STORAGE_KEYS.PRODUCTS);
+    localStorage.removeItem(STORAGE_KEYS.COMPLEMENTS);
   };
 
   return (
@@ -219,6 +408,7 @@ export function MenuProvider({ children }: { children: ReactNode }) {
       categories,
       products,
       complements,
+      storageEnabled,
       updateConfig,
       toggleBusinessOpen,
       addCategory,
@@ -230,7 +420,8 @@ export function MenuProvider({ children }: { children: ReactNode }) {
       addComplement,
       updateComplement,
       deleteComplement,
-      resetToDefault
+      uploadProductImage,
+      resetToDefault,
     }}>
       {children}
     </MenuContext.Provider>

@@ -18,7 +18,7 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
     categories, addCategory, updateCategory, deleteCategory,
     products, addProduct, updateProduct, deleteProduct,
     complements, addComplement, updateComplement, deleteComplement,
-    resetToDefault
+    storageEnabled, uploadProductImage, resetToDefault
   } = useMenu();
 
   const [activeTab, setActiveTab] = useState<'general' | 'products' | 'waters' | 'categories' | 'complements'>('general');
@@ -120,7 +120,10 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
   const [prodPrice, setProdPrice] = useState('');
   const [prodCat, setProdCat] = useState(categories[0]?.id || '');
   const [prodImg, setProdImg] = useState('');
+  const [prodImageFile, setProdImageFile] = useState<File | null>(null);
   const [prodComplements, setProdComplements] = useState<string[]>([]);
+  const [productSaveError, setProductSaveError] = useState<string | null>(null);
+  const [isSavingProduct, setIsSavingProduct] = useState(false);
 
   const openNewProductForm = () => {
     setIsEditingProd(true);
@@ -130,7 +133,9 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
     setProdPrice('');
     setProdCat(categories[0]?.id || '');
     setProdImg('/Logo.png');
+    setProdImageFile(null);
     setProdComplements([]);
+    setProductSaveError(null);
   };
 
   const openEditProductForm = (p: Product) => {
@@ -141,28 +146,47 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
     setProdPrice(p.price.toString());
     setProdCat(p.categoryId);
     setProdImg(p.image);
+    setProdImageFile(null);
     setProdComplements(p.complementIds || []);
+    setProductSaveError(null);
   };
 
-  const handleSaveProduct = (e: React.FormEvent) => {
+  const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!prodName.trim() || !prodPrice) return;
 
-    const productData = {
-      name: prodName.trim(),
-      description: prodDesc.trim(),
-      price: parseFloat(prodPrice) || 0,
-      categoryId: prodCat || categories[0]?.id || '1',
-      image: prodImg.trim() || '/Logo.png',
-      complementIds: prodComplements
-    };
+    setIsSavingProduct(true);
+    setProductSaveError(null);
 
-    if (currentProdId) {
-      updateProduct(currentProdId, productData);
-    } else {
-      addProduct(productData);
+    try {
+      let imageUrl = prodImg.trim() || '/Logo.png';
+
+      if (prodImageFile) {
+        imageUrl = await uploadProductImage(prodImageFile);
+      }
+
+      const productData = {
+        name: prodName.trim(),
+        description: prodDesc.trim(),
+        price: parseFloat(prodPrice) || 0,
+        categoryId: prodCat || categories[0]?.id || '1',
+        image: imageUrl,
+        complementIds: prodComplements
+      };
+
+      if (currentProdId) {
+        await updateProduct(currentProdId, productData);
+      } else {
+        await addProduct(productData);
+      }
+
+      setIsEditingProd(false);
+      setProdImageFile(null);
+    } catch (error) {
+      setProductSaveError(error instanceof Error ? error.message : 'No se pudo guardar el producto.');
+    } finally {
+      setIsSavingProduct(false);
     }
-    setIsEditingProd(false);
   };
 
   const toggleProdComplement = (id: string) => {
@@ -708,7 +732,36 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
                       placeholder="https://images.unsplash.com/..."
                       className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-orange-500 outline-none text-sm text-gray-600"
                     />
+                    <p className="text-[11px] text-gray-400 mt-1">
+                      Puedes pegar una URL o subir una foto real. Si subes archivo, tendrá prioridad.
+                    </p>
                   </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">
+                      Subir imagen real del producto
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setProdImageFile(e.target.files?.[0] || null)}
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-orange-500 outline-none text-sm text-gray-600 bg-white"
+                    />
+                    <p className="text-[11px] text-gray-400 mt-1">
+                      {storageEnabled ? 'Se subirá a Supabase Storage dentro del bucket configurado.' : 'Configura Supabase para habilitar la carga real de imágenes.'}
+                    </p>
+                    {prodImageFile && (
+                      <p className="text-[11px] text-orange-600 mt-1 font-semibold">
+                        Archivo listo: {prodImageFile.name}
+                      </p>
+                    )}
+                  </div>
+
+                  {productSaveError && (
+                    <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                      {productSaveError}
+                    </div>
+                  )}
 
                   {/* Complements Selector for this Product */}
                   <div className="pt-3 border-t">
@@ -754,9 +807,10 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
                     </button>
                     <button
                       type="submit"
+                      disabled={isSavingProduct}
                       className="w-2/3 bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-xl text-sm transition-colors shadow-md shadow-orange-200"
                     >
-                      {currentProdId ? 'Guardar Cambios' : 'Crear Producto'}
+                      {isSavingProduct ? 'Guardando...' : currentProdId ? 'Guardar Cambios' : 'Crear Producto'}
                     </button>
                   </div>
                 </form>
