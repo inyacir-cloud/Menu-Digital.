@@ -312,8 +312,11 @@ export async function resetSupabaseData() {
   const deleteComplements = await client.from('complements').delete().neq('id', '__never__');
   if (deleteComplements.error) throw deleteComplements.error;
 
-  const seedCategories = await client.from('categories').insert(initialCategories);
-  if (seedCategories.error) throw seedCategories.error;
+  categoriesSupportsSortOrder = false;
+
+  for (const category of initialCategories) {
+    await saveSupabaseCategory(category);
+  }
 
   const seedComplements = await client.from('complements').insert(initialComplements);
   if (seedComplements.error) throw seedComplements.error;

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { type ReactNode, useState } from 'react';
 import { 
   Power, Plus, Trash2, Edit2, ArrowLeft, Check, X, 
   Settings, Utensils, Tag, Layers, RefreshCw, Droplets, GripVertical, ChevronDown, ChevronUp,
@@ -14,6 +14,38 @@ interface AdminPanelProps {
   onBack: () => void;
   onLogout: () => void;
   userEmail?: string;
+}
+
+function AccordionSection({
+  title,
+  description,
+  badge,
+  children,
+}: {
+  title: string;
+  description?: string;
+  badge?: string;
+  children: ReactNode;
+}) {
+  return (
+    <details className="bg-white rounded-3xl border border-gray-100 shadow-sm group">
+      <summary className="list-none cursor-pointer px-6 py-5 flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <h3 className="text-lg font-bold text-gray-900">{title}</h3>
+            {badge && (
+              <span className="text-[10px] font-bold uppercase tracking-wider bg-gray-100 text-gray-600 px-2 py-1 rounded-full shrink-0">
+                {badge}
+              </span>
+            )}
+          </div>
+          {description && <p className="text-sm text-gray-500 mt-1">{description}</p>}
+        </div>
+        <ChevronDown className="w-5 h-5 text-gray-400 mt-1 transition-transform group-open:rotate-180 shrink-0" />
+      </summary>
+      <div className="px-6 pb-6 pt-0 space-y-4">{children}</div>
+    </details>
+  );
 }
 
 export function AdminPanel({ onBack, onLogout, userEmail }: AdminPanelProps) {
@@ -577,17 +609,10 @@ export function AdminPanel({ onBack, onLogout, userEmail }: AdminPanelProps) {
         {/* TAB 1: GENERAL & STATUS */}
         {activeTab === 'general' && (
           <div className="space-y-6 max-w-2xl mx-auto">
-            <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-6">
-              <div>
-                <h3 className="text-lg font-bold text-gray-900">Estado del Menú Virtual</h3>
-                <p className="text-sm text-gray-500 mt-1">
-                  Cuando está cerrado, los clientes pueden ver tu carta pero no podrán enviar pedidos por WhatsApp.
-                </p>
-              </div>
-
+            <AccordionSection title="Estado del Menú Virtual" description="Cuando está cerrado, los clientes pueden ver tu carta pero no podrán enviar pedidos por WhatsApp.">
               <button
                 onClick={toggleBusinessOpen}
-                className={`w-full sm:w-auto px-6 py-3 rounded-2xl font-bold flex items-center justify-center gap-3 transition-all shadow-md ${
+                className={`w-full px-6 py-3 rounded-2xl font-bold flex items-center justify-center gap-3 transition-all shadow-md ${
                   config.isOpen
                     ? 'bg-green-500 hover:bg-green-600 text-white shadow-green-200'
                     : 'bg-red-500 hover:bg-red-600 text-white shadow-red-200'
@@ -596,383 +621,136 @@ export function AdminPanel({ onBack, onLogout, userEmail }: AdminPanelProps) {
                 <Power className="w-5 h-5" />
                 <span>{config.isOpen ? 'ABIERTO (Recibiendo Pedidos)' : 'CERRADO (Sin Pedidos)'}</span>
               </button>
-            </div>
+            </AccordionSection>
 
-            <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 space-y-4">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h3 className="text-lg font-bold text-gray-900">Datos para transferencia</h3>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Esta información se mostrará al cliente cuando elija pago por transferencia.
-                  </p>
-                </div>
-                <span className="text-[10px] font-bold uppercase tracking-wider bg-blue-50 text-blue-700 px-2 py-1 rounded-full shrink-0">
-                  Pago
-                </span>
-              </div>
-
+            <AccordionSection title="Datos para transferencia" description="Esta información se mostrará al cliente cuando elija pago por transferencia." badge="Pago">
               <div>
                 <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Banco</label>
-                <input
-                  type="text"
-                  value={transferBankInput}
-                  onChange={(e) => setTransferBankInput(e.target.value)}
-                  placeholder="Ej: BBVA, Banamex, Santander"
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-orange-500 outline-none text-sm"
-                />
+                <input type="text" value={transferBankInput} onChange={(e) => setTransferBankInput(e.target.value)} placeholder="Ej: BBVA, Banamex, Santander" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-orange-500 outline-none text-sm" />
               </div>
-
               <div>
                 <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Titular de la cuenta</label>
-                <input
-                  type="text"
-                  value={transferAccountHolderInput}
-                  onChange={(e) => setTransferAccountHolderInput(e.target.value)}
-                  placeholder="Nombre del titular"
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-orange-500 outline-none text-sm"
-                />
+                <input type="text" value={transferAccountHolderInput} onChange={(e) => setTransferAccountHolderInput(e.target.value)} placeholder="Nombre del titular" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-orange-500 outline-none text-sm" />
               </div>
-
               <div>
                 <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Número de cuenta</label>
                 <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={transferAccountNumberInput}
-                    onChange={(e) => setTransferAccountNumberInput(e.target.value)}
-                    placeholder="Número de cuenta o CLABE"
-                    className="flex-1 px-4 py-3 rounded-xl border border-gray-200 focus:border-orange-500 outline-none text-sm font-mono font-bold"
-                  />
-                  <button
-                    type="button"
-                    onClick={copyTransferAccountNumber}
-                    className="inline-flex items-center gap-2 px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 hover:bg-gray-100 text-gray-700 font-semibold text-sm transition-colors shrink-0"
-                  >
-                    <Copy className="w-4 h-4" />
-                    <span className="hidden sm:inline">Copiar</span>
-                  </button>
+                  <input type="text" value={transferAccountNumberInput} onChange={(e) => setTransferAccountNumberInput(e.target.value)} placeholder="Número de cuenta o CLABE" className="flex-1 px-4 py-3 rounded-xl border border-gray-200 focus:border-orange-500 outline-none text-sm font-mono font-bold" />
+                  <button type="button" onClick={copyTransferAccountNumber} className="inline-flex items-center gap-2 px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 hover:bg-gray-100 text-gray-700 font-semibold text-sm transition-colors shrink-0"><Copy className="w-4 h-4" /><span className="hidden sm:inline">Copiar</span></button>
                 </div>
-                {transferAccountCopied && (
-                  <p className="text-green-600 text-xs font-bold mt-2 animate-fadeIn">✓ Número copiado</p>
-                )}
+                {transferAccountCopied && <p className="text-green-600 text-xs font-bold mt-2 animate-fadeIn">✓ Número copiado</p>}
               </div>
-
               <div>
                 <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Mensaje por comprobante</label>
-                <textarea
-                  value={transferReceiptMessageInput}
-                  onChange={(e) => setTransferReceiptMessageInput(e.target.value)}
-                  placeholder="Por favor comparte tu comprobante por WhatsApp."
-                  rows={3}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-orange-500 outline-none text-sm leading-relaxed"
-                />
-                <p className="text-xs text-gray-400 mt-1">
-                  Este texto se agrega al pedido cuando el cliente elige transferencia.
-                </p>
+                <textarea value={transferReceiptMessageInput} onChange={(e) => setTransferReceiptMessageInput(e.target.value)} placeholder="Por favor comparte tu comprobante por WhatsApp." rows={3} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-orange-500 outline-none text-sm leading-relaxed" />
+                <p className="text-xs text-gray-400 mt-1">Este texto se agrega al pedido cuando el cliente elige transferencia.</p>
               </div>
-            </div>
+            </AccordionSection>
 
             <form onSubmit={handleSaveGeneral} className="space-y-6">
-              <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 space-y-4">
-                <h3 className="text-lg font-bold text-gray-900 mb-2">Información General</h3>
-
+              <AccordionSection title="Información General" description="Datos visibles en la portada del menú.">
                 <div>
                   <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Nombre del Negocio</label>
-                  <input
-                    type="text"
-                    value={nameInput}
-                    onChange={(e) => setNameInput(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none text-sm font-medium"
-                    required
-                  />
+                  <input type="text" value={nameInput} onChange={(e) => setNameInput(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none text-sm font-medium" required />
                 </div>
-
                 <div>
                   <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Descripción del Negocio</label>
-                  <textarea
-                    value={descriptionInput}
-                    onChange={(e) => setDescriptionInput(e.target.value)}
-                    placeholder="Breve descripción de tu negocio..."
-                    rows={3}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-orange-500 outline-none text-sm"
-                  />
+                  <textarea value={descriptionInput} onChange={(e) => setDescriptionInput(e.target.value)} placeholder="Breve descripción de tu negocio..." rows={3} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-orange-500 outline-none text-sm" />
                 </div>
-
                 <div>
                   <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">URL del Logo (opcional)</label>
-                  <input
-                    type="url"
-                    value={logoInput}
-                    onChange={(e) => setLogoInput(e.target.value)}
-                    placeholder="https://..."
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-orange-500 outline-none text-sm"
-                  />
+                  <input type="url" value={logoInput} onChange={(e) => setLogoInput(e.target.value)} placeholder="https://..." className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-orange-500 outline-none text-sm" />
                   <div className="mt-2 flex flex-col sm:flex-row sm:items-center gap-2">
-                    <label className="inline-flex items-center justify-center px-3 py-2 rounded-lg border border-gray-200 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50 cursor-pointer">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={handleUploadLogo}
-                        disabled={isUploadingLogo}
-                      />
-                      {isUploadingLogo ? 'Subiendo logo...' : 'Subir imagen de logo'}
-                    </label>
+                    <label className="inline-flex items-center justify-center px-3 py-2 rounded-lg border border-gray-200 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50 cursor-pointer"><input type="file" accept="image/*" className="hidden" onChange={handleUploadLogo} disabled={isUploadingLogo} />{isUploadingLogo ? 'Subiendo logo...' : 'Subir imagen de logo'}</label>
                     <span className="text-[11px] text-gray-400">Al subirla, se colocará automáticamente en la URL del logo.</span>
                   </div>
                 </div>
-              </div>
+              </AccordionSection>
 
-              <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 space-y-4">
-                <h3 className="text-lg font-bold text-gray-900 mb-2">Contacto</h3>
-
+              <AccordionSection title="Contacto" description="Número principal y horario resumido para clientes.">
                 <div>
-                  <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">
-                    Número de WhatsApp para Pedidos
-                  </label>
-                  <input
-                    type="text"
-                    value={phoneInput}
-                    onChange={(e) => setPhoneInput(e.target.value)}
-                    placeholder="Ej: 525635397099"
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-orange-500 outline-none text-sm font-mono font-bold"
-                    required
-                  />
-                  <p className="text-xs text-gray-400 mt-1">
-                    Código de país + número sin símbolos. Ej: 525635397099
-                  </p>
+                  <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Número de WhatsApp para Pedidos</label>
+                  <input type="text" value={phoneInput} onChange={(e) => setPhoneInput(e.target.value)} placeholder="Ej: 525635397099" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-orange-500 outline-none text-sm font-mono font-bold" required />
+                  <p className="text-xs text-gray-400 mt-1">Código de país + número sin símbolos. Ej: 525635397099</p>
                 </div>
-
                 <div>
-                  <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">
-                    Horario General (Resumen)
-                  </label>
-                  <input
-                    type="text"
-                    value={scheduleInput}
-                    onChange={(e) => setScheduleInput(e.target.value)}
-                    placeholder="Ej: Mar - Dom: 1:00 PM - 11:00 PM"
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-orange-500 outline-none text-sm"
-                  />
-                  <p className="text-xs text-gray-400 mt-1">
-                    Resumen breve para mostrar en la cabecera del menú
-                  </p>
+                  <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Horario General (Resumen)</label>
+                  <input type="text" value={scheduleInput} onChange={(e) => setScheduleInput(e.target.value)} placeholder="Ej: Mar - Dom: 1:00 PM - 11:00 PM" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-orange-500 outline-none text-sm" />
+                  <p className="text-xs text-gray-400 mt-1">Resumen breve para mostrar en la cabecera del menú</p>
                 </div>
-              </div>
+              </AccordionSection>
 
-              {/* Horarios Detallados por Día */}
-              <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 space-y-4">
-                <h3 className="text-lg font-bold text-gray-900 mb-2">Horarios por Día</h3>
-                <p className="text-xs text-gray-500 -mt-2 mb-3">Define los horarios específicos para cada día de la semana</p>
-
+              <AccordionSection title="Horarios por Día" description="Define los horarios específicos para cada día de la semana.">
                 <div className="space-y-3">
                   {Object.keys(dayLabels).map(day => (
                     <div key={day} className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-center">
-                      <label className="text-sm font-semibold text-gray-700">
-                        {dayLabels[day]}
-                      </label>
-                      <input
-                        type="text"
-                        value={hoursInput[day as keyof typeof hoursInput] || ''}
-                        onChange={(e) => updateHour(day, e.target.value)}
-                        placeholder="Ej: 1:00 PM - 11:00 PM o Cerrado"
-                        className="sm:col-span-2 px-4 py-2.5 rounded-xl border border-gray-200 focus:border-orange-500 outline-none text-sm"
-                      />
+                      <label className="text-sm font-semibold text-gray-700">{dayLabels[day]}</label>
+                      <input type="text" value={hoursInput[day as keyof typeof hoursInput] || ''} onChange={(e) => updateHour(day, e.target.value)} placeholder="Ej: 1:00 PM - 11:00 PM o Cerrado" className="sm:col-span-2 px-4 py-2.5 rounded-xl border border-gray-200 focus:border-orange-500 outline-none text-sm" />
                     </div>
                   ))}
                 </div>
-              </div>
+              </AccordionSection>
 
-              {/* Ubicación y Servicio */}
-              <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 space-y-4">
-                <h3 className="text-lg font-bold text-gray-900 mb-2">Ubicación y Servicio</h3>
-
+              <AccordionSection title="Ubicación y Servicio" description="Dirección, tipo de servicio y radio de entrega.">
                 <div>
-                  <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">
-                    Dirección Completa
-                  </label>
-                  <input
-                    type="text"
-                    value={addressInput}
-                    onChange={(e) => setAddressInput(e.target.value)}
-                    placeholder="Ej: Av. Principal #123, Centro, Ciudad de México"
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-orange-500 outline-none text-sm"
-                  />
+                  <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Dirección Completa</label>
+                  <input type="text" value={addressInput} onChange={(e) => setAddressInput(e.target.value)} placeholder="Ej: Av. Principal #123, Centro, Ciudad de México" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-orange-500 outline-none text-sm" />
                 </div>
-
                 <div>
-                  <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-2">
-                    Tipo de Servicio
-                  </label>
+                  <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-2">Tipo de Servicio</label>
                   <div className="grid grid-cols-3 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setServiceTypeInput('pickup')}
-                      className={`py-2.5 px-3 rounded-xl border-2 font-semibold text-sm transition-all ${
-                        serviceTypeInput === 'pickup'
-                          ? 'border-orange-500 bg-orange-50 text-orange-700'
-                          : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
-                      }`}
-                    >
-                      Solo Recoger
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setServiceTypeInput('delivery')}
-                      className={`py-2.5 px-3 rounded-xl border-2 font-semibold text-sm transition-all ${
-                        serviceTypeInput === 'delivery'
-                          ? 'border-orange-500 bg-orange-50 text-orange-700'
-                          : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
-                      }`}
-                    >
-                      Solo Domicilio
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setServiceTypeInput('both')}
-                      className={`py-2.5 px-3 rounded-xl border-2 font-semibold text-sm transition-all ${
-                        serviceTypeInput === 'both'
-                          ? 'border-orange-500 bg-orange-50 text-orange-700'
-                          : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
-                      }`}
-                    >
-                      Ambos
-                    </button>
+                    <button type="button" onClick={() => setServiceTypeInput('pickup')} className={`py-2.5 px-3 rounded-xl border-2 font-semibold text-sm transition-all ${serviceTypeInput === 'pickup' ? 'border-orange-500 bg-orange-50 text-orange-700' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'}`}>Solo Recoger</button>
+                    <button type="button" onClick={() => setServiceTypeInput('delivery')} className={`py-2.5 px-3 rounded-xl border-2 font-semibold text-sm transition-all ${serviceTypeInput === 'delivery' ? 'border-orange-500 bg-orange-50 text-orange-700' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'}`}>Solo Domicilio</button>
+                    <button type="button" onClick={() => setServiceTypeInput('both')} className={`py-2.5 px-3 rounded-xl border-2 font-semibold text-sm transition-all ${serviceTypeInput === 'both' ? 'border-orange-500 bg-orange-50 text-orange-700' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'}`}>Ambos</button>
                   </div>
                 </div>
-
                 {(serviceTypeInput === 'delivery' || serviceTypeInput === 'both') && (
                   <div>
-                    <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">
-                      Radio de Entrega
-                    </label>
-                    <input
-                      type="text"
-                      value={deliveryRadiusInput}
-                      onChange={(e) => setDeliveryRadiusInput(e.target.value)}
-                      placeholder="Ej: 5 km, 10 minutos, etc."
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-orange-500 outline-none text-sm"
-                    />
+                    <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Radio de Entrega</label>
+                    <input type="text" value={deliveryRadiusInput} onChange={(e) => setDeliveryRadiusInput(e.target.value)} placeholder="Ej: 5 km, 10 minutos, etc." className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-orange-500 outline-none text-sm" />
                   </div>
                 )}
-              </div>
+              </AccordionSection>
 
-              {/* Redes Sociales */}
-              <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 space-y-4">
-                <h3 className="text-lg font-bold text-gray-900 mb-2">Redes Sociales (opcional)</h3>
-
+              <AccordionSection title="Redes Sociales (opcional)" description="Instagram, Facebook y sitio web.">
                 <div>
-                  <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">
-                    Instagram
-                  </label>
-                  <input
-                    type="text"
-                    value={instagramInput}
-                    onChange={(e) => setInstagramInput(e.target.value)}
-                    placeholder="@usuario"
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-orange-500 outline-none text-sm"
-                  />
+                  <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Instagram</label>
+                  <input type="text" value={instagramInput} onChange={(e) => setInstagramInput(e.target.value)} placeholder="@usuario" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-orange-500 outline-none text-sm" />
                 </div>
-
                 <div>
-                  <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">
-                    Facebook
-                  </label>
-                  <input
-                    type="text"
-                    value={facebookInput}
-                    onChange={(e) => setFacebookInput(e.target.value)}
-                    placeholder="nombre de página"
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-orange-500 outline-none text-sm"
-                  />
+                  <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Facebook</label>
+                  <input type="text" value={facebookInput} onChange={(e) => setFacebookInput(e.target.value)} placeholder="nombre de página" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-orange-500 outline-none text-sm" />
                 </div>
-
                 <div>
-                  <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">
-                    Sitio Web
-                  </label>
-                  <input
-                    type="url"
-                    value={websiteInput}
-                    onChange={(e) => setWebsiteInput(e.target.value)}
-                    placeholder="https://..."
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-orange-500 outline-none text-sm"
-                  />
+                  <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Sitio Web</label>
+                  <input type="url" value={websiteInput} onChange={(e) => setWebsiteInput(e.target.value)} placeholder="https://..." className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-orange-500 outline-none text-sm" />
                 </div>
-              </div>
+              </AccordionSection>
 
-              <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 space-y-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h3 className="text-lg font-bold text-gray-900 mb-1">Mensaje de WhatsApp</h3>
-                    <p className="text-xs text-gray-500">Edita el texto que se envía cuando comparten tu menú por WhatsApp.</p>
-                  </div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider bg-green-50 text-green-700 px-2 py-1 rounded-full shrink-0">Acceso Rápido</span>
-                </div>
-
+              <AccordionSection title="Mensaje de WhatsApp" description="Texto que se comparte cuando envían tu menú por WhatsApp." badge="Acceso Rápido">
                 <div>
                   <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Estilo del mensaje</label>
-                  <textarea
-                    value={whatsappMessageInput}
-                    onChange={(e) => setWhatsappMessageInput(e.target.value)}
-                    rows={6}
-                    placeholder="Escribe el mensaje que se compartirá por WhatsApp..."
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-orange-500 outline-none text-sm leading-relaxed"
-                  />
-                  <p className="text-[11px] text-gray-400 mt-2">
-                    Usa <span className="font-bold text-gray-600">{`{businessName}`}</span> y <span className="font-bold text-gray-600">{`{menuUrl}`}</span> si quieres insertar el nombre y el enlace.
-                  </p>
+                  <textarea value={whatsappMessageInput} onChange={(e) => setWhatsappMessageInput(e.target.value)} rows={6} placeholder="Escribe el mensaje que se compartirá por WhatsApp..." className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-orange-500 outline-none text-sm leading-relaxed" />
+                  <p className="text-[11px] text-gray-400 mt-2">Usa <span className="font-bold text-gray-600">{`{businessName}`}</span> y <span className="font-bold text-gray-600">{`{menuUrl}`}</span> si quieres insertar el nombre y el enlace.</p>
                 </div>
-
                 <div className="flex flex-col sm:flex-row gap-3">
-                  <button type="button" onClick={handleSaveWhatsAppMessage} className="bg-green-600 hover:bg-green-700 text-white font-bold px-6 py-3 rounded-xl shadow-md shadow-green-200 flex items-center gap-2 text-sm transition-colors">
-                    <Check className="w-4 h-4" />
-                    <span>Guardar mensaje</span>
-                  </button>
-                  <button type="button" onClick={() => setWhatsappMessageInput(defaultWhatsAppShareMessage)} className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold px-6 py-3 rounded-xl text-sm transition-colors">
-                    Restablecer mensaje
-                  </button>
+                  <button type="button" onClick={handleSaveWhatsAppMessage} className="bg-green-600 hover:bg-green-700 text-white font-bold px-6 py-3 rounded-xl shadow-md shadow-green-200 flex items-center gap-2 text-sm transition-colors"><Check className="w-4 h-4" /><span>Guardar mensaje</span></button>
+                  <button type="button" onClick={() => setWhatsappMessageInput(defaultWhatsAppShareMessage)} className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold px-6 py-3 rounded-xl text-sm transition-colors">Restablecer mensaje</button>
                 </div>
-
                 {whatsappMessageSaved && <p className="text-green-600 text-xs font-bold animate-fadeIn">✓ Mensaje de WhatsApp guardado correctamente</p>}
-              </div>
+              </AccordionSection>
 
-              <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 space-y-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h3 className="text-lg font-bold text-gray-900 mb-1">Mensaje de Pedido por WhatsApp</h3>
-                    <p className="text-xs text-gray-500">Edita el texto que se enviará cuando el cliente haga su pedido desde el carrito.</p>
-                  </div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider bg-blue-50 text-blue-700 px-2 py-1 rounded-full shrink-0">Carrito</span>
-                </div>
-
+              <AccordionSection title="Mensaje de Pedido por WhatsApp" description="Texto que se enviará cuando el cliente haga su pedido desde el carrito." badge="Carrito">
                 <div>
                   <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Plantilla del pedido</label>
-                  <textarea
-                    value={whatsappOrderMessageInput}
-                    onChange={(e) => setWhatsappOrderMessageInput(e.target.value)}
-                    rows={7}
-                    placeholder="Escribe el mensaje del pedido que se enviará por WhatsApp..."
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-orange-500 outline-none text-sm leading-relaxed"
-                  />
-                  <p className="text-[11px] text-gray-400 mt-2">
-                    Usa <span className="font-bold text-gray-600">{`{businessName}`}</span>, <span className="font-bold text-gray-600">{`{orderDetails}`}</span>, <span className="font-bold text-gray-600">{`{paymentMethod}`}</span>, <span className="font-bold text-gray-600">{`{paymentInstructions}`}</span>, <span className="font-bold text-gray-600">{`{total}`}</span> y <span className="font-bold text-gray-600">{`{phone}`}</span>.
-                  </p>
+                  <textarea value={whatsappOrderMessageInput} onChange={(e) => setWhatsappOrderMessageInput(e.target.value)} rows={7} placeholder="Escribe el mensaje del pedido que se enviará por WhatsApp..." className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-orange-500 outline-none text-sm leading-relaxed" />
+                  <p className="text-[11px] text-gray-400 mt-2">Usa <span className="font-bold text-gray-600">{`{businessName}`}</span>, <span className="font-bold text-gray-600">{`{orderDetails}`}</span>, <span className="font-bold text-gray-600">{`{paymentMethod}`}</span>, <span className="font-bold text-gray-600">{`{paymentInstructions}`}</span>, <span className="font-bold text-gray-600">{`{total}`}</span> y <span className="font-bold text-gray-600">{`{phone}`}</span>.</p>
                 </div>
-
                 <div className="flex flex-col sm:flex-row gap-3">
-                  <button type="button" onClick={handleSaveWhatsAppOrderMessage} className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-3 rounded-xl shadow-md shadow-blue-200 flex items-center gap-2 text-sm transition-colors">
-                    <Check className="w-4 h-4" />
-                    <span>Guardar mensaje</span>
-                  </button>
-                  <button type="button" onClick={() => setWhatsappOrderMessageInput(defaultWhatsAppOrderMessage)} className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold px-6 py-3 rounded-xl text-sm transition-colors">
-                    Restablecer mensaje
-                  </button>
-                  <button type="button" onClick={() => setShowWhatsAppOrderPreview((prev) => !prev)} className="bg-orange-50 hover:bg-orange-100 text-orange-700 font-semibold px-6 py-3 rounded-xl text-sm transition-colors border border-orange-200">
-                    {showWhatsAppOrderPreview ? 'Ocultar vista previa' : 'Vista previa'}
-                  </button>
+                  <button type="button" onClick={handleSaveWhatsAppOrderMessage} className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-3 rounded-xl shadow-md shadow-blue-200 flex items-center gap-2 text-sm transition-colors"><Check className="w-4 h-4" /><span>Guardar mensaje</span></button>
+                  <button type="button" onClick={() => setWhatsappOrderMessageInput(defaultWhatsAppOrderMessage)} className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold px-6 py-3 rounded-xl text-sm transition-colors">Restablecer mensaje</button>
+                  <button type="button" onClick={() => setShowWhatsAppOrderPreview((prev) => !prev)} className="bg-orange-50 hover:bg-orange-100 text-orange-700 font-semibold px-6 py-3 rounded-xl text-sm transition-colors border border-orange-200">{showWhatsAppOrderPreview ? 'Ocultar vista previa' : 'Vista previa'}</button>
                 </div>
-
                 {showWhatsAppOrderPreview && (
                   <div className="rounded-2xl border border-blue-100 bg-blue-50/60 p-4 space-y-2">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-blue-700">Vista previa del mensaje final</p>
@@ -980,46 +758,30 @@ export function AdminPanel({ onBack, onLogout, userEmail }: AdminPanelProps) {
                       <div className="bg-white/90 rounded-2xl border border-blue-100 p-3 space-y-2">
                         {previewOrderExample.map((item) => (
                           <div key={`${item.name}-${item.quantity}`} className="flex items-start justify-between gap-3 text-xs sm:text-sm">
-                            <div className="min-w-0">
-                              <p className="font-bold text-gray-900">{item.quantity}x {item.name}</p>
-                              {item.details && <p className="text-gray-500">{item.details}</p>}
-                              {item.extras.length > 0 && <p className="text-gray-500">Extras: {item.extras.join(', ')}</p>}
-                            </div>
+                            <div className="min-w-0"><p className="font-bold text-gray-900">{item.quantity}x {item.name}</p>{item.details && <p className="text-gray-500">{item.details}</p>}{item.extras.length > 0 && <p className="text-gray-500">Extras: {item.extras.join(', ')}</p>}</div>
                             <span className="shrink-0 font-extrabold text-blue-700">{item.subtotal}</span>
                           </div>
                         ))}
-                        <div className="pt-2 border-t border-blue-100 flex items-center justify-between text-sm">
-                          <span className="font-bold text-gray-700">Total</span>
-                          <span className="font-extrabold text-orange-600">$195.00</span>
-                        </div>
+                        <div className="pt-2 border-t border-blue-100 flex items-center justify-between text-sm"><span className="font-bold text-gray-700">Total</span><span className="font-extrabold text-orange-600">$195.00</span></div>
                       </div>
                       <pre className="whitespace-pre-wrap text-xs sm:text-sm text-gray-800 leading-relaxed font-medium bg-white rounded-2xl border border-blue-100 p-4">{previewWhatsAppOrderMessage}</pre>
                     </div>
                   </div>
                 )}
-
                 {whatsappOrderMessageSaved && <p className="text-blue-600 text-xs font-bold animate-fadeIn">✓ Mensaje de pedido guardado correctamente</p>}
-              </div>
+              </AccordionSection>
 
-              <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
-                <button type="submit" className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-6 rounded-xl shadow-md shadow-orange-200 transition-colors flex items-center justify-center gap-2">
-                  <Check className="w-5 h-5" />
-                  <span>Guardar Todos los Cambios</span>
-                </button>
+              <AccordionSection title="Guardar cambios" description="Guarda todas las ediciones de esta sección.">
+                <button type="submit" className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-6 rounded-xl shadow-md shadow-orange-200 transition-colors flex items-center justify-center gap-2"><Check className="w-5 h-5" /><span>Guardar Todos los Cambios</span></button>
                 {generalSaved && <p className="text-green-600 text-center text-xs font-bold mt-3 animate-fadeIn">✓ ¡Configuración guardada exitosamente!</p>}
-              </div>
+              </AccordionSection>
             </form>
 
-            <div className="bg-red-50/50 rounded-3xl p-6 border border-red-100 flex items-center justify-between gap-4">
-              <div>
-                <h4 className="font-bold text-red-900 text-sm">Restablecer Datos Originales</h4>
-                <p className="text-xs text-red-600 mt-0.5">Vuelve a cargar las categorías y platillos de prueba iniciales.</p>
+            <AccordionSection title="Restablecer Datos Originales" description="Vuelve a cargar las categorías y platillos de prueba iniciales.">
+              <div className="bg-red-50/50 rounded-2xl border border-red-100 flex items-center justify-between gap-4 p-4">
+                <button onClick={resetToDefault} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shrink-0 transition-colors shadow-sm"><RefreshCw className="w-3.5 h-3.5" /><span>Restablecer</span></button>
               </div>
-              <button onClick={resetToDefault} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shrink-0 transition-colors shadow-sm">
-                <RefreshCw className="w-3.5 h-3.5" />
-                <span>Restablecer</span>
-              </button>
-            </div>
+            </AccordionSection>
           </div>
         )}
 
