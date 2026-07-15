@@ -40,6 +40,7 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
     config.socialMedia?.whatsappOrderMessage || defaultWhatsAppOrderMessage
   );
   const [whatsappOrderMessageSaved, setWhatsappOrderMessageSaved] = useState(false);
+  const [showWhatsAppOrderPreview, setShowWhatsAppOrderPreview] = useState(false);
   const [serviceTypeInput, setServiceTypeInput] = useState(config.serviceType || 'both');
   const [deliveryRadiusInput, setDeliveryRadiusInput] = useState(config.deliveryRadius || '');
   const [instagramInput, setInstagramInput] = useState(config.socialMedia?.instagram || '');
@@ -131,6 +132,12 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
     setWhatsappOrderMessageSaved(true);
     setTimeout(() => setWhatsappOrderMessageSaved(false), 2500);
   };
+
+  const previewWhatsAppOrderMessage = whatsappOrderMessageInput
+    .replaceAll('{businessName}', config.name || 'Tu negocio')
+    .replaceAll('{orderDetails}', '▪️ 2x Hamburguesa Clásica - $170.00\n   ↳ _Extras/Opciones:_ Queso Cheddar Extra (+$15)')
+    .replaceAll('{total}', '$185.00')
+    .replaceAll('{phone}', `+${config.phone}`);
 
   const dayLabels: Record<string, string> = {
     monday: 'Lunes',
@@ -803,7 +810,23 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
                     >
                       Restablecer mensaje
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowWhatsAppOrderPreview((prev) => !prev)}
+                      className="bg-orange-50 hover:bg-orange-100 text-orange-700 font-semibold px-6 py-3 rounded-xl text-sm transition-colors border border-orange-200"
+                    >
+                      {showWhatsAppOrderPreview ? 'Ocultar vista previa' : 'Vista previa'}
+                    </button>
                   </div>
+
+                  {showWhatsAppOrderPreview && (
+                    <div className="rounded-2xl border border-blue-100 bg-blue-50/60 p-4 space-y-2">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-blue-700">Vista previa del mensaje final</p>
+                      <pre className="whitespace-pre-wrap text-xs sm:text-sm text-gray-800 leading-relaxed font-medium">
+                        {previewWhatsAppOrderMessage}
+                      </pre>
+                    </div>
+                  )}
 
                   {whatsappOrderMessageSaved && (
                     <p className="text-blue-600 text-xs font-bold animate-fadeIn">✓ Mensaje de pedido guardado correctamente</p>
