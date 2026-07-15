@@ -195,7 +195,7 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
   const [prodComplements, setProdComplements] = useState<string[]>([]);
   const [productSaveError, setProductSaveError] = useState<string | null>(null);
   const [isSavingProduct, setIsSavingProduct] = useState(false);
-  const [collapsedProductCategories, setCollapsedProductCategories] = useState<string[]>([]);
+  const [expandedProductCategories, setExpandedProductCategories] = useState<string[]>([]);
 
   const openNewProductForm = () => {
     setIsEditingProd(true);
@@ -275,7 +275,7 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
     .filter((group) => group.items.length > 0);
 
   const toggleProductCategory = (categoryId: string) => {
-    setCollapsedProductCategories((prev) =>
+    setExpandedProductCategories((prev) =>
       prev.includes(categoryId) ? prev.filter((id) => id !== categoryId) : [...prev, categoryId]
     );
   };
@@ -698,14 +698,14 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
                           <h4 className="text-xl font-bold text-gray-900">{category.name}</h4>
                           <span className="text-xs text-gray-400">{items.length} producto(s)</span>
                         </div>
-                        {collapsedProductCategories.includes(category.id) ? (
-                          <ChevronDown className="w-5 h-5 text-gray-500 shrink-0" />
-                        ) : (
+                        {expandedProductCategories.includes(category.id) ? (
                           <ChevronUp className="w-5 h-5 text-gray-500 shrink-0" />
+                        ) : (
+                          <ChevronDown className="w-5 h-5 text-gray-500 shrink-0" />
                         )}
                       </button>
 
-                      {!collapsedProductCategories.includes(category.id) && (
+                      {expandedProductCategories.includes(category.id) && (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           {items.map((product) => (
                             <div key={product.id} className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm flex gap-4 items-center justify-between">
