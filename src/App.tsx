@@ -12,6 +12,7 @@ function App() {
           <Routes>
             <Route path="/" element={<AdminGate />} />
             <Route path="/menu" element={<MenuPage />} />
+            <Route path="/menú" element={<MenuPage />} />
             <Route path="/admin" element={<AdminGate />} />
           </Routes>
         </BrowserRouter>

@@ -13,7 +13,7 @@ export function Home({ onNavigateToMenu }: HomeProps) {
   const [shareFeedback, setShareFeedback] = useState<string | null>(null);
   const businessName = config.name || 'Menu';
 
-  const menuUrl = `${window.location.origin}/menu`;
+  const menuUrl = `${window.location.origin}/menú`;
 
   const buildWhatsAppShareMessage = () => {
     const template = config.socialMedia?.whatsappMessage || defaultWhatsAppShareMessage;

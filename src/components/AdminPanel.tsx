@@ -173,7 +173,7 @@ export function AdminPanel({ onBack, onLogout, userEmail }: AdminPanelProps) {
     .replaceAll('{total}', '$195.00')
     .replaceAll('{phone}', `+${config.phone}`);
 
-  const menuUrl = `${window.location.origin}/menu`;
+  const menuUrl = `${window.location.origin}/menú`;
 
   const buildWhatsAppShareMessage = () => {
     const template = config.socialMedia?.whatsappMessage || defaultWhatsAppShareMessage;
