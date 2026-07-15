@@ -87,7 +87,28 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
   const [editingCatId, setEditingCatId] = useState<string | null>(null);
   const [editingCatName, setEditingCatName] = useState('');
   const [draggingCategoryId, setDraggingCategoryId] = useState<string | null>(null);
+  const [pendingCategoryOrderIds, setPendingCategoryOrderIds] = useState<string[] | null>(null);
   const [isReorderingCategories, setIsReorderingCategories] = useState(false);
+
+  const displayedCategories = (() => {
+    if (!pendingCategoryOrderIds || pendingCategoryOrderIds.length === 0) {
+      return categories;
+    }
+
+    const byId = new Map(categories.map((category) => [category.id, category]));
+    const ordered = pendingCategoryOrderIds
+      .map((id) => byId.get(id))
+      .filter(Boolean) as typeof categories;
+    const remaining = categories.filter((category) => !pendingCategoryOrderIds.includes(category.id));
+    return [...ordered, ...remaining];
+  })();
+
+  const hasPendingCategoryOrder = (() => {
+    if (!pendingCategoryOrderIds) return false;
+    const current = categories.map((category) => category.id).join('|');
+    const draft = pendingCategoryOrderIds.join('|');
+    return current !== draft;
+  })();
 
   const handleAddCategory = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,19 +117,20 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
     try {
       await addCategory(newCatName.trim());
       setNewCatName('');
+      setPendingCategoryOrderIds(null);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'No se pudo crear la categoría en Supabase.';
       alert(message);
     }
   };
 
-  const handleCategoryDrop = async (targetId: string) => {
+  const handleCategoryDrop = (targetId: string) => {
     if (isReorderingCategories || !draggingCategoryId || draggingCategoryId === targetId) {
       setDraggingCategoryId(null);
       return;
     }
 
-    const orderedIds = categories.map((category) => category.id);
+    const orderedIds = displayedCategories.map((category) => category.id);
     const fromIndex = orderedIds.indexOf(draggingCategoryId);
     const toIndex = orderedIds.indexOf(targetId);
 
@@ -122,9 +144,19 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
     nextIds.splice(toIndex, 0, movedId);
     setDraggingCategoryId(null);
 
+    setPendingCategoryOrderIds(nextIds);
+  };
+
+  const handleSaveCategoryOrder = async () => {
+    if (!hasPendingCategoryOrder || !pendingCategoryOrderIds) {
+      return;
+    }
+
     setIsReorderingCategories(true);
     try {
-      await reorderCategories(nextIds);
+      await reorderCategories(pendingCategoryOrderIds);
+      setPendingCategoryOrderIds(null);
+      window.location.reload();
     } catch (error) {
       const message = error instanceof Error ? error.message : 'No se pudo guardar el nuevo orden de categorías en Supabase.';
       alert(message);
@@ -929,7 +961,7 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
 
             <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 space-y-3">
               <h3 className="text-lg font-bold text-gray-900 mb-2">Categorías Actuales</h3>
-              {categories.map(cat => (
+              {displayedCategories.map(cat => (
                 <div
                   key={cat.id}
                   draggable={!isReorderingCategories}
@@ -996,13 +1028,14 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
                     </button>
                     <button
                       onClick={async () => {
-                        if (categories.length <= 1) {
+                        if (displayedCategories.length <= 1) {
                           alert('Debe existir al menos una categoría.');
                           return;
                         }
                         if (window.confirm(`¿Eliminar la categoría "${cat.name}"?`)) {
                           try {
                             await deleteCategory(cat.id);
+                            setPendingCategoryOrderIds(null);
                           } catch (error) {
                             const message = error instanceof Error ? error.message : 'No se pudo eliminar la categoría en Supabase.';
                             alert(message);
@@ -1017,6 +1050,20 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
                 </div>
               ))}
             </div>
+
+            {hasPendingCategoryOrder && (
+              <div className="fixed bottom-6 right-4 sm:right-6 z-40">
+                <button
+                  type="button"
+                  onClick={handleSaveCategoryOrder}
+                  disabled={isReorderingCategories}
+                  className="bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-white font-bold px-5 py-3 rounded-full shadow-lg shadow-orange-200 flex items-center gap-2 text-sm transition-colors"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>{isReorderingCategories ? 'Guardando...' : 'Guardar orden'}</span>
+                </button>
+              </div>
+            )}
           </div>
         )}
 
