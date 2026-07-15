@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { useMenu } from '../context/MenuContext';
 import { Product } from '../types';
+import { defaultWhatsAppShareMessage } from '../data';
 import { handleProductImageError } from '../utils/images';
 import { WatersAdminSection } from './WatersAdminSection';
 
@@ -31,6 +32,10 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
   const [descriptionInput, setDescriptionInput] = useState(config.description || '');
   const [logoInput, setLogoInput] = useState(config.logo || '');
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const [whatsappMessageInput, setWhatsappMessageInput] = useState(
+    config.socialMedia?.whatsappMessage || defaultWhatsAppShareMessage
+  );
+  const [whatsappMessageSaved, setWhatsappMessageSaved] = useState(false);
   const [serviceTypeInput, setServiceTypeInput] = useState(config.serviceType || 'both');
   const [deliveryRadiusInput, setDeliveryRadiusInput] = useState(config.deliveryRadius || '');
   const [instagramInput, setInstagramInput] = useState(config.socialMedia?.instagram || '');
@@ -61,7 +66,8 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
       socialMedia: {
         instagram: instagramInput,
         facebook: facebookInput,
-        website: websiteInput
+        website: websiteInput,
+        whatsappMessage: whatsappMessageInput
       },
       hours: hoursInput
     });
@@ -70,6 +76,20 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
   };
 
   const handleUploadLogo = async (event: React.ChangeEvent<HTMLInputElement>) => {
+
+      const handleSaveWhatsAppMessage = async () => {
+        await updateConfig({
+          socialMedia: {
+            instagram: instagramInput,
+            facebook: facebookInput,
+            website: websiteInput,
+            whatsappMessage: whatsappMessageInput,
+          },
+        });
+
+        setWhatsappMessageSaved(true);
+        setTimeout(() => setWhatsappMessageSaved(false), 2500);
+      };
     const file = event.target.files?.[0];
     event.currentTarget.value = '';
     if (!file) return;
@@ -669,6 +689,55 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-orange-500 outline-none text-sm"
                   />
                 </div>
+              </div>
+
+              {/* Mensaje WhatsApp */}
+              <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 space-y-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900 mb-1">Mensaje de WhatsApp</h3>
+                    <p className="text-xs text-gray-500">Edita el texto que se envía cuando comparten tu menú por WhatsApp.</p>
+                  </div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider bg-green-50 text-green-700 px-2 py-1 rounded-full shrink-0">Acceso Rápido</span>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">
+                    Estilo del mensaje
+                  </label>
+                  <textarea
+                    value={whatsappMessageInput}
+                    onChange={(e) => setWhatsappMessageInput(e.target.value)}
+                    rows={6}
+                    placeholder="Escribe el mensaje que se compartirá por WhatsApp..."
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-orange-500 outline-none text-sm leading-relaxed"
+                  />
+                  <p className="text-[11px] text-gray-400 mt-2">
+                    Usa <span className="font-bold text-gray-600">{`{businessName}`}</span> y <span className="font-bold text-gray-600">{`{menuUrl}`}</span> si quieres insertar el nombre y el enlace.
+                  </p>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <button
+                    type="button"
+                    onClick={handleSaveWhatsAppMessage}
+                    className="bg-green-600 hover:bg-green-700 text-white font-bold px-6 py-3 rounded-xl shadow-md shadow-green-200 flex items-center gap-2 text-sm transition-colors"
+                  >
+                    <Check className="w-4 h-4" />
+                    <span>Guardar mensaje</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setWhatsappMessageInput(defaultWhatsAppShareMessage)}
+                    className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold px-6 py-3 rounded-xl text-sm transition-colors"
+                  >
+                    Restablecer mensaje
+                  </button>
+                </div>
+
+                {whatsappMessageSaved && (
+                  <p className="text-green-600 text-xs font-bold animate-fadeIn">✓ Mensaje de WhatsApp guardado correctamente</p>
+                )}
               </div>
 
               {/* Botón Guardar */}

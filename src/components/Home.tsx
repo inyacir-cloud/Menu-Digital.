@@ -2,6 +2,7 @@ import { Utensils, Settings, Clock, MapPin, Phone, ShieldCheck, Power, Share2, D
 import { useMenu } from '../context/MenuContext';
 import { useState } from 'react';
 import { WatersModal } from './WatersModal';
+import { defaultWhatsAppShareMessage } from '../data';
 
 interface HomeProps {
   onNavigateToMenu: () => void;
@@ -16,6 +17,14 @@ export function Home({ onNavigateToMenu, onNavigateToAdmin }: HomeProps) {
   const businessName = config.name || 'Menu';
 
   const menuUrl = `${window.location.origin}/menu`;
+
+  const buildWhatsAppShareMessage = () => {
+    const template = config.socialMedia?.whatsappMessage || defaultWhatsAppShareMessage;
+    return template
+      .replaceAll('{businessName}', businessName)
+      .replaceAll('{menuUrl}', menuUrl)
+      .replaceAll('{phone}', `+${config.phone}`);
+  };
 
   const handleShareMenu = async () => {
     if (navigator.share) {
@@ -51,7 +60,7 @@ export function Home({ onNavigateToMenu, onNavigateToAdmin }: HomeProps) {
   };
 
   const shareViaWhatsApp = () => {
-    const text = `*¡Hola! Te comparto nuestro menú digital de ${businessName}:*\n\n👉 ${menuUrl}\n\n¡Entra, elige tus platillos favoritos y pide directo! 🍔🍕🍹`;
+    const text = buildWhatsAppShareMessage();
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
   };
 

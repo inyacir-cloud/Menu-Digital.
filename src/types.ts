@@ -59,6 +59,7 @@ export interface BusinessConfig {
     instagram?: string;
     facebook?: string;
     website?: string;
+    whatsappMessage?: string;
   };
   serviceType?: 'delivery' | 'pickup' | 'both';
   deliveryRadius?: string;

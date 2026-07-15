@@ -1,5 +1,7 @@
 import { Category, Product, Complement, BusinessConfig } from './types';
 
+export const defaultWhatsAppShareMessage = '*¡Hola! Te comparto nuestro menú digital de {businessName}:*\n\n👉 {menuUrl}\n\n¡Entra, elige tus platillos favoritos y pide directo! 🍔🍕🍹';
+
 export const initialConfig: BusinessConfig = {
   name: 'El Gordo & La Flaca',
   isOpen: true,
@@ -11,7 +13,8 @@ export const initialConfig: BusinessConfig = {
   socialMedia: {
     instagram: 'elgordoylaflaca',
     facebook: 'elgordoylaflaca',
-    website: ''
+    website: '',
+    whatsappMessage: defaultWhatsAppShareMessage
   },
   serviceType: 'both',
   deliveryRadius: '5 km',
