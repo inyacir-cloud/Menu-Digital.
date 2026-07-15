@@ -19,7 +19,7 @@ type CategoryRow = {
   id: string;
   name: string;
   icon: string | null;
-  sort_order: number | null;
+  sort_order?: number | null;
 };
 
 type BusinessConfigRow = {
@@ -78,6 +78,14 @@ function mapCategoryToRow(category: Category): CategoryRow {
   };
 }
 
+function isMissingSortOrderError(error: unknown) {
+  if (!error || typeof error !== 'object') return false;
+
+  const code = 'code' in error ? String((error as { code?: unknown }).code || '') : '';
+  const message = 'message' in error ? String((error as { message?: unknown }).message || '') : '';
+  return code === 'PGRST204' && message.includes('sort_order');
+}
+
 function mapProductToRow(product: Product): ProductRow {
   return {
     id: product.id,
@@ -132,12 +140,16 @@ function mapBusinessConfigToRow(config: BusinessConfig): BusinessConfigRow {
 export async function loadSupabaseData() {
   const client = requireSupabase();
 
-  const [configRes, categoriesRes, productsRes, complementsRes] = await Promise.all([
+  const [configRes, productsRes, complementsRes] = await Promise.all([
     client.from('business_config').select('*').eq('id', 'main').maybeSingle<BusinessConfigRow>(),
-    client.from('categories').select('*').order('sort_order', { ascending: true }).returns<CategoryRow[]>(),
     client.from('products').select('*').returns<ProductRow[]>(),
     client.from('complements').select('*').returns<Complement[]>(),
   ]);
+
+  let categoriesRes = await client.from('categories').select('*').order('sort_order', { ascending: true }).returns<CategoryRow[]>();
+  if (categoriesRes.error && isMissingSortOrderError(categoriesRes.error)) {
+    categoriesRes = await client.from('categories').select('id,name,icon').returns<CategoryRow[]>();
+  }
 
   if (configRes.error) throw configRes.error;
   if (categoriesRes.error) throw categoriesRes.error;
@@ -162,7 +174,16 @@ export async function saveSupabaseConfig(config: BusinessConfig) {
 
 export async function saveSupabaseCategory(category: Category) {
   const client = requireSupabase();
-  const { error } = await client.from('categories').upsert(mapCategoryToRow(category));
+
+  const payloadWithSort = mapCategoryToRow(category);
+  let { error } = await client.from('categories').upsert(payloadWithSort);
+
+  if (error && isMissingSortOrderError(error)) {
+    const { sort_order: _sortOrder, ...payloadWithoutSort } = payloadWithSort;
+    const retry = await client.from('categories').upsert(payloadWithoutSort);
+    error = retry.error;
+  }
+
   if (error) throw error;
 }
 
