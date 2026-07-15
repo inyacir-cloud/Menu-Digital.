@@ -1,7 +1,7 @@
 import { X, Minus, Plus, MessageCircle, AlertTriangle, Trash2 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useMenu } from '../context/MenuContext';
-import { handleProductImageError } from '../utils/images';
+import { DEFAULT_PRODUCT_IMAGE, handleProductImageError } from '../utils/images';
 
 interface CartProps {
   isOpen: boolean;
@@ -111,7 +111,7 @@ export function Cart({ isOpen, onClose }: CartProps) {
               return (
                 <div key={item.id} className="flex gap-3 bg-white p-3 rounded-2xl border border-gray-100 shadow-sm hover:border-gray-200 transition-colors">
                   <img 
-                    src={item.product.image} 
+                    src={item.product.image || DEFAULT_PRODUCT_IMAGE} 
                     alt={item.product.name}
                     onError={handleProductImageError}
                     className="w-20 h-20 object-cover rounded-xl shrink-0"

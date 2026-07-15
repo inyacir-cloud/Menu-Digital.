@@ -3,7 +3,7 @@ import { X, Plus, Minus, Check } from 'lucide-react';
 import { Product, Complement, SizeOption } from '../types';
 import { useMenu } from '../context/MenuContext';
 import { useCart } from '../context/CartContext';
-import { handleProductImageError } from '../utils/images';
+import { DEFAULT_PRODUCT_IMAGE, handleProductImageError } from '../utils/images';
 
 interface ProductModalProps {
   product: Product | null;
@@ -89,7 +89,7 @@ export function ProductModal({ product, isOpen, onClose }: ProductModalProps) {
         {/* Header Image */}
         <div className="relative h-44 sm:h-56 w-full bg-gray-100 shrink-0">
           <img
-            src={product.image}
+            src={product.image || DEFAULT_PRODUCT_IMAGE}
             alt={product.name}
             onError={handleProductImageError}
             className="w-full h-full object-cover"

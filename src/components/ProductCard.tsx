@@ -1,6 +1,6 @@
 import { Plus } from 'lucide-react';
 import { Product } from '../types';
-import { handleProductImageError } from '../utils/images';
+import { DEFAULT_PRODUCT_IMAGE, handleProductImageError } from '../utils/images';
 
 interface ProductCardProps {
   product: Product;
@@ -17,7 +17,7 @@ export function ProductCard({ product, onSelect }: ProductCardProps) {
     >
       <div className="relative aspect-square sm:aspect-[4/3] w-full overflow-hidden bg-gray-100">
         <img
-          src={product.image}
+          src={product.image || DEFAULT_PRODUCT_IMAGE}
           alt={product.name}
           loading="lazy"
           onError={handleProductImageError}

@@ -1,6 +1,7 @@
 import { initialCategories, initialComplements, initialConfig, initialProducts } from '../data';
 import type { BusinessConfig, Category, Complement, Product } from '../types';
 import { supabase, supabaseBucket } from './supabase';
+import { DEFAULT_PRODUCT_IMAGE } from '../utils/images';
 
 type ProductRow = {
   id: string;
@@ -79,12 +80,13 @@ function requireSupabase() {
 }
 
 function mapProductRow(row: ProductRow): Product {
+  const normalizedImage = row.image?.trim() ? row.image : DEFAULT_PRODUCT_IMAGE;
   return {
     id: row.id,
     name: row.name,
     description: row.description,
     price: row.price,
-    image: row.image,
+    image: normalizedImage,
     categoryId: row.category_id,
     complementIds: row.complement_ids || [],
     isDailyWater: row.is_daily_water ?? undefined,
@@ -121,12 +123,13 @@ function isMissingSortOrderError(error: unknown) {
 }
 
 function mapProductToRow(product: Product): ProductRow {
+  const normalizedImage = product.image?.trim() ? product.image : DEFAULT_PRODUCT_IMAGE;
   return {
     id: product.id,
     name: product.name,
     description: product.description,
     price: product.price,
-    image: product.image,
+    image: normalizedImage,
     category_id: product.categoryId,
     complement_ids: product.complementIds || [],
     is_daily_water: product.isDailyWater ?? false,
