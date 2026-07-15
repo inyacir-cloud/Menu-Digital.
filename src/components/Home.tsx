@@ -136,6 +136,28 @@ export function Home({ onNavigateToMenu, onNavigateToAdmin }: HomeProps) {
             <span>Ver Carta Menú Digital</span>
           </button>
 
+          {/* Quick Access: Admin */}
+          <button
+            onClick={onNavigateToAdmin}
+            className="w-full bg-gray-900 hover:bg-gray-800 active:bg-gray-950 text-white p-4 rounded-2xl shadow-lg shadow-gray-900/15 flex items-center justify-between text-left transition-all group"
+          >
+            <div className="flex items-center gap-3.5 min-w-0">
+              <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center shrink-0 backdrop-blur-sm group-hover:scale-110 transition-transform">
+                <Settings className="w-5 h-5 text-white" />
+              </div>
+              <div className="min-w-0">
+                <h4 className="font-extrabold text-sm sm:text-base text-white leading-tight flex items-center gap-1.5">
+                  <span>Panel de Administración</span>
+                  <span className="bg-white/10 text-[10px] px-1.5 py-0.5 rounded-md uppercase tracking-wider font-black">Acceso Rápido</span>
+                </h4>
+                <p className="text-gray-300 text-xs mt-0.5 truncate">
+                  Edita productos, categorías, horarios y logo desde aquí
+                </p>
+              </div>
+            </div>
+            <span className="text-white font-bold text-lg px-1 shrink-0">→</span>
+          </button>
+
           {/* Quick Access: Waters of the Day */}
           <button
             onClick={() => setShowWatersModal(true)}
