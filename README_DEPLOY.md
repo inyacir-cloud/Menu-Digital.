@@ -1,63 +1,40 @@
-Despliegue recomendado (Vercel + Supabase)
-==========================================
+Despliegue rápido (Frontend + Backend)
+=====================================
 
-La app ya puede funcionar solo con frontend estatico y Supabase. Para produccion, la opcion recomendada es:
+Este repo contiene una app React (Vite) en la raíz y un backend Node/Express en `server/`.
 
-- Frontend: Vercel
-- Base de datos y storage: Supabase
-- Backend `server/`: opcional, solo como legado/local fallback
+Opciones recomendadas:
+- Frontend: Vercel o Netlify (sitio estático con `dist`)
+- Backend: Render, Railway o cualquier servicio que ejecute Node (usa `server/index.js`)
 
-Archivos ya preparados en este repo
------------------------------------
-- `vercel.json`: agrega rewrite para que rutas como `/menu` sigan funcionando en produccion.
-- `.env.example`: plantilla de variables necesarias.
+Preparar repo
+------------
+1. Asegúrate de tener todo comiteado y en GitHub.
 
-Variables necesarias en Vercel
-------------------------------
-Configura estas variables de entorno en el panel del proyecto:
+Backend (Render/Railway)
+-----------------------
+1. Crear un servicio Web en Render o Railway.
+2. Root directory: `server`
+3. Build command: `npm install`
+4. Start command: `node index.js`
+5. Desplegar y obtener la URL (p.ej. `https://mi-backend.onrender.com`).
+6. Inicializar datos de ejemplo (seed):
 
-- `VITE_SUPABASE_URL`
-   - Usa la URL base del proyecto, por ejemplo:
-   - `https://xatjxreceizlzelqvurb.supabase.co`
-- `VITE_SUPABASE_ANON_KEY`
-   - Usa la anon key publica de Supabase.
-- `VITE_SUPABASE_BUCKET`
-   - Valor recomendado: `product-images`
+```bash
+curl -X POST https://<TU_BACKEND_URL>/api/reset
+```
 
-Importante:
-- No uses la URL terminada en `/rest/v1` en Vercel. El codigo actual ya la tolera, pero la forma correcta es la URL base del proyecto.
-- No subas `.env.local` al repositorio.
+Frontend (Vercel / Netlify)
+--------------------------
+1. Crear proyecto y conectar el repo.
+2. Definir variable de entorno `VITE_API_BASE_URL` con la URL del backend desplegado (sin barra final).
+   - Ej: `VITE_API_BASE_URL=https://mi-backend.onrender.com`
+3. Build command: `npm run build`
+4. Publish directory: `dist`
 
-Pasos para desplegar en Vercel
-------------------------------
-1. Entra a Vercel y crea un proyecto nuevo desde tu repositorio de GitHub.
-2. Selecciona este repositorio.
-3. Deja la configuracion por defecto de Vite:
-    - Build Command: `npm run build`
-    - Output Directory: `dist`
-4. Agrega las variables de entorno indicadas arriba.
-5. Haz clic en Deploy.
-
-Configuracion de Supabase antes del deploy
-------------------------------------------
-1. Ejecuta `supabase/schema.sql` en el SQL Editor de Supabase.
-2. Ejecuta `supabase/seed.sql` si quieres cargar el menu inicial.
-3. Verifica que exista el bucket `product-images`.
-4. Verifica que las politicas RLS y de Storage hayan quedado creadas.
-
-Como validar despues del deploy
--------------------------------
-1. Abre la URL publica de Vercel.
-2. Entra a `/menu` y confirma que carga productos.
-3. Entra al panel admin y crea un producto de prueba con imagen.
-4. Recarga la pagina y confirma que el producto siga existiendo.
+Si decides desplegar frontend y backend en el mismo dominio (Render tiene Static + Web Service), no necesitas `VITE_API_BASE_URL` y las rutas relativas funcionarán.
 
 Notas importantes
 -----------------
-- Si Vercel abre bien `/` pero falla `/menu`, revisa que `vercel.json` este publicado.
-- Si las imagenes no suben, normalmente falta la `anon key`, el bucket o las policies de Storage.
-- El panel admin sigue publico. Para produccion real, conviene protegerlo con autenticacion.
-
-Backend legacy opcional
------------------------
-Si en algun momento quieres volver a desplegar `server/`, todavia puedes hacerlo en Render o Railway, pero ya no es la opcion principal para esta app.
+- El backend actual persiste en `server/db.json` (almacenamiento por archivo). No es recomendado para producción en entornos serverless. Para producción, considera migrar a Postgres o MongoDB.
+- Asegura las variables sensibles y añade un mecanismo de autenticación si expones el panel admin públicamente.
