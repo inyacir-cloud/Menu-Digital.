@@ -30,6 +30,7 @@ export function MenuPage() {
     monday: 'Lunes', tuesday: 'Martes', wednesday: 'Miércoles',
     thursday: 'Jueves', friday: 'Viernes', saturday: 'Sábado', sunday: 'Domingo'
   };
+  const orderedDays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const;
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
@@ -282,7 +283,8 @@ export function MenuPage() {
                       
                       {config.hours ? (
                         <div className="space-y-1.5 text-xs">
-                          {Object.entries(config.hours).map(([day, hours]) => {
+                          {orderedDays.map((day) => {
+                            const hours = config.hours?.[day as keyof typeof config.hours] || '';
                             const isClosed = hours?.toLowerCase().includes('cerrado') || hours === '';
                             return (
                               <div key={day} className="flex justify-between items-center">
