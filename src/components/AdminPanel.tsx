@@ -11,9 +11,11 @@ import { WatersAdminSection } from './WatersAdminSection';
 
 interface AdminPanelProps {
   onBack: () => void;
+  onLogout: () => void;
+  userEmail?: string;
 }
 
-export function AdminPanel({ onBack }: AdminPanelProps) {
+export function AdminPanel({ onBack, onLogout, userEmail }: AdminPanelProps) {
   const { 
     config, updateConfig, toggleBusinessOpen,
     categories, addCategory, updateCategory, reorderCategories, deleteCategory,
@@ -405,18 +407,31 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
             </h1>
           </div>
 
-          {/* Quick Status Badge */}
-          <button
-            onClick={toggleBusinessOpen}
-            className={`px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 sm:gap-2 transition-all shrink-0 ${
-              config.isOpen
-                ? 'bg-green-100 text-green-700 hover:bg-green-200 active:bg-green-300'
-                : 'bg-red-100 text-red-700 hover:bg-red-200 active:bg-red-300'
-            }`}
-          >
-            <span className={`w-2 h-2 rounded-full ${config.isOpen ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
-            <span className="hidden xs:inline">{config.isOpen ? 'Abierto' : 'Cerrado'}</span>
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            {userEmail && (
+              <span className="hidden md:inline-flex items-center px-3 py-1.5 rounded-full text-[11px] font-bold bg-gray-100 text-gray-600">
+                {userEmail}
+              </span>
+            )}
+            <button
+              onClick={toggleBusinessOpen}
+              className={`px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 sm:gap-2 transition-all shrink-0 ${
+                config.isOpen
+                  ? 'bg-green-100 text-green-700 hover:bg-green-200 active:bg-green-300'
+                  : 'bg-red-100 text-red-700 hover:bg-red-200 active:bg-red-300'
+              }`}
+            >
+              <span className={`w-2 h-2 rounded-full ${config.isOpen ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
+              <span className="hidden xs:inline">{config.isOpen ? 'Abierto' : 'Cerrado'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={onLogout}
+              className="px-3 sm:px-4 py-1.5 rounded-full text-xs font-bold bg-gray-900 text-white hover:bg-gray-800 active:bg-gray-950 transition-colors"
+            >
+              Salir
+            </button>
+          </div>
         </div>
       </header>
 
