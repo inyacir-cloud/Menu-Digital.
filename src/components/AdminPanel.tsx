@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { 
   Power, Plus, Trash2, Edit2, ArrowLeft, Check, X, 
-  Settings, Utensils, Tag, Layers, RefreshCw, Droplets, GripVertical, ChevronDown, ChevronUp
+  Settings, Utensils, Tag, Layers, RefreshCw, Droplets, GripVertical, ChevronDown, ChevronUp,
+  Share2, Copy, MessageSquare, Link2
 } from 'lucide-react';
 import { useMenu } from '../context/MenuContext';
 import { Product } from '../types';
@@ -24,7 +25,7 @@ export function AdminPanel({ onBack, onLogout, userEmail }: AdminPanelProps) {
     storageEnabled, uploadProductImage, uploadLogoImage, resetToDefault
   } = useMenu();
 
-  const [activeTab, setActiveTab] = useState<'general' | 'products' | 'waters' | 'categories' | 'complements'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'share' | 'products' | 'waters' | 'categories' | 'complements'>('general');
 
   // --- GENERAL STATE ---
   const [phoneInput, setPhoneInput] = useState(config.phone);
@@ -43,6 +44,7 @@ export function AdminPanel({ onBack, onLogout, userEmail }: AdminPanelProps) {
   );
   const [whatsappOrderMessageSaved, setWhatsappOrderMessageSaved] = useState(false);
   const [showWhatsAppOrderPreview, setShowWhatsAppOrderPreview] = useState(false);
+  const [menuLinkCopied, setMenuLinkCopied] = useState(false);
   const [serviceTypeInput, setServiceTypeInput] = useState(config.serviceType || 'both');
   const [deliveryRadiusInput, setDeliveryRadiusInput] = useState(config.deliveryRadius || '');
   const [instagramInput, setInstagramInput] = useState(config.socialMedia?.instagram || '');
@@ -170,6 +172,31 @@ export function AdminPanel({ onBack, onLogout, userEmail }: AdminPanelProps) {
     .replaceAll('{orderDetails}', previewOrderDetails)
     .replaceAll('{total}', '$195.00')
     .replaceAll('{phone}', `+${config.phone}`);
+
+  const menuUrl = `${window.location.origin}/menu`;
+
+  const buildWhatsAppShareMessage = () => {
+    const template = config.socialMedia?.whatsappMessage || defaultWhatsAppShareMessage;
+    return template
+      .replaceAll('{businessName}', config.name || 'Menu')
+      .replaceAll('{menuUrl}', menuUrl)
+      .replaceAll('{phone}', `+${config.phone}`);
+  };
+
+  const shareViaWhatsApp = () => {
+    const text = buildWhatsAppShareMessage();
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
+  };
+
+  const copyMenuLink = async () => {
+    try {
+      await navigator.clipboard.writeText(menuUrl);
+      setMenuLinkCopied(true);
+      setTimeout(() => setMenuLinkCopied(false), 2500);
+    } catch {
+      alert(menuUrl);
+    }
+  };
 
   const dayLabels: Record<string, string> = {
     monday: 'Lunes',
@@ -450,6 +477,17 @@ export function AdminPanel({ onBack, onLogout, userEmail }: AdminPanelProps) {
             <span>Estado</span>
           </button>
           <button
+            onClick={() => { setActiveTab('share'); setIsEditingProd(false); }}
+            className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-3 border-b-2 font-semibold text-xs sm:text-sm whitespace-nowrap transition-colors ${
+              activeTab === 'share'
+                ? 'border-orange-500 text-orange-600 bg-orange-50/50'
+                : 'border-transparent text-gray-500 hover:text-gray-800'
+            }`}
+          >
+            <Share2 className="w-4 h-4" />
+            <span>Compartir menú</span>
+          </button>
+          <button
             onClick={() => { setActiveTab('products'); setIsEditingProd(false); }}
             className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-3 border-b-2 font-semibold text-xs sm:text-sm whitespace-nowrap transition-colors ${
               activeTab === 'products'
@@ -502,7 +540,6 @@ export function AdminPanel({ onBack, onLogout, userEmail }: AdminPanelProps) {
         {/* TAB 1: GENERAL & STATUS */}
         {activeTab === 'general' && (
           <div className="space-y-6 max-w-2xl mx-auto">
-            {/* Master Switch Card */}
             <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-6">
               <div>
                 <h3 className="text-lg font-bold text-gray-900">Estado del Menú Virtual</h3>
@@ -510,7 +547,7 @@ export function AdminPanel({ onBack, onLogout, userEmail }: AdminPanelProps) {
                   Cuando está cerrado, los clientes pueden ver tu carta pero no podrán enviar pedidos por WhatsApp.
                 </p>
               </div>
-              
+
               <button
                 onClick={toggleBusinessOpen}
                 className={`w-full sm:w-auto px-6 py-3 rounded-2xl font-bold flex items-center justify-center gap-3 transition-all shadow-md ${
@@ -524,16 +561,12 @@ export function AdminPanel({ onBack, onLogout, userEmail }: AdminPanelProps) {
               </button>
             </div>
 
-            {/* Config Form */}
             <form onSubmit={handleSaveGeneral} className="space-y-6">
-              {/* Información General */}
               <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 space-y-4">
                 <h3 className="text-lg font-bold text-gray-900 mb-2">Información General</h3>
 
                 <div>
-                  <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">
-                    Nombre del Negocio
-                  </label>
+                  <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Nombre del Negocio</label>
                   <input
                     type="text"
                     value={nameInput}
@@ -544,9 +577,7 @@ export function AdminPanel({ onBack, onLogout, userEmail }: AdminPanelProps) {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">
-                    Descripción del Negocio
-                  </label>
+                  <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Descripción del Negocio</label>
                   <textarea
                     value={descriptionInput}
                     onChange={(e) => setDescriptionInput(e.target.value)}
@@ -557,9 +588,7 @@ export function AdminPanel({ onBack, onLogout, userEmail }: AdminPanelProps) {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">
-                    URL del Logo (opcional)
-                  </label>
+                  <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">URL del Logo (opcional)</label>
                   <input
                     type="url"
                     value={logoInput}
@@ -578,14 +607,11 @@ export function AdminPanel({ onBack, onLogout, userEmail }: AdminPanelProps) {
                       />
                       {isUploadingLogo ? 'Subiendo logo...' : 'Subir imagen de logo'}
                     </label>
-                    <span className="text-[11px] text-gray-400">
-                      Al subirla, se colocará automáticamente en la URL del logo.
-                    </span>
+                    <span className="text-[11px] text-gray-400">Al subirla, se colocará automáticamente en la URL del logo.</span>
                   </div>
                 </div>
               </div>
 
-              {/* Contacto y WhatsApp */}
               <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 space-y-4">
                 <h3 className="text-lg font-bold text-gray-900 mb-2">Contacto</h3>
 
@@ -764,7 +790,6 @@ export function AdminPanel({ onBack, onLogout, userEmail }: AdminPanelProps) {
                 </div>
               </div>
 
-              {/* Mensaje WhatsApp */}
               <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 space-y-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
@@ -775,9 +800,7 @@ export function AdminPanel({ onBack, onLogout, userEmail }: AdminPanelProps) {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">
-                    Estilo del mensaje
-                  </label>
+                  <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Estilo del mensaje</label>
                   <textarea
                     value={whatsappMessageInput}
                     onChange={(e) => setWhatsappMessageInput(e.target.value)}
@@ -791,143 +814,141 @@ export function AdminPanel({ onBack, onLogout, userEmail }: AdminPanelProps) {
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-3">
-                  <button
-                    type="button"
-                    onClick={handleSaveWhatsAppMessage}
-                    className="bg-green-600 hover:bg-green-700 text-white font-bold px-6 py-3 rounded-xl shadow-md shadow-green-200 flex items-center gap-2 text-sm transition-colors"
-                  >
+                  <button type="button" onClick={handleSaveWhatsAppMessage} className="bg-green-600 hover:bg-green-700 text-white font-bold px-6 py-3 rounded-xl shadow-md shadow-green-200 flex items-center gap-2 text-sm transition-colors">
                     <Check className="w-4 h-4" />
                     <span>Guardar mensaje</span>
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setWhatsappMessageInput(defaultWhatsAppShareMessage)}
-                    className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold px-6 py-3 rounded-xl text-sm transition-colors"
-                  >
+                  <button type="button" onClick={() => setWhatsappMessageInput(defaultWhatsAppShareMessage)} className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold px-6 py-3 rounded-xl text-sm transition-colors">
                     Restablecer mensaje
                   </button>
                 </div>
 
-                {whatsappMessageSaved && (
-                  <p className="text-green-600 text-xs font-bold animate-fadeIn">✓ Mensaje de WhatsApp guardado correctamente</p>
-                )}
+                {whatsappMessageSaved && <p className="text-green-600 text-xs font-bold animate-fadeIn">✓ Mensaje de WhatsApp guardado correctamente</p>}
               </div>
 
-                {/* Mensaje Pedido WhatsApp */}
-                <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 space-y-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <h3 className="text-lg font-bold text-gray-900 mb-1">Mensaje de Pedido por WhatsApp</h3>
-                      <p className="text-xs text-gray-500">Edita el texto que se enviará cuando el cliente haga su pedido desde el carrito.</p>
-                    </div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider bg-blue-50 text-blue-700 px-2 py-1 rounded-full shrink-0">Carrito</span>
-                  </div>
-
+              <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 space-y-4">
+                <div className="flex items-start justify-between gap-3">
                   <div>
-                    <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">
-                      Plantilla del pedido
-                    </label>
-                    <textarea
-                      value={whatsappOrderMessageInput}
-                      onChange={(e) => setWhatsappOrderMessageInput(e.target.value)}
-                      rows={7}
-                      placeholder="Escribe el mensaje del pedido que se enviará por WhatsApp..."
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-orange-500 outline-none text-sm leading-relaxed"
-                    />
-                    <p className="text-[11px] text-gray-400 mt-2">
-                      Usa <span className="font-bold text-gray-600">{`{businessName}`}</span>, <span className="font-bold text-gray-600">{`{orderDetails}`}</span>, <span className="font-bold text-gray-600">{`{total}`}</span> y <span className="font-bold text-gray-600">{`{phone}`}</span>.
-                    </p>
+                    <h3 className="text-lg font-bold text-gray-900 mb-1">Mensaje de Pedido por WhatsApp</h3>
+                    <p className="text-xs text-gray-500">Edita el texto que se enviará cuando el cliente haga su pedido desde el carrito.</p>
                   </div>
-
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <button
-                      type="button"
-                      onClick={handleSaveWhatsAppOrderMessage}
-                      className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-3 rounded-xl shadow-md shadow-blue-200 flex items-center gap-2 text-sm transition-colors"
-                    >
-                      <Check className="w-4 h-4" />
-                      <span>Guardar mensaje</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setWhatsappOrderMessageInput(defaultWhatsAppOrderMessage)}
-                      className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold px-6 py-3 rounded-xl text-sm transition-colors"
-                    >
-                      Restablecer mensaje
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setShowWhatsAppOrderPreview((prev) => !prev)}
-                      className="bg-orange-50 hover:bg-orange-100 text-orange-700 font-semibold px-6 py-3 rounded-xl text-sm transition-colors border border-orange-200"
-                    >
-                      {showWhatsAppOrderPreview ? 'Ocultar vista previa' : 'Vista previa'}
-                    </button>
-                  </div>
-
-                  {showWhatsAppOrderPreview && (
-                    <div className="rounded-2xl border border-blue-100 bg-blue-50/60 p-4 space-y-2">
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-blue-700">Vista previa del mensaje final</p>
-                      <div className="space-y-3">
-                        <div className="bg-white/90 rounded-2xl border border-blue-100 p-3 space-y-2">
-                          {previewOrderExample.map((item) => (
-                            <div key={`${item.name}-${item.quantity}`} className="flex items-start justify-between gap-3 text-xs sm:text-sm">
-                              <div className="min-w-0">
-                                <p className="font-bold text-gray-900">
-                                  {item.quantity}x {item.name}
-                                </p>
-                                {item.details && <p className="text-gray-500">{item.details}</p>}
-                                {item.extras.length > 0 && <p className="text-gray-500">Extras: {item.extras.join(', ')}</p>}
-                              </div>
-                              <span className="shrink-0 font-extrabold text-blue-700">{item.subtotal}</span>
-                            </div>
-                          ))}
-                          <div className="pt-2 border-t border-blue-100 flex items-center justify-between text-sm">
-                            <span className="font-bold text-gray-700">Total</span>
-                            <span className="font-extrabold text-orange-600">$195.00</span>
-                          </div>
-                        </div>
-                        <pre className="whitespace-pre-wrap text-xs sm:text-sm text-gray-800 leading-relaxed font-medium bg-white rounded-2xl border border-blue-100 p-4">
-                          {previewWhatsAppOrderMessage}
-                        </pre>
-                      </div>
-                    </div>
-                  )}
-
-                  {whatsappOrderMessageSaved && (
-                    <p className="text-blue-600 text-xs font-bold animate-fadeIn">✓ Mensaje de pedido guardado correctamente</p>
-                  )}
+                  <span className="text-[10px] font-bold uppercase tracking-wider bg-blue-50 text-blue-700 px-2 py-1 rounded-full shrink-0">Carrito</span>
                 </div>
 
-              {/* Botón Guardar */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Plantilla del pedido</label>
+                  <textarea
+                    value={whatsappOrderMessageInput}
+                    onChange={(e) => setWhatsappOrderMessageInput(e.target.value)}
+                    rows={7}
+                    placeholder="Escribe el mensaje del pedido que se enviará por WhatsApp..."
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-orange-500 outline-none text-sm leading-relaxed"
+                  />
+                  <p className="text-[11px] text-gray-400 mt-2">
+                    Usa <span className="font-bold text-gray-600">{`{businessName}`}</span>, <span className="font-bold text-gray-600">{`{orderDetails}`}</span>, <span className="font-bold text-gray-600">{`{total}`}</span> y <span className="font-bold text-gray-600">{`{phone}`}</span>.
+                  </p>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <button type="button" onClick={handleSaveWhatsAppOrderMessage} className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-3 rounded-xl shadow-md shadow-blue-200 flex items-center gap-2 text-sm transition-colors">
+                    <Check className="w-4 h-4" />
+                    <span>Guardar mensaje</span>
+                  </button>
+                  <button type="button" onClick={() => setWhatsappOrderMessageInput(defaultWhatsAppOrderMessage)} className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold px-6 py-3 rounded-xl text-sm transition-colors">
+                    Restablecer mensaje
+                  </button>
+                  <button type="button" onClick={() => setShowWhatsAppOrderPreview((prev) => !prev)} className="bg-orange-50 hover:bg-orange-100 text-orange-700 font-semibold px-6 py-3 rounded-xl text-sm transition-colors border border-orange-200">
+                    {showWhatsAppOrderPreview ? 'Ocultar vista previa' : 'Vista previa'}
+                  </button>
+                </div>
+
+                {showWhatsAppOrderPreview && (
+                  <div className="rounded-2xl border border-blue-100 bg-blue-50/60 p-4 space-y-2">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-blue-700">Vista previa del mensaje final</p>
+                    <div className="space-y-3">
+                      <div className="bg-white/90 rounded-2xl border border-blue-100 p-3 space-y-2">
+                        {previewOrderExample.map((item) => (
+                          <div key={`${item.name}-${item.quantity}`} className="flex items-start justify-between gap-3 text-xs sm:text-sm">
+                            <div className="min-w-0">
+                              <p className="font-bold text-gray-900">{item.quantity}x {item.name}</p>
+                              {item.details && <p className="text-gray-500">{item.details}</p>}
+                              {item.extras.length > 0 && <p className="text-gray-500">Extras: {item.extras.join(', ')}</p>}
+                            </div>
+                            <span className="shrink-0 font-extrabold text-blue-700">{item.subtotal}</span>
+                          </div>
+                        ))}
+                        <div className="pt-2 border-t border-blue-100 flex items-center justify-between text-sm">
+                          <span className="font-bold text-gray-700">Total</span>
+                          <span className="font-extrabold text-orange-600">$195.00</span>
+                        </div>
+                      </div>
+                      <pre className="whitespace-pre-wrap text-xs sm:text-sm text-gray-800 leading-relaxed font-medium bg-white rounded-2xl border border-blue-100 p-4">{previewWhatsAppOrderMessage}</pre>
+                    </div>
+                  </div>
+                )}
+
+                {whatsappOrderMessageSaved && <p className="text-blue-600 text-xs font-bold animate-fadeIn">✓ Mensaje de pedido guardado correctamente</p>}
+              </div>
+
               <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
-                <button
-                  type="submit"
-                  className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-6 rounded-xl shadow-md shadow-orange-200 transition-colors flex items-center justify-center gap-2"
-                >
+                <button type="submit" className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-6 rounded-xl shadow-md shadow-orange-200 transition-colors flex items-center justify-center gap-2">
                   <Check className="w-5 h-5" />
                   <span>Guardar Todos los Cambios</span>
                 </button>
-                {generalSaved && (
-                  <p className="text-green-600 text-center text-xs font-bold mt-3 animate-fadeIn">
-                    ✓ ¡Configuración guardada exitosamente!
-                  </p>
-                )}
+                {generalSaved && <p className="text-green-600 text-center text-xs font-bold mt-3 animate-fadeIn">✓ ¡Configuración guardada exitosamente!</p>}
               </div>
             </form>
 
-            {/* Reset Data */}
             <div className="bg-red-50/50 rounded-3xl p-6 border border-red-100 flex items-center justify-between gap-4">
               <div>
                 <h4 className="font-bold text-red-900 text-sm">Restablecer Datos Originales</h4>
                 <p className="text-xs text-red-600 mt-0.5">Vuelve a cargar las categorías y platillos de prueba iniciales.</p>
               </div>
-              <button
-                onClick={resetToDefault}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shrink-0 transition-colors shadow-sm"
-              >
+              <button onClick={resetToDefault} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shrink-0 transition-colors shadow-sm">
                 <RefreshCw className="w-3.5 h-3.5" />
                 <span>Restablecer</span>
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 2: SHARE */}
+        {activeTab === 'share' && (
+          <div className="max-w-2xl mx-auto space-y-6">
+            <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 space-y-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-1">Compartir menú</h3>
+                  <p className="text-xs text-gray-500">Usa estos enlaces para compartir tu carta con clientes desde cualquier canal.</p>
+                </div>
+                <span className="text-[10px] font-bold uppercase tracking-wider bg-orange-50 text-orange-700 px-2 py-1 rounded-full shrink-0">Público</span>
+              </div>
+
+              <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Enlace del menú</p>
+                    <p className="text-sm font-medium text-gray-800 break-all">{menuUrl}</p>
+                  </div>
+                  <button type="button" onClick={copyMenuLink} className="shrink-0 inline-flex items-center gap-2 bg-white hover:bg-gray-100 text-gray-700 font-semibold px-4 py-2 rounded-xl border border-gray-200 text-sm transition-colors">
+                    <Copy className="w-4 h-4" />
+                    <span>{menuLinkCopied ? 'Copiado' : 'Copiar'}</span>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button type="button" onClick={shareViaWhatsApp} className="w-full bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-colors">
+                    <MessageSquare className="w-4 h-4" />
+                    <span>Compartir por WhatsApp</span>
+                  </button>
+                  <button type="button" onClick={() => window.open(menuUrl, '_blank')} className="w-full bg-gray-900 hover:bg-gray-800 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-colors">
+                    <Link2 className="w-4 h-4" />
+                    <span>Abrir enlace</span>
+                  </button>
+                </div>
+
+                <p className="text-[11px] text-gray-400">El mensaje usa la plantilla editable de WhatsApp configurada en el panel general.</p>
+              </div>
             </div>
           </div>
         )}
