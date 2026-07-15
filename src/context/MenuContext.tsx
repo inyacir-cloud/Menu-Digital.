@@ -1,7 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { initialCategories, initialComplements, initialConfig, initialProducts } from '../data';
 import {
-  canPersistSupabaseCategoryOrder,
   deleteSupabaseCategory,
   deleteSupabaseComplement,
   deleteSupabaseProduct,
@@ -136,9 +135,6 @@ export function MenuProvider({ children }: { children: ReactNode }) {
 
   const reorderCategories = async (orderedIds: string[]) => {
     assertSupabaseConfigured();
-    if (!canPersistSupabaseCategoryOrder()) {
-      throw new Error('Tu proyecto de Supabase no tiene la columna sort_order en categories. Ejecuta supabase/schema.sql para habilitar el orden persistente.');
-    }
 
     const previousCategories = categories;
     const byId = new Map(previousCategories.map((category) => [category.id, category]));

@@ -43,6 +43,33 @@ export function canPersistSupabaseCategoryOrder() {
   return categoriesSupportsSortOrder;
 }
 
+const ORDER_ICON_PREFIX = '__ord__:';
+
+function extractCategoryIcon(icon: string | null | undefined) {
+  if (!icon) return null;
+  if (!icon.startsWith(ORDER_ICON_PREFIX)) return icon;
+
+  const separatorIndex = icon.indexOf('|');
+  if (separatorIndex === -1) return null;
+
+  const rest = icon.slice(separatorIndex + 1);
+  return rest || null;
+}
+
+function readCategoryOrderFromIcon(icon: string | null | undefined) {
+  if (!icon || !icon.startsWith(ORDER_ICON_PREFIX)) return null;
+
+  const payload = icon.slice(ORDER_ICON_PREFIX.length);
+  const [rawOrder] = payload.split('|');
+  const parsed = Number(rawOrder);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function writeCategoryOrderToIcon(icon: string | null | undefined, order: number) {
+  const cleanIcon = extractCategoryIcon(icon);
+  return `${ORDER_ICON_PREFIX}${order}|${cleanIcon || ''}`;
+}
+
 function requireSupabase() {
   if (!supabase) {
     throw new Error('Supabase no está configurado.');
@@ -67,11 +94,12 @@ function mapProductRow(row: ProductRow): Product {
 }
 
 function mapCategoryRow(row: CategoryRow): Category {
+  const fallbackOrder = readCategoryOrderFromIcon(row.icon);
   return {
     id: row.id,
     name: row.name,
-    icon: row.icon || undefined,
-    sortOrder: row.sort_order ?? 0,
+    icon: extractCategoryIcon(row.icon) || undefined,
+    sortOrder: row.sort_order ?? fallbackOrder ?? 0,
   };
 }
 
@@ -188,6 +216,7 @@ export async function saveSupabaseCategory(category: Category) {
 
   if (categoriesSupportsSortOrder === false) {
     const { sort_order: _sortOrder, ...payloadWithoutSort } = payloadWithSort;
+    payloadWithoutSort.icon = writeCategoryOrderToIcon(payloadWithoutSort.icon, category.sortOrder ?? 0);
     const result = await client.from('categories').upsert(payloadWithoutSort);
     error = result.error;
   } else {
@@ -198,6 +227,7 @@ export async function saveSupabaseCategory(category: Category) {
   if (error && isMissingSortOrderError(error)) {
     categoriesSupportsSortOrder = false;
     const { sort_order: _sortOrder, ...payloadWithoutSort } = payloadWithSort;
+    payloadWithoutSort.icon = writeCategoryOrderToIcon(payloadWithoutSort.icon, category.sortOrder ?? 0);
     const retry = await client.from('categories').upsert(payloadWithoutSort);
     error = retry.error;
   } else if (!error) {
