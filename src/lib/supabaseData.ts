@@ -273,10 +273,18 @@ export async function deleteSupabaseComplement(id: string) {
 }
 
 export async function uploadSupabaseProductImage(file: File) {
+  return uploadSupabaseImage(file, 'products');
+}
+
+export async function uploadSupabaseLogoImage(file: File) {
+  return uploadSupabaseImage(file, 'logos');
+}
+
+async function uploadSupabaseImage(file: File, folder: string) {
   const client = requireSupabase();
   const extension = file.name.includes('.') ? file.name.split('.').pop() : 'png';
   const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '-').toLowerCase();
-  const path = `products/${Date.now()}-${safeName || `image.${extension}`}`;
+  const path = `${folder}/${Date.now()}-${safeName || `image.${extension}`}`;
 
   const upload = await client.storage.from(supabaseBucket).upload(path, file, {
     cacheControl: '3600',

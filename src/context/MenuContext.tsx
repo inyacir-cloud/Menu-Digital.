@@ -10,6 +10,7 @@ import {
   saveSupabaseComplement,
   saveSupabaseConfig,
   saveSupabaseProduct,
+  uploadSupabaseLogoImage,
   uploadSupabaseProductImage,
 } from '../lib/supabaseData';
 import { hasSupabaseConfig } from '../lib/supabase';
@@ -34,6 +35,7 @@ interface MenuContextType {
   updateComplement: (id: string, complement: Partial<Complement>) => Promise<void>;
   deleteComplement: (id: string) => Promise<void>;
   uploadProductImage: (file: File) => Promise<string>;
+  uploadLogoImage: (file: File) => Promise<string>;
   resetToDefault: () => Promise<void>;
 }
 
@@ -233,6 +235,11 @@ export function MenuProvider({ children }: { children: ReactNode }) {
     return uploadSupabaseProductImage(file);
   };
 
+  const uploadLogoImage = async (file: File) => {
+    assertSupabaseConfigured();
+    return uploadSupabaseLogoImage(file);
+  };
+
   const resetToDefault = async () => {
     if (!window.confirm('¿Estás seguro de restablecer todos los datos del menú a los valores iniciales?')) {
       return;
@@ -265,6 +272,7 @@ export function MenuProvider({ children }: { children: ReactNode }) {
       updateComplement,
       deleteComplement,
       uploadProductImage,
+      uploadLogoImage,
       resetToDefault,
     }}>
       {children}

@@ -18,7 +18,7 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
     categories, addCategory, updateCategory, reorderCategories, deleteCategory,
     products, addProduct, updateProduct, deleteProduct,
     complements, addComplement, updateComplement, deleteComplement,
-    storageEnabled, uploadProductImage, resetToDefault
+    storageEnabled, uploadProductImage, uploadLogoImage, resetToDefault
   } = useMenu();
 
   const [activeTab, setActiveTab] = useState<'general' | 'products' | 'waters' | 'categories' | 'complements'>('general');
@@ -30,6 +30,7 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
   const [addressInput, setAddressInput] = useState(config.address || '');
   const [descriptionInput, setDescriptionInput] = useState(config.description || '');
   const [logoInput, setLogoInput] = useState(config.logo || '');
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [serviceTypeInput, setServiceTypeInput] = useState(config.serviceType || 'both');
   const [deliveryRadiusInput, setDeliveryRadiusInput] = useState(config.deliveryRadius || '');
   const [instagramInput, setInstagramInput] = useState(config.socialMedia?.instagram || '');
@@ -66,6 +67,28 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
     });
     setGeneralSaved(true);
     setTimeout(() => setGeneralSaved(false), 2500);
+  };
+
+  const handleUploadLogo = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.currentTarget.value = '';
+    if (!file) return;
+
+    if (!storageEnabled) {
+      alert('Configura Supabase para subir el logo.');
+      return;
+    }
+
+    setIsUploadingLogo(true);
+    try {
+      const logoUrl = await uploadLogoImage(file);
+      setLogoInput(logoUrl);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'No se pudo subir el logo.';
+      alert(message);
+    } finally {
+      setIsUploadingLogo(false);
+    }
   };
 
   const dayLabels: Record<string, string> = {
@@ -451,6 +474,21 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
                     placeholder="https://..."
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-orange-500 outline-none text-sm"
                   />
+                  <div className="mt-2 flex flex-col sm:flex-row sm:items-center gap-2">
+                    <label className="inline-flex items-center justify-center px-3 py-2 rounded-lg border border-gray-200 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50 cursor-pointer">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleUploadLogo}
+                        disabled={isUploadingLogo}
+                      />
+                      {isUploadingLogo ? 'Subiendo logo...' : 'Subir imagen de logo'}
+                    </label>
+                    <span className="text-[11px] text-gray-400">
+                      Al subirla, se colocará automáticamente en la URL del logo.
+                    </span>
+                  </div>
                 </div>
               </div>
 
