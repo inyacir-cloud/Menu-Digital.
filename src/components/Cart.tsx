@@ -1,4 +1,5 @@
-import { X, Minus, Plus, MessageCircle, AlertTriangle, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { Copy, X, Minus, Plus, MessageCircle, AlertTriangle, Trash2 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useMenu } from '../context/MenuContext';
 import { DEFAULT_PRODUCT_IMAGE, handleProductImageError } from '../utils/images';
@@ -12,6 +13,8 @@ interface CartProps {
 export function Cart({ isOpen, onClose }: CartProps) {
   const { items, updateQuantity, removeFromCart, total, clearCart } = useCart();
   const { config } = useMenu();
+  const [paymentMethod, setPaymentMethod] = useState('Efectivo');
+  const [transferNumberCopied, setTransferNumberCopied] = useState(false);
 
   if (!isOpen) return null;
 
@@ -38,11 +41,42 @@ export function Cart({ isOpen, onClose }: CartProps) {
 
   const buildOrderMessage = () => {
     const template = config.socialMedia?.whatsappOrderMessage || defaultWhatsAppOrderMessage;
-    return template
+    const receiptMessage = config.socialMedia?.transferReceiptMessage?.trim() || 'Por favor comparte tu comprobante por WhatsApp.';
+    const hasPaymentInstructionsPlaceholder = template.includes('{paymentInstructions}');
+    const paymentInstructions = paymentMethod === 'Transferencia' ? receiptMessage : '';
+    let message = template
       .replaceAll('{businessName}', config.name)
       .replaceAll('{orderDetails}', buildOrderDetails())
+      .replaceAll('{paymentMethod}', paymentMethod)
+      .replaceAll('{paymentInstructions}', paymentInstructions)
       .replaceAll('{total}', `$${total.toFixed(2)}`)
       .replaceAll('{phone}', `+${config.phone}`);
+
+    if (paymentMethod === 'Transferencia' && !hasPaymentInstructionsPlaceholder) {
+      message += `\n\n_${receiptMessage}_`;
+    }
+
+    return message;
+  };
+
+  const transferBank = config.socialMedia?.transferBank?.trim() || 'Banco no configurado';
+  const transferHolder = config.socialMedia?.transferAccountHolder?.trim() || 'Titular no configurado';
+  const transferAccountNumber = config.socialMedia?.transferAccountNumber?.trim() || 'Número no configurado';
+  const transferReceiptMessage = config.socialMedia?.transferReceiptMessage?.trim() || 'Por favor comparte tu comprobante por WhatsApp.';
+
+  const copyTransferNumber = async () => {
+    if (!transferAccountNumber || transferAccountNumber === 'Número no configurado') {
+      alert('No hay un número de cuenta configurado.');
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(transferAccountNumber);
+      setTransferNumberCopied(true);
+      setTimeout(() => setTransferNumberCopied(false), 2500);
+    } catch {
+      alert(transferAccountNumber);
+    }
   };
 
   const handleWhatsAppOrder = () => {
@@ -197,6 +231,50 @@ export function Cart({ isOpen, onClose }: CartProps) {
         {/* Footer with WhatsApp Order Button */}
         {items.length > 0 && (
           <div className="border-t bg-white p-3 sm:p-4 space-y-3 sm:space-y-4 shadow-lg safe-bottom">
+            <div>
+              <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-2">
+                Forma de pago
+              </label>
+              <select
+                value={paymentMethod}
+                onChange={(event) => setPaymentMethod(event.target.value)}
+                className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-700 outline-none focus:border-orange-500"
+              >
+                <option value="Efectivo">Efectivo</option>
+                <option value="Tarjeta">Tarjeta</option>
+                <option value="Transferencia">Transferencia</option>
+              </select>
+            </div>
+
+            {paymentMethod === 'Transferencia' && (
+              <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wider text-blue-700">Datos para transferencia</p>
+                    <p className="text-sm font-semibold text-gray-900 mt-1">{transferBank}</p>
+                    <p className="text-xs text-gray-600">Titular: {transferHolder}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={copyTransferNumber}
+                    className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white border border-blue-200 text-blue-700 font-bold text-xs hover:bg-blue-100 transition-colors shrink-0"
+                  >
+                    <Copy className="w-4 h-4" />
+                    <span>{transferNumberCopied ? 'Copiado' : 'Copiar número'}</span>
+                  </button>
+                </div>
+
+                <div className="rounded-xl bg-white border border-blue-100 p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Número de cuenta</p>
+                  <p className="font-mono text-sm sm:text-base font-extrabold text-gray-900 break-all mt-1">{transferAccountNumber}</p>
+                </div>
+
+                <p className="text-xs text-blue-800 font-medium">
+                  {transferReceiptMessage}
+                </p>
+              </div>
+            )}
+
             <div className="flex justify-between items-center text-base sm:text-lg font-extrabold text-gray-800">
               <span>Total a pagar</span>
               <span className="text-xl sm:text-2xl text-orange-500">${total.toFixed(2)}</span>

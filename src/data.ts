@@ -1,7 +1,7 @@
 import { Category, Product, Complement, BusinessConfig } from './types';
 
 export const defaultWhatsAppShareMessage = '*¡Hola! Te comparto nuestro menú digital de {businessName}:*\n\n👉 {menuUrl}\n\n¡Entra, elige tus platillos favoritos y pide directo! 🍔🍕🍹';
-export const defaultWhatsAppOrderMessage = '*¡Hola! Quisiera hacer un pedido a {businessName}:*\n\n{orderDetails}\n\n*TOTAL A PAGAR: {total}*\n\n_Por favor confirmar tiempo estimado de entrega y método de pago. ¡Gracias!_';
+export const defaultWhatsAppOrderMessage = '*¡Hola! Quisiera hacer un pedido a {businessName}:*\n\n{orderDetails}\n\n*FORMA DE PAGO:* {paymentMethod}\n{paymentInstructions}\n*TOTAL A PAGAR: {total}*\n\n_Por favor confirmar tiempo estimado de entrega. ¡Gracias!_';
 
 export const initialConfig: BusinessConfig = {
   name: 'El Gordo & La Flaca',
@@ -16,7 +16,11 @@ export const initialConfig: BusinessConfig = {
     facebook: 'elgordoylaflaca',
     website: '',
     whatsappMessage: defaultWhatsAppShareMessage,
-    whatsappOrderMessage: defaultWhatsAppOrderMessage
+    whatsappOrderMessage: defaultWhatsAppOrderMessage,
+    transferBank: 'Banco',
+    transferAccountHolder: 'Titular de la cuenta',
+    transferAccountNumber: '0000000000',
+    transferReceiptMessage: 'Por favor comparte tu comprobante por WhatsApp.'
   },
   serviceType: 'both',
   deliveryRadius: '5 km',

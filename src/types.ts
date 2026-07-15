@@ -61,6 +61,10 @@ export interface BusinessConfig {
     website?: string;
     whatsappMessage?: string;
     whatsappOrderMessage?: string;
+    transferBank?: string;
+    transferAccountHolder?: string;
+    transferAccountNumber?: string;
+    transferReceiptMessage?: string;
   };
   serviceType?: 'delivery' | 'pickup' | 'both';
   deliveryRadius?: string;

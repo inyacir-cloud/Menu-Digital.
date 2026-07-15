@@ -45,11 +45,18 @@ export function AdminPanel({ onBack, onLogout, userEmail }: AdminPanelProps) {
   const [whatsappOrderMessageSaved, setWhatsappOrderMessageSaved] = useState(false);
   const [showWhatsAppOrderPreview, setShowWhatsAppOrderPreview] = useState(false);
   const [menuLinkCopied, setMenuLinkCopied] = useState(false);
+  const [transferAccountCopied, setTransferAccountCopied] = useState(false);
   const [serviceTypeInput, setServiceTypeInput] = useState(config.serviceType || 'both');
   const [deliveryRadiusInput, setDeliveryRadiusInput] = useState(config.deliveryRadius || '');
   const [instagramInput, setInstagramInput] = useState(config.socialMedia?.instagram || '');
   const [facebookInput, setFacebookInput] = useState(config.socialMedia?.facebook || '');
   const [websiteInput, setWebsiteInput] = useState(config.socialMedia?.website || '');
+  const [transferBankInput, setTransferBankInput] = useState(config.socialMedia?.transferBank || '');
+  const [transferAccountHolderInput, setTransferAccountHolderInput] = useState(config.socialMedia?.transferAccountHolder || '');
+  const [transferAccountNumberInput, setTransferAccountNumberInput] = useState(config.socialMedia?.transferAccountNumber || '');
+  const [transferReceiptMessageInput, setTransferReceiptMessageInput] = useState(
+    config.socialMedia?.transferReceiptMessage || 'Por favor comparte tu comprobante por WhatsApp.'
+  );
   const [hoursInput, setHoursInput] = useState(config.hours || {
     monday: 'Cerrado',
     tuesday: '1:00 PM - 11:00 PM',
@@ -77,7 +84,11 @@ export function AdminPanel({ onBack, onLogout, userEmail }: AdminPanelProps) {
         facebook: facebookInput,
         website: websiteInput,
         whatsappMessage: whatsappMessageInput,
-        whatsappOrderMessage: whatsappOrderMessageInput
+        whatsappOrderMessage: whatsappOrderMessageInput,
+        transferBank: transferBankInput,
+        transferAccountHolder: transferAccountHolderInput,
+        transferAccountNumber: transferAccountNumberInput,
+        transferReceiptMessage: transferReceiptMessageInput
       },
       hours: hoursInput
     });
@@ -115,6 +126,10 @@ export function AdminPanel({ onBack, onLogout, userEmail }: AdminPanelProps) {
         website: websiteInput,
         whatsappMessage: whatsappMessageInput,
         whatsappOrderMessage: whatsappOrderMessageInput,
+        transferBank: transferBankInput,
+        transferAccountHolder: transferAccountHolderInput,
+        transferAccountNumber: transferAccountNumberInput,
+        transferReceiptMessage: transferReceiptMessageInput,
       },
     });
 
@@ -130,6 +145,10 @@ export function AdminPanel({ onBack, onLogout, userEmail }: AdminPanelProps) {
         website: websiteInput,
         whatsappMessage: whatsappMessageInput,
         whatsappOrderMessage: whatsappOrderMessageInput,
+        transferBank: transferBankInput,
+        transferAccountHolder: transferAccountHolderInput,
+        transferAccountNumber: transferAccountNumberInput,
+        transferReceiptMessage: transferReceiptMessageInput,
       },
     });
 
@@ -170,6 +189,8 @@ export function AdminPanel({ onBack, onLogout, userEmail }: AdminPanelProps) {
   const previewWhatsAppOrderMessage = whatsappOrderMessageInput
     .replaceAll('{businessName}', config.name || 'Tu negocio')
     .replaceAll('{orderDetails}', previewOrderDetails)
+    .replaceAll('{paymentMethod}', 'Transferencia')
+    .replaceAll('{paymentInstructions}', transferReceiptMessageInput || 'Por favor comparte tu comprobante por WhatsApp.')
     .replaceAll('{total}', '$195.00')
     .replaceAll('{phone}', `+${config.phone}`);
 
@@ -195,6 +216,22 @@ export function AdminPanel({ onBack, onLogout, userEmail }: AdminPanelProps) {
       setTimeout(() => setMenuLinkCopied(false), 2500);
     } catch {
       alert(menuUrl);
+    }
+  };
+
+  const copyTransferAccountNumber = async () => {
+    const accountNumber = transferAccountNumberInput.trim();
+    if (!accountNumber) {
+      alert('Escribe un número de cuenta para poder copiarlo.');
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(accountNumber);
+      setTransferAccountCopied(true);
+      setTimeout(() => setTransferAccountCopied(false), 2500);
+    } catch {
+      alert(accountNumber);
     }
   };
 
@@ -561,6 +598,80 @@ export function AdminPanel({ onBack, onLogout, userEmail }: AdminPanelProps) {
               </button>
             </div>
 
+            <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 space-y-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">Datos para transferencia</h3>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Esta información se mostrará al cliente cuando elija pago por transferencia.
+                  </p>
+                </div>
+                <span className="text-[10px] font-bold uppercase tracking-wider bg-blue-50 text-blue-700 px-2 py-1 rounded-full shrink-0">
+                  Pago
+                </span>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Banco</label>
+                <input
+                  type="text"
+                  value={transferBankInput}
+                  onChange={(e) => setTransferBankInput(e.target.value)}
+                  placeholder="Ej: BBVA, Banamex, Santander"
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-orange-500 outline-none text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Titular de la cuenta</label>
+                <input
+                  type="text"
+                  value={transferAccountHolderInput}
+                  onChange={(e) => setTransferAccountHolderInput(e.target.value)}
+                  placeholder="Nombre del titular"
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-orange-500 outline-none text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Número de cuenta</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={transferAccountNumberInput}
+                    onChange={(e) => setTransferAccountNumberInput(e.target.value)}
+                    placeholder="Número de cuenta o CLABE"
+                    className="flex-1 px-4 py-3 rounded-xl border border-gray-200 focus:border-orange-500 outline-none text-sm font-mono font-bold"
+                  />
+                  <button
+                    type="button"
+                    onClick={copyTransferAccountNumber}
+                    className="inline-flex items-center gap-2 px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 hover:bg-gray-100 text-gray-700 font-semibold text-sm transition-colors shrink-0"
+                  >
+                    <Copy className="w-4 h-4" />
+                    <span className="hidden sm:inline">Copiar</span>
+                  </button>
+                </div>
+                {transferAccountCopied && (
+                  <p className="text-green-600 text-xs font-bold mt-2 animate-fadeIn">✓ Número copiado</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Mensaje por comprobante</label>
+                <textarea
+                  value={transferReceiptMessageInput}
+                  onChange={(e) => setTransferReceiptMessageInput(e.target.value)}
+                  placeholder="Por favor comparte tu comprobante por WhatsApp."
+                  rows={3}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-orange-500 outline-none text-sm leading-relaxed"
+                />
+                <p className="text-xs text-gray-400 mt-1">
+                  Este texto se agrega al pedido cuando el cliente elige transferencia.
+                </p>
+              </div>
+            </div>
+
             <form onSubmit={handleSaveGeneral} className="space-y-6">
               <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 space-y-4">
                 <h3 className="text-lg font-bold text-gray-900 mb-2">Información General</h3>
@@ -845,7 +956,7 @@ export function AdminPanel({ onBack, onLogout, userEmail }: AdminPanelProps) {
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-orange-500 outline-none text-sm leading-relaxed"
                   />
                   <p className="text-[11px] text-gray-400 mt-2">
-                    Usa <span className="font-bold text-gray-600">{`{businessName}`}</span>, <span className="font-bold text-gray-600">{`{orderDetails}`}</span>, <span className="font-bold text-gray-600">{`{total}`}</span> y <span className="font-bold text-gray-600">{`{phone}`}</span>.
+                    Usa <span className="font-bold text-gray-600">{`{businessName}`}</span>, <span className="font-bold text-gray-600">{`{orderDetails}`}</span>, <span className="font-bold text-gray-600">{`{paymentMethod}`}</span>, <span className="font-bold text-gray-600">{`{paymentInstructions}`}</span>, <span className="font-bold text-gray-600">{`{total}`}</span> y <span className="font-bold text-gray-600">{`{phone}`}</span>.
                   </p>
                 </div>
 

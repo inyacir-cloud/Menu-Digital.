@@ -150,7 +150,10 @@ function mapBusinessConfigRow(row: BusinessConfigRow | null): BusinessConfig {
     address: row.address || undefined,
     description: row.description || undefined,
     logo: row.logo || undefined,
-    socialMedia: row.social_media || undefined,
+    socialMedia: {
+      ...initialConfig.socialMedia,
+      ...(row.social_media || {}),
+    },
     serviceType: row.service_type || undefined,
     deliveryRadius: row.delivery_radius || undefined,
     hours: row.hours || undefined,
