@@ -88,11 +88,17 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
   const [editingCatName, setEditingCatName] = useState('');
   const [draggingCategoryId, setDraggingCategoryId] = useState<string | null>(null);
 
-  const handleAddCategory = (e: React.FormEvent) => {
+  const handleAddCategory = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCatName.trim()) return;
-    addCategory(newCatName.trim());
-    setNewCatName('');
+
+    try {
+      await addCategory(newCatName.trim());
+      setNewCatName('');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'No se pudo crear la categoría en Supabase.';
+      alert(message);
+    }
   };
 
   const handleCategoryDrop = (targetId: string) => {

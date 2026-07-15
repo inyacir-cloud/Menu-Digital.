@@ -37,6 +37,8 @@ type BusinessConfigRow = {
   hours: BusinessConfig['hours'] | null;
 };
 
+let categoriesSupportsSortOrder = false;
+
 function requireSupabase() {
   if (!supabase) {
     throw new Error('Supabase no está configurado.');
@@ -83,7 +85,7 @@ function isMissingSortOrderError(error: unknown) {
 
   const code = 'code' in error ? String((error as { code?: unknown }).code || '') : '';
   const message = 'message' in error ? String((error as { message?: unknown }).message || '') : '';
-  return code === 'PGRST204' && message.includes('sort_order');
+  return (code === 'PGRST204' || code === '42703') && message.includes('sort_order');
 }
 
 function mapProductToRow(product: Product): ProductRow {
@@ -146,19 +148,21 @@ export async function loadSupabaseData() {
     client.from('complements').select('*').returns<Complement[]>(),
   ]);
 
-  let categoriesRes = await client.from('categories').select('*').order('sort_order', { ascending: true }).returns<CategoryRow[]>();
-  if (categoriesRes.error && isMissingSortOrderError(categoriesRes.error)) {
-    categoriesRes = await client.from('categories').select('id,name,icon').returns<CategoryRow[]>();
-  }
+  const categoriesRes = await client.from('categories').select('*').returns<CategoryRow[]>();
 
   if (configRes.error) throw configRes.error;
   if (categoriesRes.error) throw categoriesRes.error;
   if (productsRes.error) throw productsRes.error;
   if (complementsRes.error) throw complementsRes.error;
 
+  const categoryRows = categoriesRes.data || initialCategories;
+  if (Array.isArray(categoryRows) && categoryRows.some((row) => typeof row === 'object' && row !== null && 'sort_order' in row)) {
+    categoriesSupportsSortOrder = true;
+  }
+
   return {
     config: mapBusinessConfigRow(configRes.data),
-    categories: (categoriesRes.data || initialCategories).map((category) =>
+    categories: categoryRows.map((category) =>
       'sort_order' in category ? mapCategoryRow(category as CategoryRow) : category
     ),
     products: (productsRes.data || []).map(mapProductRow),
@@ -176,12 +180,24 @@ export async function saveSupabaseCategory(category: Category) {
   const client = requireSupabase();
 
   const payloadWithSort = mapCategoryToRow(category);
-  let { error } = await client.from('categories').upsert(payloadWithSort);
+  let error;
+
+  if (categoriesSupportsSortOrder === false) {
+    const { sort_order: _sortOrder, ...payloadWithoutSort } = payloadWithSort;
+    const result = await client.from('categories').upsert(payloadWithoutSort);
+    error = result.error;
+  } else {
+    const result = await client.from('categories').upsert(payloadWithSort);
+    error = result.error;
+  }
 
   if (error && isMissingSortOrderError(error)) {
+    categoriesSupportsSortOrder = false;
     const { sort_order: _sortOrder, ...payloadWithoutSort } = payloadWithSort;
     const retry = await client.from('categories').upsert(payloadWithoutSort);
     error = retry.error;
+  } else if (!error) {
+    categoriesSupportsSortOrder = true;
   }
 
   if (error) throw error;

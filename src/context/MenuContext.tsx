@@ -112,9 +112,17 @@ export function MenuProvider({ children }: { children: ReactNode }) {
 
   const addCategory = async (name: string) => {
     assertSupabaseConfigured();
+    const previousCategories = categories;
     const newCategory: Category = { id: createId(), name, sortOrder: categories.length };
-    setCategories((prev) => normalizeCategories([...prev, newCategory]));
-    await saveSupabaseCategory(newCategory);
+    const nextCategories = normalizeCategories([...previousCategories, newCategory]);
+    setCategories(nextCategories);
+
+    try {
+      await saveSupabaseCategory(newCategory);
+    } catch (error) {
+      setCategories(previousCategories);
+      throw error;
+    }
   };
 
   const updateCategory = async (id: string, name: string) => {
