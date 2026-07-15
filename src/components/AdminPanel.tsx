@@ -133,10 +133,40 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
     setTimeout(() => setWhatsappOrderMessageSaved(false), 2500);
   };
 
+  const previewOrderExample = [
+    {
+      quantity: 2,
+      name: 'Hamburguesa Clásica',
+      subtotal: '$170.00',
+      details: 'Presentación: Grande',
+      extras: ['Queso Cheddar Extra (+$15)']
+    },
+    {
+      quantity: 1,
+      name: 'Agua de Jamaica',
+      subtotal: '$25.00',
+      details: 'Sin hielo',
+      extras: []
+    }
+  ];
+
+  const previewOrderDetails = previewOrderExample
+    .map((item) => {
+      let details = `▪️ *${item.quantity}x ${item.name}* - ${item.subtotal}`;
+      if (item.details) {
+        details += `\n   ↳ _Detalle:_ ${item.details}`;
+      }
+      if (item.extras.length > 0) {
+        details += `\n   ↳ _Extras/Opciones:_ ${item.extras.join(', ')}`;
+      }
+      return details;
+    })
+    .join('\n\n');
+
   const previewWhatsAppOrderMessage = whatsappOrderMessageInput
     .replaceAll('{businessName}', config.name || 'Tu negocio')
-    .replaceAll('{orderDetails}', '▪️ 2x Hamburguesa Clásica - $170.00\n   ↳ _Extras/Opciones:_ Queso Cheddar Extra (+$15)')
-    .replaceAll('{total}', '$185.00')
+    .replaceAll('{orderDetails}', previewOrderDetails)
+    .replaceAll('{total}', '$195.00')
     .replaceAll('{phone}', `+${config.phone}`);
 
   const dayLabels: Record<string, string> = {
@@ -822,9 +852,29 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
                   {showWhatsAppOrderPreview && (
                     <div className="rounded-2xl border border-blue-100 bg-blue-50/60 p-4 space-y-2">
                       <p className="text-[10px] font-bold uppercase tracking-wider text-blue-700">Vista previa del mensaje final</p>
-                      <pre className="whitespace-pre-wrap text-xs sm:text-sm text-gray-800 leading-relaxed font-medium">
-                        {previewWhatsAppOrderMessage}
-                      </pre>
+                      <div className="space-y-3">
+                        <div className="bg-white/90 rounded-2xl border border-blue-100 p-3 space-y-2">
+                          {previewOrderExample.map((item) => (
+                            <div key={`${item.name}-${item.quantity}`} className="flex items-start justify-between gap-3 text-xs sm:text-sm">
+                              <div className="min-w-0">
+                                <p className="font-bold text-gray-900">
+                                  {item.quantity}x {item.name}
+                                </p>
+                                {item.details && <p className="text-gray-500">{item.details}</p>}
+                                {item.extras.length > 0 && <p className="text-gray-500">Extras: {item.extras.join(', ')}</p>}
+                              </div>
+                              <span className="shrink-0 font-extrabold text-blue-700">{item.subtotal}</span>
+                            </div>
+                          ))}
+                          <div className="pt-2 border-t border-blue-100 flex items-center justify-between text-sm">
+                            <span className="font-bold text-gray-700">Total</span>
+                            <span className="font-extrabold text-orange-600">$195.00</span>
+                          </div>
+                        </div>
+                        <pre className="whitespace-pre-wrap text-xs sm:text-sm text-gray-800 leading-relaxed font-medium bg-white rounded-2xl border border-blue-100 p-4">
+                          {previewWhatsAppOrderMessage}
+                        </pre>
+                      </div>
                     </div>
                   )}
 
