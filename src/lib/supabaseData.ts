@@ -39,6 +39,10 @@ type BusinessConfigRow = {
 
 let categoriesSupportsSortOrder = false;
 
+export function canPersistSupabaseCategoryOrder() {
+  return categoriesSupportsSortOrder;
+}
+
 function requireSupabase() {
   if (!supabase) {
     throw new Error('Supabase no está configurado.');

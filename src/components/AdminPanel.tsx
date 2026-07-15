@@ -87,6 +87,7 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
   const [editingCatId, setEditingCatId] = useState<string | null>(null);
   const [editingCatName, setEditingCatName] = useState('');
   const [draggingCategoryId, setDraggingCategoryId] = useState<string | null>(null);
+  const [isReorderingCategories, setIsReorderingCategories] = useState(false);
 
   const handleAddCategory = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,8 +102,8 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
     }
   };
 
-  const handleCategoryDrop = (targetId: string) => {
-    if (!draggingCategoryId || draggingCategoryId === targetId) {
+  const handleCategoryDrop = async (targetId: string) => {
+    if (isReorderingCategories || !draggingCategoryId || draggingCategoryId === targetId) {
       setDraggingCategoryId(null);
       return;
     }
@@ -120,7 +121,16 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
     const [movedId] = nextIds.splice(fromIndex, 1);
     nextIds.splice(toIndex, 0, movedId);
     setDraggingCategoryId(null);
-    reorderCategories(nextIds);
+
+    setIsReorderingCategories(true);
+    try {
+      await reorderCategories(nextIds);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'No se pudo guardar el nuevo orden de categorías en Supabase.';
+      alert(message);
+    } finally {
+      setIsReorderingCategories(false);
+    }
   };
 
   // --- COMPLEMENT STATE ---
@@ -922,12 +932,15 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
               {categories.map(cat => (
                 <div
                   key={cat.id}
-                  draggable
-                  onDragStart={() => setDraggingCategoryId(cat.id)}
+                  draggable={!isReorderingCategories}
+                  onDragStart={() => {
+                    if (isReorderingCategories) return;
+                    setDraggingCategoryId(cat.id);
+                  }}
                   onDragOver={(event) => event.preventDefault()}
                   onDrop={() => handleCategoryDrop(cat.id)}
                   onDragEnd={() => setDraggingCategoryId(null)}
-                  className={`flex items-center justify-between p-3.5 bg-gray-50 rounded-2xl border ${draggingCategoryId === cat.id ? 'border-orange-300 bg-orange-50' : 'border-gray-100'}`}
+                  className={`flex items-center justify-between p-3.5 bg-gray-50 rounded-2xl border ${draggingCategoryId === cat.id ? 'border-orange-300 bg-orange-50' : 'border-gray-100'} ${isReorderingCategories ? 'opacity-70' : ''}`}
                 >
                   <div className="flex items-center gap-3 flex-1 min-w-0">
                     <button
