@@ -76,20 +76,6 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
   };
 
   const handleUploadLogo = async (event: React.ChangeEvent<HTMLInputElement>) => {
-
-      const handleSaveWhatsAppMessage = async () => {
-        await updateConfig({
-          socialMedia: {
-            instagram: instagramInput,
-            facebook: facebookInput,
-            website: websiteInput,
-            whatsappMessage: whatsappMessageInput,
-          },
-        });
-
-        setWhatsappMessageSaved(true);
-        setTimeout(() => setWhatsappMessageSaved(false), 2500);
-      };
     const file = event.target.files?.[0];
     event.currentTarget.value = '';
     if (!file) return;
@@ -109,6 +95,20 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
     } finally {
       setIsUploadingLogo(false);
     }
+  };
+
+  const handleSaveWhatsAppMessage = async () => {
+    await updateConfig({
+      socialMedia: {
+        instagram: instagramInput,
+        facebook: facebookInput,
+        website: websiteInput,
+        whatsappMessage: whatsappMessageInput,
+      },
+    });
+
+    setWhatsappMessageSaved(true);
+    setTimeout(() => setWhatsappMessageSaved(false), 2500);
   };
 
   const dayLabels: Record<string, string> = {
