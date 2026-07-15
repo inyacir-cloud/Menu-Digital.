@@ -1,18 +1,15 @@
-import { Utensils, Settings, Clock, MapPin, Phone, ShieldCheck, Power, Share2, Droplets, Check, MessageSquare } from 'lucide-react';
+import { Utensils, Clock, MapPin, Phone, ShieldCheck, Share2, Check, MessageSquare } from 'lucide-react';
 import { useMenu } from '../context/MenuContext';
 import { useState } from 'react';
-import { WatersModal } from './WatersModal';
 import { defaultWhatsAppShareMessage } from '../data';
 
 interface HomeProps {
   onNavigateToMenu: () => void;
-  onNavigateToAdmin: () => void;
 }
 
-export function Home({ onNavigateToMenu, onNavigateToAdmin }: HomeProps) {
-  const { config, toggleBusinessOpen, products, categories } = useMenu();
+export function Home({ onNavigateToMenu }: HomeProps) {
+  const { config, products, categories } = useMenu();
   const [copied, setCopied] = useState(false);
-  const [showWatersModal, setShowWatersModal] = useState(false);
   const [shareFeedback, setShareFeedback] = useState<string | null>(null);
   const businessName = config.name || 'Menu';
 
@@ -80,13 +77,6 @@ export function Home({ onNavigateToMenu, onNavigateToAdmin }: HomeProps) {
             <span className="font-bold text-gray-800 text-base sm:text-lg truncate">{businessName}</span>
           </div>
 
-          <button
-            onClick={onNavigateToAdmin}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 active:bg-gray-300 text-gray-700 text-sm font-medium transition-colors shrink-0"
-          >
-            <Settings className="w-4 h-4 text-gray-600" />
-            <span className="hidden xs:inline">Admin</span>
-          </button>
         </div>
       </div>
 
@@ -110,17 +100,6 @@ export function Home({ onNavigateToMenu, onNavigateToAdmin }: HomeProps) {
               </div>
             </div>
 
-            <button
-              onClick={toggleBusinessOpen}
-              className={`px-3 py-2 rounded-xl border font-semibold flex items-center gap-1.5 text-xs sm:text-sm transition-all shadow-sm shrink-0 ${
-                config.isOpen
-                  ? 'bg-red-50 border-red-200 text-red-600 hover:bg-red-100 active:bg-red-200'
-                  : 'bg-green-50 border-green-200 text-green-600 hover:bg-green-100 active:bg-green-200'
-              }`}
-            >
-              <Power className="w-4 h-4" />
-              <span>{config.isOpen ? 'Cerrar' : 'Abrir'}</span>
-            </button>
           </div>
         </div>
 
@@ -143,50 +122,6 @@ export function Home({ onNavigateToMenu, onNavigateToAdmin }: HomeProps) {
           >
             <Utensils className="w-5 h-5 sm:w-6 sm:h-6" />
             <span>Ver Carta Menú Digital</span>
-          </button>
-
-          {/* Quick Access: Admin */}
-          <button
-            onClick={onNavigateToAdmin}
-            className="w-full bg-gray-900 hover:bg-gray-800 active:bg-gray-950 text-white p-4 rounded-2xl shadow-lg shadow-gray-900/15 flex items-center justify-between text-left transition-all group"
-          >
-            <div className="flex items-center gap-3.5 min-w-0">
-              <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center shrink-0 backdrop-blur-sm group-hover:scale-110 transition-transform">
-                <Settings className="w-5 h-5 text-white" />
-              </div>
-              <div className="min-w-0">
-                <h4 className="font-extrabold text-sm sm:text-base text-white leading-tight flex items-center gap-1.5">
-                  <span>Panel de Administración</span>
-                  <span className="bg-white/10 text-[10px] px-1.5 py-0.5 rounded-md uppercase tracking-wider font-black">Acceso Rápido</span>
-                </h4>
-                <p className="text-gray-300 text-xs mt-0.5 truncate">
-                  Edita productos, categorías, horarios y logo desde aquí
-                </p>
-              </div>
-            </div>
-            <span className="text-white font-bold text-lg px-1 shrink-0">→</span>
-          </button>
-
-          {/* Quick Access: Waters of the Day */}
-          <button
-            onClick={() => setShowWatersModal(true)}
-            className="w-full bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 active:from-blue-700 active:to-cyan-800 text-white p-4 rounded-2xl shadow-lg shadow-blue-500/20 flex items-center justify-between text-left transition-all group"
-          >
-            <div className="flex items-center gap-3.5 min-w-0">
-              <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center shrink-0 backdrop-blur-sm group-hover:scale-110 transition-transform">
-                <Droplets className="w-6 h-6 text-white" />
-              </div>
-              <div className="min-w-0">
-                <h4 className="font-extrabold text-sm sm:text-base text-white leading-tight flex items-center gap-1.5">
-                  <span>Editar Aguas del Día</span>
-                  <span className="bg-white/20 text-[10px] px-1.5 py-0.5 rounded-md uppercase tracking-wider font-black">Acceso Rápido</span>
-                </h4>
-                <p className="text-blue-100 text-xs mt-0.5 truncate">
-                  Activa/desactiva las bebidas o cambia los sabores diarios
-                </p>
-              </div>
-            </div>
-            <span className="text-white font-bold text-lg px-1 shrink-0">→</span>
           </button>
 
           {/* Share Section */}
@@ -281,8 +216,6 @@ export function Home({ onNavigateToMenu, onNavigateToAdmin }: HomeProps) {
         <p>© {new Date().getFullYear()} {config.name} · Menú digital con pedidos por WhatsApp</p>
       </footer>
 
-      {/* Waters Quick Modal */}
-      <WatersModal isOpen={showWatersModal} onClose={() => setShowWatersModal(false)} />
     </div>
   );
 }
