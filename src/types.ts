@@ -60,6 +60,7 @@ export interface BusinessConfig {
     facebook?: string;
     website?: string;
     whatsappMessage?: string;
+    whatsappOrderMessage?: string;
   };
   serviceType?: 'delivery' | 'pickup' | 'both';
   deliveryRadius?: string;

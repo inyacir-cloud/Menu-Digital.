@@ -2,6 +2,7 @@ import { X, Minus, Plus, MessageCircle, AlertTriangle, Trash2 } from 'lucide-rea
 import { useCart } from '../context/CartContext';
 import { useMenu } from '../context/MenuContext';
 import { DEFAULT_PRODUCT_IMAGE, handleProductImageError } from '../utils/images';
+import { defaultWhatsAppOrderMessage } from '../data';
 
 interface CartProps {
   isOpen: boolean;
@@ -14,6 +15,36 @@ export function Cart({ isOpen, onClose }: CartProps) {
 
   if (!isOpen) return null;
 
+  const buildOrderDetails = () => {
+    return items
+      .map((item) => {
+        const basePrice = item.selectedSize?.price ?? item.product.price;
+        const complementsPrice = item.selectedComplements.reduce((sum, c) => sum + c.price, 0);
+        const itemSubtotal = (basePrice + complementsPrice) * item.quantity;
+
+        let details = `▪️ *${item.quantity}x ${item.product.name}* - $${itemSubtotal.toFixed(2)}`;
+        if (item.selectedSize) {
+          details += `\n   ↳ _Presentación:_ ${item.selectedSize.name}`;
+        }
+        if (item.selectedComplements && item.selectedComplements.length > 0) {
+          const compNames = item.selectedComplements.map(c => c.price > 0 ? `${c.name} (+$${c.price})` : c.name).join(', ');
+          details += `\n   ↳ _Extras/Opciones:_ ${compNames}`;
+        }
+
+        return details;
+      })
+      .join('\n\n');
+  };
+
+  const buildOrderMessage = () => {
+    const template = config.socialMedia?.whatsappOrderMessage || defaultWhatsAppOrderMessage;
+    return template
+      .replaceAll('{businessName}', config.name)
+      .replaceAll('{orderDetails}', buildOrderDetails())
+      .replaceAll('{total}', `$${total.toFixed(2)}`)
+      .replaceAll('{phone}', `+${config.phone}`);
+  };
+
   const handleWhatsAppOrder = () => {
     if (items.length === 0) return;
 
@@ -22,25 +53,7 @@ export function Cart({ isOpen, onClose }: CartProps) {
       return;
     }
 
-    let text = `*¡Hola! Quisiera hacer un pedido a ${config.name}:*\n\n`;
-    
-    items.forEach((item) => {
-      const basePrice = item.selectedSize?.price ?? item.product.price;
-      const complementsPrice = item.selectedComplements.reduce((sum, c) => sum + c.price, 0);
-      const itemSubtotal = (basePrice + complementsPrice) * item.quantity;
-      
-      text += `▪️ *${item.quantity}x ${item.product.name}* - $${itemSubtotal.toFixed(2)}\n`;
-      if (item.selectedSize) {
-        text += `   ↳ _Presentación:_ ${item.selectedSize.name}\n`;
-      }
-      if (item.selectedComplements && item.selectedComplements.length > 0) {
-        const compNames = item.selectedComplements.map(c => c.price > 0 ? `${c.name} (+$${c.price})` : c.name).join(', ');
-        text += `   ↳ _Extras/Opciones:_ ${compNames}\n`;
-      }
-    });
-
-    text += `\n*TOTAL A PAGAR: $${total.toFixed(2)}*`;
-    text += `\n\n_Por favor confirmar tiempo estimado de entrega y método de pago. ¡Gracias!_`;
+    const text = buildOrderMessage();
 
     // Clean phone number (remove spaces, dashes, plus signs)
     const cleanPhone = config.phone.replace(/[^0-9]/g, '');

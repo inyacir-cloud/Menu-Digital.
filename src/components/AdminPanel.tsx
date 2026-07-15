@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import { useMenu } from '../context/MenuContext';
 import { Product } from '../types';
-import { defaultWhatsAppShareMessage } from '../data';
+import { defaultWhatsAppOrderMessage, defaultWhatsAppShareMessage } from '../data';
 import { handleProductImageError } from '../utils/images';
 import { WatersAdminSection } from './WatersAdminSection';
 
@@ -36,6 +36,10 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
     config.socialMedia?.whatsappMessage || defaultWhatsAppShareMessage
   );
   const [whatsappMessageSaved, setWhatsappMessageSaved] = useState(false);
+  const [whatsappOrderMessageInput, setWhatsappOrderMessageInput] = useState(
+    config.socialMedia?.whatsappOrderMessage || defaultWhatsAppOrderMessage
+  );
+  const [whatsappOrderMessageSaved, setWhatsappOrderMessageSaved] = useState(false);
   const [serviceTypeInput, setServiceTypeInput] = useState(config.serviceType || 'both');
   const [deliveryRadiusInput, setDeliveryRadiusInput] = useState(config.deliveryRadius || '');
   const [instagramInput, setInstagramInput] = useState(config.socialMedia?.instagram || '');
@@ -67,7 +71,8 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
         instagram: instagramInput,
         facebook: facebookInput,
         website: websiteInput,
-        whatsappMessage: whatsappMessageInput
+        whatsappMessage: whatsappMessageInput,
+        whatsappOrderMessage: whatsappOrderMessageInput
       },
       hours: hoursInput
     });
@@ -104,11 +109,27 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
         facebook: facebookInput,
         website: websiteInput,
         whatsappMessage: whatsappMessageInput,
+        whatsappOrderMessage: whatsappOrderMessageInput,
       },
     });
 
     setWhatsappMessageSaved(true);
     setTimeout(() => setWhatsappMessageSaved(false), 2500);
+  };
+
+  const handleSaveWhatsAppOrderMessage = async () => {
+    await updateConfig({
+      socialMedia: {
+        instagram: instagramInput,
+        facebook: facebookInput,
+        website: websiteInput,
+        whatsappMessage: whatsappMessageInput,
+        whatsappOrderMessage: whatsappOrderMessageInput,
+      },
+    });
+
+    setWhatsappOrderMessageSaved(true);
+    setTimeout(() => setWhatsappOrderMessageSaved(false), 2500);
   };
 
   const dayLabels: Record<string, string> = {
@@ -739,6 +760,55 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
                   <p className="text-green-600 text-xs font-bold animate-fadeIn">✓ Mensaje de WhatsApp guardado correctamente</p>
                 )}
               </div>
+
+                {/* Mensaje Pedido WhatsApp */}
+                <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 space-y-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900 mb-1">Mensaje de Pedido por WhatsApp</h3>
+                      <p className="text-xs text-gray-500">Edita el texto que se enviará cuando el cliente haga su pedido desde el carrito.</p>
+                    </div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider bg-blue-50 text-blue-700 px-2 py-1 rounded-full shrink-0">Carrito</span>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">
+                      Plantilla del pedido
+                    </label>
+                    <textarea
+                      value={whatsappOrderMessageInput}
+                      onChange={(e) => setWhatsappOrderMessageInput(e.target.value)}
+                      rows={7}
+                      placeholder="Escribe el mensaje del pedido que se enviará por WhatsApp..."
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-orange-500 outline-none text-sm leading-relaxed"
+                    />
+                    <p className="text-[11px] text-gray-400 mt-2">
+                      Usa <span className="font-bold text-gray-600">{`{businessName}`}</span>, <span className="font-bold text-gray-600">{`{orderDetails}`}</span>, <span className="font-bold text-gray-600">{`{total}`}</span> y <span className="font-bold text-gray-600">{`{phone}`}</span>.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <button
+                      type="button"
+                      onClick={handleSaveWhatsAppOrderMessage}
+                      className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-3 rounded-xl shadow-md shadow-blue-200 flex items-center gap-2 text-sm transition-colors"
+                    >
+                      <Check className="w-4 h-4" />
+                      <span>Guardar mensaje</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setWhatsappOrderMessageInput(defaultWhatsAppOrderMessage)}
+                      className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold px-6 py-3 rounded-xl text-sm transition-colors"
+                    >
+                      Restablecer mensaje
+                    </button>
+                  </div>
+
+                  {whatsappOrderMessageSaved && (
+                    <p className="text-blue-600 text-xs font-bold animate-fadeIn">✓ Mensaje de pedido guardado correctamente</p>
+                  )}
+                </div>
 
               {/* Botón Guardar */}
               <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
