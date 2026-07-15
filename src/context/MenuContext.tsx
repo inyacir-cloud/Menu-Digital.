@@ -143,9 +143,21 @@ export function MenuProvider({ children }: { children: ReactNode }) {
 
   const deleteCategory = async (id: string) => {
     assertSupabaseConfigured();
-    setCategories((prev) => prev.filter((category) => category.id !== id));
-    setProducts((prev) => prev.filter((product) => product.categoryId !== id));
-    await deleteSupabaseCategory(id);
+    const previousCategories = categories;
+    const previousProducts = products;
+    const nextCategories = previousCategories.filter((category) => category.id !== id);
+    const nextProducts = previousProducts.filter((product) => product.categoryId !== id);
+
+    setCategories(nextCategories);
+    setProducts(nextProducts);
+
+    try {
+      await deleteSupabaseCategory(id);
+    } catch (error) {
+      setCategories(previousCategories);
+      setProducts(previousProducts);
+      throw error;
+    }
   };
 
   const addProduct = async (productData: Omit<Product, 'id'>) => {

@@ -976,13 +976,18 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
                       <Edit2 className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={() => {
+                      onClick={async () => {
                         if (categories.length <= 1) {
                           alert('Debe existir al menos una categoría.');
                           return;
                         }
                         if (window.confirm(`¿Eliminar la categoría "${cat.name}"?`)) {
-                          deleteCategory(cat.id);
+                          try {
+                            await deleteCategory(cat.id);
+                          } catch (error) {
+                            const message = error instanceof Error ? error.message : 'No se pudo eliminar la categoría en Supabase.';
+                            alert(message);
+                          }
                         }
                       }}
                       className="p-2 text-gray-500 hover:text-red-600 hover:bg-white rounded-xl transition-colors"
