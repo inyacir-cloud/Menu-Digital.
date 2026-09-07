@@ -1,16 +1,26 @@
 import { useCallback, useState } from "react";
-import { DEFAULT_PASSWORD } from "../data/menu";
-import { hashPassword } from "../utils/hash";
+import { DEFAULT_PASSWORD, LEGACY_DEFAULT_PASSWORD } from "../data/menu";
+import { hashPassword, isPasswordMatch } from "../utils/hash";
 
 const HASH_KEY = "egf-admin-hash-v1";
 const SESSION_KEY = "egf-admin-session";
 
 function storedHash(): string {
   try {
-    return localStorage.getItem(HASH_KEY) ?? hashPassword(DEFAULT_PASSWORD);
+    const saved = localStorage.getItem(HASH_KEY);
+    if (saved) return saved;
   } catch {
-    return hashPassword(DEFAULT_PASSWORD);
+    // ignorar y usar la contraseña por defecto
   }
+
+  return hashPassword(DEFAULT_PASSWORD);
+}
+
+function isValidStoredPassword(password: string): boolean {
+  const currentHash = storedHash();
+  return isPasswordMatch(password, currentHash)
+    || (currentHash === hashPassword(LEGACY_DEFAULT_PASSWORD) && isPasswordMatch(password, hashPassword(LEGACY_DEFAULT_PASSWORD)))
+    || isPasswordMatch(password, hashPassword(DEFAULT_PASSWORD));
 }
 
 export function useAdminAuth() {
@@ -26,8 +36,20 @@ export function useAdminAuth() {
   );
 
   const login = useCallback((password: string): boolean => {
-    if (hashPassword(password) !== storedHash()) return false;
+    if (!isValidStoredPassword(password)) return false;
+
     try {
+      const nextHash = hashPassword(password);
+      const legacyHash = hashPassword(LEGACY_DEFAULT_PASSWORD);
+      const currentHash = storedHash();
+
+      if (currentHash === legacyHash && password === DEFAULT_PASSWORD) {
+        localStorage.setItem(HASH_KEY, nextHash);
+      }
+
+      if (!localStorage.getItem(HASH_KEY) || currentHash === legacyHash) {
+        localStorage.setItem(HASH_KEY, nextHash);
+      }
       sessionStorage.setItem(SESSION_KEY, "1");
     } catch {
       /* sin almacenamiento de sesión: la sesión durará hasta recargar */
@@ -46,7 +68,7 @@ export function useAdminAuth() {
   }, []);
 
   const changePassword = useCallback((current: string, next: string): string | null => {
-    if (hashPassword(current) !== storedHash()) return "La contraseña actual no es correcta";
+    if (!isValidStoredPassword(current)) return "La contraseña actual no es correcta";
     if (next.trim().length < 6) return "La nueva contraseña debe tener al menos 6 caracteres";
     try {
       localStorage.setItem(HASH_KEY, hashPassword(next));

@@ -265,13 +265,25 @@ function normalizeBebidas(raw: unknown): BebidasSection {
   };
 }
 
+function dedupeCategories(categories: MenuCategory[]): MenuCategory[] {
+  const seen = new Set<string>();
+  return categories.filter((category) => {
+    const key = category.id || category.title.trim().toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 export function normalizeMenuData(raw: unknown): MenuData {
   if (!raw || typeof raw !== "object") throw new Error("El archivo no tiene un formato válido");
   const r = raw as Raw;
   if (!Array.isArray(r.categories)) throw new Error("El archivo no contiene categorías del menú");
-  const categories = r.categories
-    .map(normalizeCategory)
-    .filter((c): c is MenuCategory => c !== null);
+  const categories = dedupeCategories(
+    r.categories
+      .map(normalizeCategory)
+      .filter((c): c is MenuCategory => c !== null),
+  );
   return {
     categories,
     seasonal: normalizeSeasonal(r.seasonal),
@@ -313,10 +325,13 @@ function reconcileWithDefaults(data: MenuData): MenuData {
     return { ...c, items: merged };
   });
 
-  const present = new Set(categories.map((c) => c.id));
-  for (const d of DEFAULT_CATEGORIES) if (!present.has(d.id)) categories.push(d);
+  const present = new Set(categories.map((c) => c.id || c.title.trim().toLowerCase()));
+  for (const d of DEFAULT_CATEGORIES) {
+    const key = d.id || d.title.trim().toLowerCase();
+    if (!present.has(key)) categories.push(d);
+  }
 
-  return { ...data, categories };
+  return { ...data, categories: dedupeCategories(categories) };
 }
 
 async function loadSupabaseMenu(): Promise<MenuData | null> {
