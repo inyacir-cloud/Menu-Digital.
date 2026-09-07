@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   BebidasSection,
   Coupon,
@@ -376,14 +376,17 @@ export type ItemInput = Omit<MenuItem, "id">;
 export function useMenuStore() {
   const [data, setData] = useState<MenuData>(loadInitial);
   const [storageError, setStorageError] = useState<string | null>(null);
+  const [remoteReady, setRemoteReady] = useState(!isSupabaseConfigured);
+  const syncVersion = useRef(0);
 
   useEffect(() => {
     let active = true;
 
     void (async () => {
       const remote = await loadSupabaseMenu();
-      if (!active || !remote) return;
-      setData(remote);
+      if (!active) return;
+      if (remote) setData(remote);
+      setRemoteReady(true);
     })();
 
     return () => {
@@ -401,13 +404,31 @@ export function useMenuStore() {
       );
     }
 
-    if (!isSupabaseConfigured) return;
+    if (!isSupabaseConfigured || !remoteReady) return;
 
+    const version = ++syncVersion.current;
     void (async () => {
       try {
         const payload = serializeMenuForSupabase(data);
 
-        await supabase.from("settings").upsert(payload.settings, { onConflict: "id" });
+        const settingsResult = await supabase.from("settings").upsert(payload.settings, { onConflict: "id" });
+        if (settingsResult.error) throw settingsResult.error;
+
+        // El estado local es la fuente de verdad después de hidratarse. Quitamos
+        // filas que el administrador eliminó para que Supabase no conserve basura.
+        const keep = (ids: Array<string | undefined>) => ids.filter((id): id is string => Boolean(id));
+        const deleteMissing = async (table: string, ids: Array<string | undefined>) => {
+          const query = supabase.from(table).delete();
+          const kept = keep(ids);
+          const result = kept.length > 0 ? await query.not("id", "in", `(${kept.join(",")})`) : await query.neq("id", "");
+          if (result.error) throw result.error;
+        };
+
+        await deleteMissing("item_extras", payload.itemExtras.map((item) => item.id));
+        await deleteMissing("item_sizes", payload.itemSizes.map((item) => item.id));
+        await deleteMissing("menu_items", payload.menuItems.map((item) => item.id));
+        await deleteMissing("categories", payload.categories.map((category) => category.id));
+        await deleteMissing("coupons", payload.coupons.map((coupon) => coupon.id));
 
         const { error: categoriesError } = await supabase.from("categories").upsert(payload.categories, {
           onConflict: "id",
@@ -438,11 +459,12 @@ export function useMenuStore() {
           ignoreDuplicates: false,
         });
         if (couponsError) console.warn("Supabase coupons sync failed:", couponsError.message);
+        if (version !== syncVersion.current) return;
       } catch (error) {
         console.warn("Supabase full menu sync crashed:", error);
       }
     })();
-  }, [data]);
+  }, [data, remoteReady]);
 
   const setCategories = useCallback((updater: (prev: MenuCategory[]) => MenuCategory[]) => {
     setData((d) => ({ ...d, categories: updater(d.categories) }));
