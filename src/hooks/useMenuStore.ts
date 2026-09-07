@@ -268,7 +268,7 @@ function normalizeBebidas(raw: unknown): BebidasSection {
 function dedupeCategories(categories: MenuCategory[]): MenuCategory[] {
   const seen = new Set<string>();
   return categories.filter((category) => {
-    const key = category.id || category.title.trim().toLowerCase();
+    const key = category.title.trim().toLowerCase();
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
@@ -300,35 +300,47 @@ export function normalizeMenuData(raw: unknown): MenuData {
  */
 function reconcileWithDefaults(data: MenuData): MenuData {
   const defaultsById = new Map(DEFAULT_CATEGORIES.map((c) => [c.id, c] as const));
+  const defaultsByTitle = new Map(DEFAULT_CATEGORIES.map((c) => [c.title.trim().toLowerCase(), c] as const));
 
   const categories = data.categories.map((c) => {
-    const d = defaultsById.get(c.id);
+    const d = defaultsById.get(c.id) ?? defaultsByTitle.get(c.title.trim().toLowerCase());
     if (!d) return c;
 
     const surviving = c.items.filter((i) => !RETIRED_ITEM_IDS.has(i.id));
     const survivingById = new Map(surviving.map((i) => [i.id, i] as const));
+    const survivingByName = new Map(surviving.map((i) => [i.name.trim().toLowerCase(), i] as const));
 
     const merged: MenuItem[] = d.items.map((di) => {
-      const prev = survivingById.get(di.id);
+      const prev = survivingById.get(di.id) ?? survivingByName.get(di.name.trim().toLowerCase());
       if (!prev) return di;
       survivingById.delete(di.id);
+      survivingByName.delete(prev.name.trim().toLowerCase());
       // Se conservan los ajustes locales (agotado, foto, etiqueta); el resto se alinea
       return {
         ...di,
+        id: prev.id,
         unavailable: prev.unavailable,
         image: prev.image ?? di.image,
         badge: prev.badge ?? di.badge,
+        description: prev.description ?? di.description,
+        cartName: prev.cartName ?? di.cartName,
+        extras: prev.extras ?? di.extras,
+        sizes: prev.sizes ?? di.sizes,
+        unavailableSizes: prev.unavailableSizes,
       };
     });
-    for (const custom of survivingById.values()) merged.push(custom);
+    for (const custom of survivingById.values()) {
+      if (survivingByName.has(custom.name.trim().toLowerCase())) merged.push(custom);
+    }
 
     return { ...c, items: merged };
   });
 
   const present = new Set(categories.map((c) => c.id || c.title.trim().toLowerCase()));
+  const presentTitles = new Set(categories.map((c) => c.title.trim().toLowerCase()));
   for (const d of DEFAULT_CATEGORIES) {
     const key = d.id || d.title.trim().toLowerCase();
-    if (!present.has(key)) categories.push(d);
+    if (!present.has(key) && !presentTitles.has(d.title.trim().toLowerCase())) categories.push(d);
   }
 
   return { ...data, categories: dedupeCategories(categories) };
@@ -340,7 +352,7 @@ async function loadSupabaseMenu(): Promise<MenuData | null> {
   try {
     const { data, error } = await supabase.rpc("get_menu");
     if (error || !data || typeof data !== "object") return null;
-    return normalizeMenuData(data as Record<string, unknown>);
+    return reconcileWithDefaults(normalizeMenuData(data as Record<string, unknown>));
   } catch {
     return null;
   }
