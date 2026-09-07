@@ -1,0 +1,187 @@
+@import "tailwindcss";
+
+@theme {
+  /* Paleta tomada del menú impreso */
+  --color-paper: #e7e6e2;
+  --color-paper-dark: #d6d5cf;
+  --color-ink: #161616;
+  --color-mustard: #c9a52e;
+  --color-mustard-deep: #ae8c1c;
+  --color-terracotta: #c8691e;
+  --color-terracotta-deep: #a8531a;
+  --color-wa: #25d366;
+  --color-wa-deep: #1da851;
+  /* Derivados del tema (se recalculan al cambiar los colores desde el panel) */
+  --color-paper-light: #f6f5f1;
+  --color-surface: #fbfbfa;
+  --color-on-mustard: #161616;
+  --color-mustard-ink: #7a6318;
+
+  --font-display: "Alfa Slab One", "Rockwell", "Roboto Slab", serif;
+  --font-script: "Caveat", "Segoe Script", "Bradley Hand", cursive;
+  --font-sans: "Montserrat", ui-sans-serif, system-ui, sans-serif;
+
+  --animate-pop: pop 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  --animate-rise: rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-fade: fade 0.25s ease-out both;
+  --animate-slide-up: slide-up 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-slide-left: slide-left 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-toast: toast 2.2s ease both;
+  --animate-wiggle: wiggle 0.5s ease-in-out;
+  --animate-shake: shake 0.4s ease both;
+
+  @keyframes pop {
+    0% {
+      transform: scale(0.6);
+      opacity: 0;
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+  @keyframes rise {
+    from {
+      transform: translateY(28px);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+  @keyframes fade {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes slide-up {
+    from {
+      transform: translateY(100%);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+  @keyframes slide-left {
+    from {
+      transform: translateX(100%);
+    }
+    to {
+      transform: translateX(0);
+    }
+  }
+  @keyframes toast {
+    0% {
+      transform: translate(-50%, 16px);
+      opacity: 0;
+    }
+    12% {
+      transform: translate(-50%, 0);
+      opacity: 1;
+    }
+    85% {
+      transform: translate(-50%, 0);
+      opacity: 1;
+    }
+    100% {
+      transform: translate(-50%, -10px);
+      opacity: 0;
+    }
+  }
+  @keyframes shake {
+    0%,
+    100% {
+      transform: translateX(0);
+    }
+    20%,
+    60% {
+      transform: translateX(-8px);
+    }
+    40%,
+    80% {
+      transform: translateX(8px);
+    }
+  }
+  @keyframes wiggle {
+    0%,
+    100% {
+      transform: rotate(0deg) scale(1);
+    }
+    25% {
+      transform: rotate(-10deg) scale(1.12);
+    }
+    75% {
+      transform: rotate(10deg) scale(1.12);
+    }
+  }
+}
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-paper text-ink antialiased;
+  }
+  input,
+  textarea {
+    font: inherit;
+  }
+}
+
+/* Textura de papel (grano sutil) */
+.paper-grain {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.55;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.28'/%3E%3C/svg%3E");
+}
+
+/* Fotos de platillos: se funden con el papel */
+.food-photo {
+  mix-blend-mode: multiply;
+  -webkit-mask-image: radial-gradient(ellipse at center, #000 66%, transparent 100%);
+  mask-image: radial-gradient(ellipse at center, #000 66%, transparent 100%);
+}
+
+/* Tema oscuro: las fotos no se funden (multiply las oscurecería) */
+.theme-dark .food-photo {
+  mix-blend-mode: normal;
+  -webkit-mask-image: none;
+  mask-image: none;
+  border-radius: 2rem;
+  box-shadow: 0 24px 40px -20px rgba(0, 0, 0, 0.7);
+}
+.theme-dark .paper-grain {
+  mix-blend-mode: screen;
+  opacity: 0.22;
+}
+
+/* Mapa (Leaflet): controles por debajo de los diálogos de la app */
+.leaflet-container {
+  font: inherit;
+  z-index: 0;
+}
+.leaflet-top,
+.leaflet-bottom {
+  z-index: 400;
+}
+.leaflet-container a.leaflet-popup-close-button {
+  color: inherit;
+}
+
+/* Ocultar scrollbar en el carrusel de categorías */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
