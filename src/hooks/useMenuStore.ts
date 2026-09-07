@@ -22,6 +22,8 @@ import {
 } from "../data/menu";
 import { normalizeHex } from "../utils/color";
 import { uid } from "../utils/id";
+import { isSupabaseConfigured, supabase } from "../lib/supabase";
+import { serializeMenuForSupabase } from "../utils/supabaseMenu";
 
 const STORAGE_KEY = "egf-menu-data-v3";
 /** Versiones anteriores: se migran automáticamente al cargar */
@@ -317,6 +319,18 @@ function reconcileWithDefaults(data: MenuData): MenuData {
   return { ...data, categories };
 }
 
+async function loadSupabaseMenu(): Promise<MenuData | null> {
+  if (!isSupabaseConfigured) return null;
+
+  try {
+    const { data, error } = await supabase.rpc("get_menu");
+    if (error || !data || typeof data !== "object") return null;
+    return normalizeMenuData(data as Record<string, unknown>);
+  } catch {
+    return null;
+  }
+}
+
 function loadInitial(): MenuData {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -349,6 +363,20 @@ export function useMenuStore() {
   const [storageError, setStorageError] = useState<string | null>(null);
 
   useEffect(() => {
+    let active = true;
+
+    void (async () => {
+      const remote = await loadSupabaseMenu();
+      if (!active || !remote) return;
+      setData(remote);
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
       setStorageError(null);
@@ -357,6 +385,48 @@ export function useMenuStore() {
         "No se pudieron guardar los últimos cambios: el almacenamiento del navegador está lleno. Quita algunas fotos o usa imágenes más pequeñas.",
       );
     }
+
+    if (!isSupabaseConfigured) return;
+
+    void (async () => {
+      try {
+        const payload = serializeMenuForSupabase(data);
+
+        await supabase.from("settings").upsert(payload.settings, { onConflict: "id" });
+
+        const { error: categoriesError } = await supabase.from("categories").upsert(payload.categories, {
+          onConflict: "id",
+          ignoreDuplicates: false,
+        });
+        if (categoriesError) console.warn("Supabase categories sync failed:", categoriesError.message);
+
+        const { error: itemsError } = await supabase.from("menu_items").upsert(payload.menuItems, {
+          onConflict: "id",
+          ignoreDuplicates: false,
+        });
+        if (itemsError) console.warn("Supabase menu items sync failed:", itemsError.message);
+
+        const { error: extrasError } = await supabase.from("item_extras").upsert(payload.itemExtras, {
+          onConflict: "id",
+          ignoreDuplicates: false,
+        });
+        if (extrasError) console.warn("Supabase item extras sync failed:", extrasError.message);
+
+        const { error: sizesError } = await supabase.from("item_sizes").upsert(payload.itemSizes, {
+          onConflict: "id",
+          ignoreDuplicates: false,
+        });
+        if (sizesError) console.warn("Supabase item sizes sync failed:", sizesError.message);
+
+        const { error: couponsError } = await supabase.from("coupons").upsert(payload.coupons, {
+          onConflict: "id",
+          ignoreDuplicates: false,
+        });
+        if (couponsError) console.warn("Supabase coupons sync failed:", couponsError.message);
+      } catch (error) {
+        console.warn("Supabase full menu sync crashed:", error);
+      }
+    })();
   }, [data]);
 
   const setCategories = useCallback((updater: (prev: MenuCategory[]) => MenuCategory[]) => {

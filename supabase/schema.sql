@@ -300,30 +300,30 @@ create policy "lectura publica item_sizes"  on public.item_sizes  for select usi
 drop policy if exists "lectura publica coupons"     on public.coupons;
 create policy "lectura publica coupons"     on public.coupons     for select using (true);
 
--- ---- Escritura solo para el administrador (usuario autenticado) ----
+-- ---- Escritura para el panel del menú (modo simple, sin login de Supabase) ----
 drop policy if exists "admin escribe settings"    on public.settings;
 create policy "admin escribe settings"    on public.settings
-  for all to authenticated using (true) with check (true);
+  for all to anon, authenticated using (true) with check (true);
 
 drop policy if exists "admin escribe categories"  on public.categories;
 create policy "admin escribe categories"  on public.categories
-  for all to authenticated using (true) with check (true);
+  for all to anon, authenticated using (true) with check (true);
 
 drop policy if exists "admin escribe menu_items"  on public.menu_items;
 create policy "admin escribe menu_items"  on public.menu_items
-  for all to authenticated using (true) with check (true);
+  for all to anon, authenticated using (true) with check (true);
 
 drop policy if exists "admin escribe item_extras" on public.item_extras;
 create policy "admin escribe item_extras" on public.item_extras
-  for all to authenticated using (true) with check (true);
+  for all to anon, authenticated using (true) with check (true);
 
 drop policy if exists "admin escribe item_sizes"  on public.item_sizes;
 create policy "admin escribe item_sizes"  on public.item_sizes
-  for all to authenticated using (true) with check (true);
+  for all to anon, authenticated using (true) with check (true);
 
 drop policy if exists "admin escribe coupons"     on public.coupons;
 create policy "admin escribe coupons"     on public.coupons
-  for all to authenticated using (true) with check (true);
+  for all to anon, authenticated using (true) with check (true);
 
 -- ---- Pedidos: cualquiera crea, solo admin lee / actualiza ----
 drop policy if exists "cualquiera crea pedido" on public.orders;
