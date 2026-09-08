@@ -47,9 +47,9 @@ export function ImageField({ label, value, onChange, maxSize = 640, allowBuiltin
     <div>
       <span className="text-xs font-semibold text-ink/70">{label}</span>
       <div className="mt-1 flex items-start gap-3">
-        <div className="grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-xl bg-paper ring-1 ring-ink/10">
+        <div className="grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-xl bg-transparent">
           {src ? (
-            <img src={src} alt="" className="h-full w-full object-cover" />
+            <img src={src} alt="" className="h-full w-full object-contain" />
           ) : (
             <ImageIcon className="h-7 w-7 text-ink/30" />
           )}

@@ -1,5 +1,6 @@
 import { useRef } from "react";
 import { cn } from "../utils/cn";
+import defaultLogo from "../../logo.png";
 
 /** Sombrero ilustrado (logo por defecto) */
 function SombreroArt({ className }: { className?: string }) {
@@ -58,6 +59,7 @@ export function BrandLogo({ name, tagline, logo, onSecret, className, artClassNa
   };
 
   const parts = name.split(/\s*&\s*/);
+  const displayLogo = logo || defaultLogo;
 
   return (
     <div
@@ -65,9 +67,9 @@ export function BrandLogo({ name, tagline, logo, onSecret, className, artClassNa
       onClick={handleTap}
       role="presentation"
     >
-      {logo ? (
+      {displayLogo ? (
         <img
-          src={logo}
+          src={displayLogo}
           alt={`Logo de ${name}`}
           className={cn("max-h-44 w-auto max-w-full object-contain drop-shadow-md sm:max-h-56", artClassName)}
         />
@@ -87,7 +89,7 @@ export function BrandLogo({ name, tagline, logo, onSecret, className, artClassNa
           </h2>
         </>
       )}
-      {tagline && !logo && (
+      {tagline && !displayLogo && (
         <p className="mt-1 text-[clamp(0.5rem,1.6vw,0.7rem)] font-semibold uppercase tracking-[0.32em] text-ink/85">
           {tagline}
         </p>
