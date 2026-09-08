@@ -27,6 +27,14 @@ select public.get_menu();
 
 Deberías ver todo el menú en formato JSON.
 
+### Si ya tenías una base anterior
+
+Ejecuta [`migrations/20260907_seasonal_bebidas.sql`](./migrations/20260907_seasonal_bebidas.sql)
+en el SQL Editor y después vuelve a ejecutar `schema.sql`. Esto agrega las
+columnas de configuración y las tablas `item_sizes` / `item_extras` sin borrar
+tu menú; la segunda ejecución actualiza también `get_menu()` para devolver
+temporada y bebidas.
+
 ## 3. Consigue tus llaves
 
 En **Project Settings → API** copia:

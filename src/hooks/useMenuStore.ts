@@ -248,6 +248,7 @@ function normalizeBebidas(raw: unknown): BebidasSection {
   const r = asObj(raw);
   const d = DEFAULT_BEBIDAS;
   const defaultsById = new Map(d.items.map((i) => [i.id, i] as const));
+  const defaultsByName = new Map(d.items.map((i) => [i.name.trim().toLowerCase(), i] as const));
   return {
     enabled: r.enabled === true,
     title: str(r.title).trim() || d.title,
@@ -256,9 +257,12 @@ function normalizeBebidas(raw: unknown): BebidasSection {
       .map((rawItem) => {
         const item = normalizeItem(rawItem);
         if (!item) return null;
-        // Si el sabor guardado es de los oficiales y no tiene tamaños, se agregan
-        const def = defaultsById.get(item.id);
-        if (def?.sizes && (!item.sizes || item.sizes.length === 0)) item.sizes = def.sizes;
+        // Los IDs remotos son UUID y no coinciden con los IDs locales de los sabores.
+        // Reconciliar también por nombre conserva los tamaños oficiales al cargar desde Supabase.
+        const def = defaultsById.get(item.id) ?? defaultsByName.get(item.name.trim().toLowerCase());
+        if (def?.sizes && (!item.sizes || item.sizes.length === 0)) {
+          item.sizes = def.sizes.map((size) => ({ ...size }));
+        }
         return item;
       })
       .filter((i): i is MenuItem => i !== null),

@@ -158,7 +158,7 @@ export function buildMenuSyncPayload(data: MenuData): MenuSyncPayload {
       });
       if (item.extras) {
         for (const extra of item.extras) {
-          const extraRemoteId = toUuidId(extra.id, idMap, crypto.randomUUID());
+          const extraRemoteId = toUuidId(`${item.id}:extra:${extra.id}`, idMap, crypto.randomUUID());
           itemExtras.push({
             id: extraRemoteId,
             item_id: itemRemoteId,
@@ -170,7 +170,7 @@ export function buildMenuSyncPayload(data: MenuData): MenuSyncPayload {
       }
       if (item.sizes) {
         for (const size of item.sizes) {
-          const sizeRemoteId = toUuidId(size.id, idMap, crypto.randomUUID());
+          const sizeRemoteId = toUuidId(`${item.id}:size:${size.id}`, idMap, crypto.randomUUID());
           itemSizes.push({
             id: sizeRemoteId,
             item_id: itemRemoteId,
@@ -210,7 +210,7 @@ export function buildMenuSyncPayload(data: MenuData): MenuSyncPayload {
     const itemRemoteId = toUuidId(item.id, idMap, crypto.randomUUID());
     if (item.extras) {
       for (const extra of item.extras) {
-        const extraRemoteId = toUuidId(extra.id, idMap, crypto.randomUUID());
+        const extraRemoteId = toUuidId(`${item.id}:extra:${extra.id}`, idMap, crypto.randomUUID());
         itemExtras.push({
           id: extraRemoteId,
           item_id: itemRemoteId,
@@ -222,7 +222,7 @@ export function buildMenuSyncPayload(data: MenuData): MenuSyncPayload {
     }
     if (item.sizes) {
       for (const size of item.sizes) {
-        const sizeRemoteId = toUuidId(size.id, idMap, crypto.randomUUID());
+        const sizeRemoteId = toUuidId(`${item.id}:size:${size.id}`, idMap, crypto.randomUUID());
         itemSizes.push({
           id: sizeRemoteId,
           item_id: itemRemoteId,
