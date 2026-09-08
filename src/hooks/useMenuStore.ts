@@ -14,7 +14,6 @@ import type {
 } from "../types";
 import {
   DEFAULT_BEBIDAS,
-  DEFAULT_CATEGORIES,
   DEFAULT_MENU,
   DEFAULT_SEASONAL,
   DEFAULT_SETTINGS,
@@ -28,22 +27,6 @@ import { serializeMenuForSupabase } from "../utils/supabaseMenu";
 const STORAGE_KEY = "egf-menu-data-v3";
 /** Versiones anteriores: se migran automáticamente al cargar */
 const LEGACY_KEYS = ["egf-menu-data-v2", "egf-menu-data-v1"];
-
-/**
- * Productos que dejaron de existir como línea del menú (el "Con Queso +" y
- * duplicados). Al migrar datos guardados se retiran de la lista.
- */
-const RETIRED_ITEM_IDS = new Set([
-  "taco-queso-extra",
-  "goda-queso-extra",
-  "ques-queso-extra",
-  "goda-chorizo",
-  "ques-came-rancho",
-  "sope-con-queso-orega",
-  "sope-quesadilla",
-  "sope-bistec-queso",
-  "sope-campechana-queso",
-]);
 
 type Raw = Record<string, unknown>;
 
@@ -247,8 +230,6 @@ function normalizeCoupons(raw: unknown): Coupon[] {
 function normalizeBebidas(raw: unknown): BebidasSection {
   const r = asObj(raw);
   const d = DEFAULT_BEBIDAS;
-  const defaultsById = new Map(d.items.map((i) => [i.id, i] as const));
-  const defaultsByName = new Map(d.items.map((i) => [i.name.trim().toLowerCase(), i] as const));
   return {
     enabled: r.enabled === true,
     title: str(r.title).trim() || d.title,
@@ -257,12 +238,6 @@ function normalizeBebidas(raw: unknown): BebidasSection {
       .map((rawItem) => {
         const item = normalizeItem(rawItem);
         if (!item) return null;
-        // Los IDs remotos son UUID y no coinciden con los IDs locales de los sabores.
-        // Reconciliar también por nombre conserva los tamaños oficiales al cargar desde Supabase.
-        const def = defaultsById.get(item.id) ?? defaultsByName.get(item.name.trim().toLowerCase());
-        if (def?.sizes && (!item.sizes || item.sizes.length === 0)) {
-          item.sizes = def.sizes.map((size) => ({ ...size }));
-        }
         return item;
       })
       .filter((i): i is MenuItem => i !== null),
@@ -297,78 +272,35 @@ export function normalizeMenuData(raw: unknown): MenuData {
   };
 }
 
-/**
- * Migración desde versiones guardadas: retira productos obsoletos, alinea los
- * productos oficiales (precios, nombres y extras propios) con el menú actual y
- * conserva los productos y categorías creados por el administrador.
- */
-export function reconcileWithDefaults(data: MenuData): MenuData {
-  const defaultsById = new Map(DEFAULT_CATEGORIES.map((c) => [c.id, c] as const));
-  const defaultsByTitle = new Map(DEFAULT_CATEGORIES.map((c) => [c.title.trim().toLowerCase(), c] as const));
-
-  const categories = data.categories.map((c) => {
-    const d = defaultsById.get(c.id) ?? defaultsByTitle.get(c.title.trim().toLowerCase());
-    if (!d) return c;
-
-    const surviving = c.items.filter((i) => !RETIRED_ITEM_IDS.has(i.id));
-    const survivingById = new Map(surviving.map((i) => [i.id, i] as const));
-    const survivingByName = new Map(surviving.map((i) => [i.name.trim().toLowerCase(), i] as const));
-
-    const merged: MenuItem[] = d.items.map((di) => {
-      const prev = survivingById.get(di.id) ?? survivingByName.get(di.name.trim().toLowerCase());
-      if (!prev) return di;
-      survivingById.delete(di.id);
-      survivingByName.delete(prev.name.trim().toLowerCase());
-      // El producto remoto es la fuente de verdad: los defaults solo completan
-      // campos que no existan en datos antiguos.
-      return {
-        ...di,
-        ...prev,
-        id: prev.id,
-        image: prev.image ?? di.image,
-        badge: prev.badge ?? di.badge,
-        description: prev.description ?? di.description,
-        cartName: prev.cartName ?? di.cartName,
-        extras: prev.extras ?? di.extras,
-        sizes: prev.sizes ?? di.sizes,
-      };
-    });
-    for (const custom of survivingById.values()) {
-      if (survivingByName.has(custom.name.trim().toLowerCase())) merged.push(custom);
-    }
-
-    return { ...c, items: merged };
-  });
-
-  const present = new Set(categories.map((c) => c.id || c.title.trim().toLowerCase()));
-  const presentTitles = new Set(categories.map((c) => c.title.trim().toLowerCase()));
-  for (const d of DEFAULT_CATEGORIES) {
-    const key = d.id || d.title.trim().toLowerCase();
-    if (!present.has(key) && !presentTitles.has(d.title.trim().toLowerCase())) categories.push(d);
-  }
-
-  return { ...data, categories: dedupeCategories(categories) };
-}
-
 async function loadSupabaseMenu(): Promise<MenuData | null> {
   if (!isSupabaseConfigured) return null;
 
   try {
     const { data, error } = await supabase.rpc("get_menu");
     if (error || !data || typeof data !== "object") return null;
-    return reconcileWithDefaults(normalizeMenuData(data as Record<string, unknown>));
+    return normalizeMenuData(data as Record<string, unknown>);
   } catch {
     return null;
   }
 }
 
 function loadInitial(): MenuData {
+  if (isSupabaseConfigured) {
+    return {
+      categories: [],
+      seasonal: { enabled: false, title: "De temporada", note: "Pregunta si hay", items: [] },
+      bebidas: { enabled: false, title: "Bebidas del día", note: "Disponibilidad del día", items: [] },
+      coupons: [],
+      settings: DEFAULT_SETTINGS,
+    };
+  }
+
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) return normalizeMenuData(JSON.parse(raw));
     for (const key of LEGACY_KEYS) {
       const legacy = localStorage.getItem(key);
-      if (legacy) return reconcileWithDefaults(normalizeMenuData(JSON.parse(legacy)));
+      if (legacy) return normalizeMenuData(JSON.parse(legacy));
     }
   } catch {
     /* datos corruptos: usar el menú por defecto */
@@ -402,7 +334,8 @@ export function useMenuStore() {
     void (async () => {
       const remote = await loadSupabaseMenu();
       if (!active) return;
-      if (remote) setData(remote);
+      if (!remote) return;
+      setData(remote);
       setRemoteReady(true);
     })();
 
@@ -412,13 +345,15 @@ export function useMenuStore() {
   }, []);
 
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-      setStorageError(null);
-    } catch {
-      setStorageError(
-        "No se pudieron guardar los últimos cambios: el almacenamiento del navegador está lleno. Quita algunas fotos o usa imágenes más pequeñas.",
-      );
+    if (!isSupabaseConfigured) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        setStorageError(null);
+      } catch {
+        setStorageError(
+          "No se pudieron guardar los últimos cambios: el almacenamiento del navegador está lleno. Quita algunas fotos o usa imágenes más pequeñas.",
+        );
+      }
     }
 
     if (!isSupabaseConfigured || !remoteReady) return;
@@ -703,7 +638,19 @@ export function useMenuStore() {
     }
   }, []);
 
-  const reset = useCallback(() => setData(DEFAULT_MENU), []);
+  const reset = useCallback(() => {
+    if (isSupabaseConfigured) {
+      setData({
+        categories: [],
+        seasonal: { enabled: false, title: "De temporada", note: "Pregunta si hay", items: [] },
+        bebidas: { enabled: false, title: "Bebidas del día", note: "Disponibilidad del día", items: [] },
+        coupons: [],
+        settings: DEFAULT_SETTINGS,
+      });
+      return;
+    }
+    setData(DEFAULT_MENU);
+  }, []);
 
   return {
     categories: data.categories,
