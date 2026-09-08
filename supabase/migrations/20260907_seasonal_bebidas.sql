@@ -87,10 +87,10 @@ drop policy if exists "lectura publica item_sizes" on public.item_sizes;
 create policy "lectura publica item_sizes" on public.item_sizes for select using (true);
 
 drop policy if exists "admin escribe settings" on public.settings;
-create policy "admin escribe settings" on public.settings for all to anon, authenticated using (true) with check (true);
+create policy "admin escribe settings" on public.settings for all to authenticated using (true) with check (true);
 drop policy if exists "admin escribe menu_items" on public.menu_items;
-create policy "admin escribe menu_items" on public.menu_items for all to anon, authenticated using (true) with check (true);
+create policy "admin escribe menu_items" on public.menu_items for all to authenticated using (true) with check (true);
 drop policy if exists "admin escribe item_extras" on public.item_extras;
-create policy "admin escribe item_extras" on public.item_extras for all to anon, authenticated using (true) with check (true);
+create policy "admin escribe item_extras" on public.item_extras for all to authenticated using (true) with check (true);
 drop policy if exists "admin escribe item_sizes" on public.item_sizes;
-create policy "admin escribe item_sizes" on public.item_sizes for all to anon, authenticated using (true) with check (true);
+create policy "admin escribe item_sizes" on public.item_sizes for all to authenticated using (true) with check (true);
