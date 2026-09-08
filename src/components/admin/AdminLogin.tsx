@@ -7,7 +7,7 @@ import { Button, inputCls } from "./ui";
 
 interface Props {
   onClose: () => void;
-  onLogin: (password: string) => boolean;
+  onLogin: (email: string, password: string) => boolean | Promise<boolean>;
   isDefaultPassword: boolean;
 }
 
@@ -15,6 +15,7 @@ const MAX_ATTEMPTS = 5;
 const LOCK_MS = 30_000;
 
 export function AdminLogin({ onClose, onLogin, isDefaultPassword }: Props) {
+  const [email, setEmail] = useState(import.meta.env.VITE_ADMIN_EMAIL ?? "");
   const [password, setPassword] = useState("");
   const [show, setShow] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -30,13 +31,13 @@ export function AdminLogin({ onClose, onLogin, isDefaultPassword }: Props) {
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  const submit = (e: FormEvent) => {
+  const submit = async (e: FormEvent) => {
     e.preventDefault();
     if (lockedUntil && Date.now() < lockedUntil) {
       setError(`Demasiados intentos. Espera ${Math.ceil((lockedUntil - Date.now()) / 1000)} s.`);
       return;
     }
-    if (onLogin(password)) return;
+    if (await onLogin(email, password)) return;
 
     const n = attempts + 1;
     setPassword("");
@@ -94,6 +95,21 @@ export function AdminLogin({ onClose, onLogin, isDefaultPassword }: Props) {
 
         {/* Cuerpo */}
         <div key={shake} className={cn("px-6 py-5", shake > 0 && "animate-shake")}>
+          <label className="mb-3 block">
+            <span className="text-xs font-semibold text-ink/70">Correo del administrador</span>
+            <input
+              type="email"
+              autoComplete="username"
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setError(null);
+              }}
+              className={cn(inputCls, "mt-1", error && "border-red-400")}
+              placeholder="admin@tudominio.com"
+              required
+            />
+          </label>
           <label className="block">
             <span className="text-xs font-semibold text-ink/70">Contraseña</span>
             <div className="relative mt-1">

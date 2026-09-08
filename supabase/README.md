@@ -42,6 +42,10 @@ En **Project Settings → API** copia:
 - **Project URL** — algo como `https://xxxxxxxx.supabase.co`
 - **anon public key** — llave pública (segura para el navegador)
 
+La app usa Supabase Auth para el acceso del administrador. Crea el usuario en
+**Authentication → Users → Add user** y usa ese mismo correo en
+`VITE_ADMIN_EMAIL` para que aparezca precargado en el login.
+
 > ⚠️ La **service_role key** NUNCA se pone en la app del cliente. Es solo para
 > servidores. La app usa únicamente la **anon key**.
 

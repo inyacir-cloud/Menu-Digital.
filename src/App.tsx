@@ -185,8 +185,8 @@ export default function App() {
   }, [auth.authed]);
 
   const handleLogin = useCallback(
-    (password: string) => {
-      const ok = auth.login(password);
+    async (email: string, password: string) => {
+      const ok = await auth.login(email, password);
       if (ok) {
         setLoginOpen(false);
         setAdminOpen(true);

@@ -1,5 +1,6 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { DEFAULT_PASSWORD, LEGACY_DEFAULT_PASSWORD } from "../data/menu";
+import { isSupabaseConfigured, supabase } from "../lib/supabase";
 import { hashPassword, isPasswordMatch } from "../utils/hash";
 
 const HASH_KEY = "egf-admin-hash-v1";
@@ -30,7 +31,9 @@ function isValidStoredPassword(password: string): boolean {
 }
 
 export function useAdminAuth() {
+  const emailRef = useRef<string | null>(null);
   const [authed, setAuthed] = useState<boolean>(() => {
+    if (isSupabaseConfigured) return false;
     try {
       return sessionStorage.getItem(SESSION_KEY) === "1";
     } catch {
@@ -38,10 +41,34 @@ export function useAdminAuth() {
     }
   });
   const [isDefaultPassword, setIsDefaultPassword] = useState<boolean>(
-    () => storedHash() === hashPassword(DEFAULT_PASSWORD),
+    () => !isSupabaseConfigured && storedHash() === hashPassword(DEFAULT_PASSWORD),
   );
 
-  const login = useCallback((password: string): boolean => {
+  useEffect(() => {
+    if (!isSupabaseConfigured) return;
+    let active = true;
+    void supabase.auth.getSession().then(({ data }) => {
+      if (active) setAuthed(Boolean(data.session?.user));
+    });
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+      setAuthed(Boolean(session?.user));
+    });
+    return () => {
+      active = false;
+      data.subscription.unsubscribe();
+    };
+  }, []);
+
+  const login = useCallback(async (email: string, password: string): Promise<boolean> => {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+      if (error || !data.user) return false;
+      emailRef.current = data.user.email ?? email.trim();
+      setIsDefaultPassword(false);
+      setAuthed(true);
+      return true;
+    }
+
     if (!isValidStoredPassword(password)) return false;
 
     try {
@@ -60,6 +87,11 @@ export function useAdminAuth() {
   }, []);
 
   const logout = useCallback(() => {
+    if (isSupabaseConfigured) {
+      void supabase.auth.signOut();
+      setAuthed(false);
+      return;
+    }
     try {
       sessionStorage.removeItem(SESSION_KEY);
     } catch {
@@ -68,7 +100,19 @@ export function useAdminAuth() {
     setAuthed(false);
   }, []);
 
-  const changePassword = useCallback((current: string, next: string): string | null => {
+  const changePassword = useCallback(async (current: string, next: string): Promise<string | null> => {
+    if (isSupabaseConfigured) {
+      if (next.trim().length < 6) return "La nueva contraseña debe tener al menos 6 caracteres";
+      const email = emailRef.current;
+      if (!email) return "Inicia sesión nuevamente para cambiar la contraseña";
+      const verified = await supabase.auth.signInWithPassword({ email, password: current });
+      if (verified.error) return "La contraseña actual no es correcta";
+      const { error } = await supabase.auth.updateUser({ password: next });
+      if (error) return error.message;
+      setIsDefaultPassword(false);
+      return null;
+    }
+
     if (!isValidStoredPassword(current)) return "La contraseña actual no es correcta";
     if (next.trim().length < 6) return "La nueva contraseña debe tener al menos 6 caracteres";
     try {

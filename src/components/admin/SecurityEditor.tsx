@@ -18,13 +18,13 @@ export function SecurityEditor({ store, auth, notify }: Props) {
   const [importError, setImportError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const changePassword = (e: FormEvent) => {
+  const changePassword = async (e: FormEvent) => {
     e.preventDefault();
     if (next !== repeat) {
       setPwError("Las contraseñas nuevas no coinciden");
       return;
     }
-    const err = auth.changePassword(current, next);
+    const err = await auth.changePassword(current, next);
     if (err) {
       setPwError(err);
       return;
