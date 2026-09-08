@@ -2,7 +2,6 @@ import { useState } from "react";
 import type { PaymentId, PaymentMethod, Settings } from "../../types";
 import type { MenuStore } from "../../hooks/useMenuStore";
 import { PaymentIcon } from "../PaymentBadges";
-import { ImageField } from "./ImageField";
 import { Card, Field, SaveBar, SectionTitle, TextArea, TextInput, Toggle } from "./ui";
 
 interface Props {
@@ -92,13 +91,9 @@ export function BusinessEditor({ store, notify }: Props) {
 
       <div className="space-y-3">
         <h4 className="font-bold">Logo y portada</h4>
-        <ImageField
-          label="Imagen del logo"
-          value={form.logo}
-          onChange={(v) => set({ logo: v })}
-          maxSize={512}
-          hint="Se muestra en la portada y en la cabecera del menú. Si lo quitas, se usa el sombrero por defecto."
-        />
+        <p className="text-sm text-ink/60">
+          El logo transparente de la marca se usa automáticamente en la portada y en la cabecera del menú.
+        </p>
         <Field label="Aviso cuando está cerrado" hint="Aparece en la portada mientras el negocio esté cerrado">
           <TextArea
             rows={2}
