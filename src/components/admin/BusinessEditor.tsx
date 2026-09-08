@@ -90,7 +90,7 @@ export function BusinessEditor({ store, notify }: Props) {
         </Field>
       </Card>
 
-      <Card className="space-y-3">
+      <div className="space-y-3">
         <h4 className="font-bold">Logo y portada</h4>
         <ImageField
           label="Imagen del logo"
@@ -110,7 +110,7 @@ export function BusinessEditor({ store, notify }: Props) {
         <p className="text-[0.7rem] leading-snug text-ink/50">
           El estado abierto/cerrado se controla con el botón de la parte superior del panel.
         </p>
-      </Card>
+      </div>
 
       <Card className="space-y-3">
         <h4 className="font-bold">WhatsApp y envíos</h4>
