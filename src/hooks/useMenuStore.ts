@@ -394,6 +394,7 @@ export function useMenuStore() {
   const [storageError, setStorageError] = useState<string | null>(null);
   const [remoteReady, setRemoteReady] = useState(!isSupabaseConfigured);
   const syncVersion = useRef(0);
+  const syncQueue = useRef(Promise.resolve());
 
   useEffect(() => {
     let active = true;
@@ -423,8 +424,9 @@ export function useMenuStore() {
     if (!isSupabaseConfigured || !remoteReady) return;
 
     const version = ++syncVersion.current;
-    void (async () => {
-      try {
+    syncQueue.current = syncQueue.current
+      .then(async () => {
+        if (version !== syncVersion.current) return;
         const payload = serializeMenuForSupabase(data);
 
         const settingsResult = await supabase.from("settings").upsert(payload.settings, { onConflict: "id" });
@@ -475,11 +477,10 @@ export function useMenuStore() {
           ignoreDuplicates: false,
         });
         if (couponsError) throw couponsError;
-        if (version !== syncVersion.current) return;
-      } catch (error) {
+      })
+      .catch((error) => {
         console.warn("Supabase full menu sync crashed:", error);
-      }
-    })();
+      });
   }, [data, remoteReady]);
 
   const setCategories = useCallback((updater: (prev: MenuCategory[]) => MenuCategory[]) => {
