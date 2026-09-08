@@ -30,7 +30,7 @@ export function SplashScreen({ settings, authed, onEnter, onSecret }: Props) {
           tagline={settings.tagline}
           logo={settings.logo}
           onSecret={onSecret}
-          className="w-64 sm:w-80"
+          className="w-80 sm:w-[26rem]"
         />
 
         {settings.open ? (

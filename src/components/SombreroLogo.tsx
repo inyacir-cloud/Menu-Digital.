@@ -71,7 +71,7 @@ export function BrandLogo({ name, tagline, logo, onSecret, className, artClassNa
         <img
           src={displayLogo}
           alt={`Logo de ${name}`}
-          className={cn("max-h-44 w-auto max-w-full object-contain drop-shadow-md sm:max-h-56", artClassName)}
+          className={cn("max-h-60 w-auto max-w-full object-contain drop-shadow-md sm:max-h-72", artClassName)}
         />
       ) : (
         <>
