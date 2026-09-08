@@ -16,11 +16,17 @@ function storedHash(): string {
   return hashPassword(DEFAULT_PASSWORD);
 }
 
+function hasStoredHash(): boolean {
+  try {
+    return Boolean(localStorage.getItem(HASH_KEY));
+  } catch {
+    return false;
+  }
+}
+
 function isValidStoredPassword(password: string): boolean {
-  const currentHash = storedHash();
-  return isPasswordMatch(password, currentHash)
-    || (currentHash === hashPassword(LEGACY_DEFAULT_PASSWORD) && isPasswordMatch(password, hashPassword(LEGACY_DEFAULT_PASSWORD)))
-    || isPasswordMatch(password, hashPassword(DEFAULT_PASSWORD));
+  return isPasswordMatch(password, storedHash())
+    || (!hasStoredHash() && password === LEGACY_DEFAULT_PASSWORD);
 }
 
 export function useAdminAuth() {
@@ -40,14 +46,9 @@ export function useAdminAuth() {
 
     try {
       const nextHash = hashPassword(password);
-      const legacyHash = hashPassword(LEGACY_DEFAULT_PASSWORD);
       const currentHash = storedHash();
 
-      if (currentHash === legacyHash && password === DEFAULT_PASSWORD) {
-        localStorage.setItem(HASH_KEY, nextHash);
-      }
-
-      if (!localStorage.getItem(HASH_KEY) || currentHash === legacyHash) {
+      if (!localStorage.getItem(HASH_KEY) || currentHash !== nextHash) {
         localStorage.setItem(HASH_KEY, nextHash);
       }
       sessionStorage.setItem(SESSION_KEY, "1");
