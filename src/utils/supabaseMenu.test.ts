@@ -53,7 +53,6 @@ test("buildMenuSyncPayload includes settings, categories, items, extras, sizes a
   assert.equal(payload.coupons.length, 1);
   assert.match(payload.itemsByProduct[0].itemId, /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
 });
-
 test("buildMenuSyncPayload keeps seasonal and beverage items and unique child ids", () => {
   const item = (id: string, name: string) => ({
     id,
@@ -94,3 +93,4 @@ test("buildMenuSyncPayload keeps seasonal and beverage items and unique child id
   assert.equal(new Set(payload.itemSizes.map((size) => size.id)).size, payload.itemSizes.length);
   assert.equal(payload.itemSizes.length, 6);
 });
+

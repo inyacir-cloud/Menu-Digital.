@@ -302,7 +302,7 @@ export function normalizeMenuData(raw: unknown): MenuData {
  * productos oficiales (precios, nombres y extras propios) con el menú actual y
  * conserva los productos y categorías creados por el administrador.
  */
-function reconcileWithDefaults(data: MenuData): MenuData {
+export function reconcileWithDefaults(data: MenuData): MenuData {
   const defaultsById = new Map(DEFAULT_CATEGORIES.map((c) => [c.id, c] as const));
   const defaultsByTitle = new Map(DEFAULT_CATEGORIES.map((c) => [c.title.trim().toLowerCase(), c] as const));
 
@@ -319,18 +319,18 @@ function reconcileWithDefaults(data: MenuData): MenuData {
       if (!prev) return di;
       survivingById.delete(di.id);
       survivingByName.delete(prev.name.trim().toLowerCase());
-      // Se conservan los ajustes locales (agotado, foto, etiqueta); el resto se alinea
+      // El producto remoto es la fuente de verdad: los defaults solo completan
+      // campos que no existan en datos antiguos.
       return {
         ...di,
+        ...prev,
         id: prev.id,
-        unavailable: prev.unavailable,
         image: prev.image ?? di.image,
         badge: prev.badge ?? di.badge,
         description: prev.description ?? di.description,
         cartName: prev.cartName ?? di.cartName,
         extras: prev.extras ?? di.extras,
         sizes: prev.sizes ?? di.sizes,
-        unavailableSizes: prev.unavailableSizes,
       };
     });
     for (const custom of survivingById.values()) {
@@ -450,31 +450,31 @@ export function useMenuStore() {
           onConflict: "id",
           ignoreDuplicates: false,
         });
-        if (categoriesError) console.warn("Supabase categories sync failed:", categoriesError.message);
+        if (categoriesError) throw categoriesError;
 
         const { error: itemsError } = await supabase.from("menu_items").upsert(payload.menuItems, {
           onConflict: "id",
           ignoreDuplicates: false,
         });
-        if (itemsError) console.warn("Supabase menu items sync failed:", itemsError.message);
+        if (itemsError) throw itemsError;
 
         const { error: extrasError } = await supabase.from("item_extras").upsert(payload.itemExtras, {
           onConflict: "id",
           ignoreDuplicates: false,
         });
-        if (extrasError) console.warn("Supabase item extras sync failed:", extrasError.message);
+        if (extrasError) throw extrasError;
 
         const { error: sizesError } = await supabase.from("item_sizes").upsert(payload.itemSizes, {
           onConflict: "id",
           ignoreDuplicates: false,
         });
-        if (sizesError) console.warn("Supabase item sizes sync failed:", sizesError.message);
+        if (sizesError) throw sizesError;
 
         const { error: couponsError } = await supabase.from("coupons").upsert(payload.coupons, {
           onConflict: "id",
           ignoreDuplicates: false,
         });
-        if (couponsError) console.warn("Supabase coupons sync failed:", couponsError.message);
+        if (couponsError) throw couponsError;
         if (version !== syncVersion.current) return;
       } catch (error) {
         console.warn("Supabase full menu sync crashed:", error);
