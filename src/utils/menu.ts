@@ -1,5 +1,16 @@
 import type { CartLine, Extra, MenuItem, SizeOption } from "../types";
 
+export const QUICK_CHEESE_EXTRA: Extra = {
+  id: "quick-cheese",
+  name: "Con Queso +",
+  price: 7,
+};
+
+export function withQuickCheeseExtra(extras: Extra[] = []): Extra[] {
+  if (extras.some((extra) => /con\s+queso/i.test(extra.name))) return extras;
+  return [...extras, { ...QUICK_CHEESE_EXTRA }];
+}
+
 /** Extras que puede elegir el cliente: solo los propios del producto */
 export function availableExtras(item: MenuItem): Extra[] {
   return item.extras ?? [];

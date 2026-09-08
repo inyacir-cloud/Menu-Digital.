@@ -3,7 +3,7 @@ import type { CategoryLayout, Extra, MenuCategory, MenuItem, SizeOption } from "
 import type { CategoryInput, ItemInput, MenuStore } from "../../hooks/useMenuStore";
 import { resolveImage } from "../../data/menu";
 import { formatPrice } from "../../utils/format";
-import { cleanExtras, cleanSizes } from "../../utils/menu";
+import { cleanExtras, cleanSizes, withQuickCheeseExtra } from "../../utils/menu";
 import { cn } from "../../utils/cn";
 import {
   ChevronDownIcon,
@@ -437,7 +437,7 @@ export function ItemForm({ initial, allowAnother, onSave, onCancel }: ItemFormPr
   const [unavailable, setUnavailable] = useState(initial?.unavailable ?? false);
   const [cartName, setCartName] = useState(initial?.cartName ?? "");
   const [image, setImage] = useState<string | undefined>(initial?.image);
-  const [extras, setExtras] = useState<Extra[]>(initial?.extras ?? []);
+  const [extras, setExtras] = useState<Extra[]>(() => withQuickCheeseExtra(initial?.extras));
   const [sizes, setSizes] = useState<SizeOption[]>(initial?.sizes ?? []);
   const [errors, setErrors] = useState<{ name?: string; price?: string }>({});
   const nameRef = useRef<HTMLInputElement>(null);
@@ -479,7 +479,7 @@ export function ItemForm({ initial, allowAnother, onSave, onCancel }: ItemFormPr
     setUnavailable(false);
     setCartName("");
     setImage(undefined);
-    setExtras([]);
+    setExtras(withQuickCheeseExtra());
     setSizes([]);
     setErrors({});
     nameRef.current?.focus();

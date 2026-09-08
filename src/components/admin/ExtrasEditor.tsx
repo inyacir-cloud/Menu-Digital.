@@ -1,5 +1,6 @@
 import type { Extra } from "../../types";
 import { uid } from "../../utils/id";
+import { QUICK_CHEESE_EXTRA, withQuickCheeseExtra } from "../../utils/menu";
 import { PlusIcon, TrashIcon } from "../icons";
 import { Button, IconBtn, TextInput } from "./ui";
 
@@ -58,6 +59,17 @@ export function ExtrasEditor({ label, value, onChange, hint }: Props) {
       <Button variant="ghost" size="sm" className="mt-2" onClick={add} icon={<PlusIcon className="h-3.5 w-3.5" />}>
         Agregar extra
       </Button>
+      {!value.some((extra) => /con\s+queso/i.test(extra.name)) && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="mt-2"
+          onClick={() => onChange(withQuickCheeseExtra(value))}
+          icon={<PlusIcon className="h-3.5 w-3.5" />}
+        >
+          {QUICK_CHEESE_EXTRA.name} ${QUICK_CHEESE_EXTRA.price}
+        </Button>
+      )}
       {hint && <p className="mt-1 text-[0.7rem] leading-snug text-ink/50">{hint}</p>}
     </div>
   );

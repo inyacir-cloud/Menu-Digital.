@@ -21,6 +21,7 @@ import {
 } from "../data/menu";
 import { normalizeHex } from "../utils/color";
 import { uid } from "../utils/id";
+import { withQuickCheeseExtra } from "../utils/menu";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
 import { serializeMenuForSupabase } from "../utils/supabaseMenu";
 
@@ -111,7 +112,7 @@ function normalizeCategory(raw: unknown): MenuCategory | null {
       continue;
     }
     const item = normalizeItem(rawItem);
-    if (item) items.push(item);
+    if (item) items.push({ ...item, extras: withQuickCheeseExtra(item.extras) });
   }
   // Extras que en versiones anteriores eran de toda la categoría → pasan a cada producto
   inherited.push(...normalizeExtras(r.extras));
