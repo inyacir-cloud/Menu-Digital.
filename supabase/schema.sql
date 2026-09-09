@@ -134,6 +134,7 @@ create table if not exists public.menu_items (
   cart_name    text,                                  -- nombre alterno en el pedido
   image        text,
   unavailable  boolean not null default false,        -- apagado / no disponible
+  required_extra_selection boolean not null default false, -- una opción de extra por cada unidad
   sort_order   int     not null default 0,
   created_at   timestamptz not null default now(),
   updated_at   timestamptz not null default now(),
@@ -380,6 +381,7 @@ select
     'cartName',    mi.cart_name,
     'image',       mi.image,
     'unavailable', case when mi.unavailable then true else null end,
+    'requiredExtraSelection', case when mi.required_extra_selection then true else null end,
     'extras', (
       select coalesce(jsonb_agg(
                jsonb_build_object('id', e.id, 'name', e.name, 'price', e.price)

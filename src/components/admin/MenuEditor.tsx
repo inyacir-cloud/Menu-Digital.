@@ -438,6 +438,7 @@ export function ItemForm({ initial, allowAnother, onSave, onCancel }: ItemFormPr
   const [cartName, setCartName] = useState(initial?.cartName ?? "");
   const [image, setImage] = useState<string | undefined>(initial?.image);
   const [extras, setExtras] = useState<Extra[]>(() => withQuickCheeseExtra(initial?.extras));
+  const [requiredExtraSelection, setRequiredExtraSelection] = useState(initial?.requiredExtraSelection ?? false);
   const [sizes, setSizes] = useState<SizeOption[]>(initial?.sizes ?? []);
   const [errors, setErrors] = useState<{ name?: string; price?: string }>({});
   const nameRef = useRef<HTMLInputElement>(null);
@@ -467,6 +468,7 @@ export function ItemForm({ initial, allowAnother, onSave, onCancel }: ItemFormPr
       image,
       cartName: cartName.trim() || undefined,
       extras: cleaned.length > 0 ? cleaned : undefined,
+      requiredExtraSelection: requiredExtraSelection || undefined,
       sizes: cleanedSizes.length > 0 ? cleanedSizes : undefined,
     };
   };
@@ -480,6 +482,7 @@ export function ItemForm({ initial, allowAnother, onSave, onCancel }: ItemFormPr
     setCartName("");
     setImage(undefined);
     setExtras(withQuickCheeseExtra());
+    setRequiredExtraSelection(false);
     setSizes([]);
     setErrors({});
     nameRef.current?.focus();
@@ -595,8 +598,20 @@ export function ItemForm({ initial, allowAnother, onSave, onCancel }: ItemFormPr
           label="Extras de este producto"
           value={extras}
           onChange={setExtras}
-          hint="Ej. “Con Queso + $7” o “Doble carne +$25”. El cliente los elige al agregar este producto."
+          hint={
+            requiredExtraSelection
+              ? "El cliente elegirá exactamente una opción por cada unidad. Puede repetir sabores."
+              : "Ej. “Con Queso + $7” o “Doble carne +$25”. El cliente los elige al agregar este producto."
+          }
         />
+        {extras.length > 0 && (
+          <Toggle
+            checked={requiredExtraSelection}
+            onChange={setRequiredExtraSelection}
+            label="Exigir una opción por unidad"
+            description="Úsalo para productos como tostadas: una elección obligatoria por cada pieza solicitada."
+          />
+        )}
       </div>
 
       <Field

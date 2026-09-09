@@ -93,6 +93,7 @@ function normalizeItem(raw: unknown): MenuItem | null {
   if (str(r.image)) item.image = str(r.image);
   const extras = normalizeExtras(r.extras);
   if (extras.length > 0) item.extras = extras;
+  if (r.requiredExtraSelection === true) item.requiredExtraSelection = true;
   const sizes = normalizeSizes(r.sizes);
   if (sizes.length > 0) item.sizes = sizes;
   const unavailableSizes = (Array.isArray(r.unavailableSizes) ? r.unavailableSizes : [])

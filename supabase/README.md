@@ -35,6 +35,10 @@ columnas de configuración y las tablas `item_sizes` / `item_extras` sin borrar
 tu menú; la segunda ejecución actualiza también `get_menu()` para devolver
 temporada y bebidas.
 
+Para habilitar opciones obligatorias por unidad (por ejemplo, el sabor de cada
+tostada), ejecuta también
+[`migrations/20260908_required_extra_selection.sql`](./migrations/20260908_required_extra_selection.sql).
+
 ## 3. Consigue tus llaves
 
 En **Project Settings → API** copia:

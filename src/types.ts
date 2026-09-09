@@ -28,6 +28,8 @@ export interface MenuItem {
   image?: string;
   /** Extras solo para este producto (se suman a los de su categoría) */
   extras?: Extra[];
+  /** Exige elegir un extra por cada unidad solicitada (permite repetir opciones) */
+  requiredExtraSelection?: boolean;
   /** Tamaños disponibles con precio propio; el cliente elige al agregar */
   sizes?: SizeOption[];
   /** Ids de tamaños NO disponibles hoy (se apagan individualmente) */

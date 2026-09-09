@@ -45,6 +45,7 @@ function itemRow(item: MenuItem, section: "category" | "seasonal" | "bebidas", c
 		cart_name: item.cartName ?? null,
 		image: item.image ?? null,
 		unavailable: Boolean(item.unavailable),
+		required_extra_selection: Boolean(item.requiredExtraSelection),
 		sort_order: sortOrder,
 	};
 }

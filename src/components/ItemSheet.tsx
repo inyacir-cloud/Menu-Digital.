@@ -32,6 +32,7 @@ export function ItemSheet({ item, category, closed, onClose, onAdd }: Props) {
   const [qty, setQty] = useState(1);
   const [sizeId, setSizeId] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<string>>(() => new Set());
+  const [selectedCounts, setSelectedCounts] = useState<Record<string, number>>({});
   const [note, setNote] = useState("");
   const closeRef = useRef<HTMLButtonElement>(null);
 
@@ -39,7 +40,11 @@ export function ItemSheet({ item, category, closed, onClose, onAdd }: Props) {
     resolveImage(item.image) ?? (category.layout === "grid" ? undefined : resolveImage(category.image));
   const off = item.unavailable === true || (hasSizes && sizes.length === 0);
   const size = sizes.find((s) => s.id === sizeId) ?? sizes[0] ?? null;
-  const selectedExtras = extras.filter((e) => selected.has(e.id));
+  const requiredExtraSelection = item.requiredExtraSelection === true && extras.length > 0;
+  const selectedTotal = Object.values(selectedCounts).reduce((sum, count) => sum + count, 0);
+  const selectedExtras = requiredExtraSelection
+    ? extras.flatMap((extra) => Array.from({ length: selectedCounts[extra.id] ?? 0 }, () => extra))
+    : extras.filter((e) => selected.has(e.id));
   const unit = (size?.price ?? item.price) + selectedExtras.reduce((sum, e) => sum + e.price, 0);
   const total = unit * qty;
 
@@ -63,6 +68,38 @@ export function ItemSheet({ item, category, closed, onClose, onAdd }: Props) {
       else next.add(id);
       return next;
     });
+
+  const changeQty = (nextQty: number) => {
+    const safeQty = Math.max(1, Math.min(99, nextQty));
+    setQty(safeQty);
+    if (requiredExtraSelection) {
+      setSelectedCounts((prev) => {
+        let remaining = safeQty;
+        const next: Record<string, number> = {};
+        for (const extra of extras) {
+          const count = Math.min(prev[extra.id] ?? 0, remaining);
+          if (count > 0) next[extra.id] = count;
+          remaining -= count;
+        }
+        return next;
+      });
+    }
+  };
+
+  const changeExtraCount = (id: string, delta: number) => {
+    setSelectedCounts((prev) => {
+      const current = prev[id] ?? 0;
+      const nextCount =
+        delta > 0
+          ? Math.min(qty - selectedTotal + current, current + delta)
+          : Math.max(0, current + delta);
+      if (nextCount === 0) {
+        const { [id]: _removed, ...rest } = prev;
+        return rest;
+      }
+      return { ...prev, [id]: nextCount };
+    });
+  };
 
   return (
     <div className="fixed inset-0 z-[70] flex items-end justify-center sm:items-center sm:p-4" role="presentation">
@@ -160,34 +197,39 @@ export function ItemSheet({ item, category, closed, onClose, onAdd }: Props) {
             {extras.length > 0 && (
               <section className="mt-5">
                 <div className="flex items-baseline justify-between">
-                  <h3 className="text-sm font-bold text-ink">Extras</h3>
-                  <span className="text-xs text-ink/50">Opcional</span>
+                  <h3 className="text-sm font-bold text-ink">{requiredExtraSelection ? "Elige el sabor" : "Extras"}</h3>
+                  <span className={cn("text-xs", requiredExtraSelection ? "font-semibold text-terracotta-deep" : "text-ink/50")}>
+                    {requiredExtraSelection ? `${selectedTotal} de ${qty}` : "Opcional"}
+                  </span>
                 </div>
+                {requiredExtraSelection && (
+                  <p className="mt-1 text-xs text-ink/60">Elige una opción por cada pieza. Puedes repetir sabores.</p>
+                )}
                 <ul className="mt-2 divide-y divide-ink/8 overflow-hidden rounded-2xl bg-surface ring-1 ring-ink/8">
                   {extras.map((e) => {
+                    const count = selectedCounts[e.id] ?? 0;
                     const on = selected.has(e.id);
                     return (
                       <li key={e.id}>
-                        <button
-                          type="button"
-                          role="checkbox"
-                          aria-checked={on}
-                          onClick={() => toggle(e.id)}
-                          className="flex w-full items-center gap-3 px-3 py-3 text-left transition hover:bg-paper/60"
-                        >
-                          <span
-                            className={cn(
-                              "grid h-5 w-5 shrink-0 place-items-center rounded-md border-2 transition",
-                              on ? "border-ink bg-ink text-paper" : "border-ink/30 bg-surface",
-                            )}
-                          >
-                            {on && <CheckIcon className="h-3 w-3" />}
-                          </span>
-                          <span className="flex-1 text-sm font-semibold text-ink">{e.name}</span>
-                          <span className="text-sm font-bold tabular-nums text-mustard-ink">
-                            +{formatPrice(e.price)}
-                          </span>
-                        </button>
+                        {requiredExtraSelection ? (
+                          <div className="flex items-center gap-3 px-3 py-2.5">
+                            <span className="flex-1 text-sm font-semibold text-ink">{e.name}</span>
+                            <span className="text-sm font-bold tabular-nums text-mustard-ink">+{formatPrice(e.price)}</span>
+                            <div className="flex items-center gap-1 rounded-full bg-ink p-1 text-paper">
+                              <button type="button" onClick={() => changeExtraCount(e.id, -1)} disabled={count === 0} aria-label={`Quitar ${e.name}`} className="grid h-7 w-7 place-items-center rounded-full disabled:opacity-35"><MinusIcon className="h-3.5 w-3.5" /></button>
+                              <span className="min-w-5 text-center text-sm font-bold">{count}</span>
+                              <button type="button" onClick={() => changeExtraCount(e.id, 1)} disabled={selectedTotal >= qty} aria-label={`Agregar ${e.name}`} className="grid h-7 w-7 place-items-center rounded-full bg-mustard text-on-mustard disabled:opacity-35"><PlusIcon className="h-3.5 w-3.5" /></button>
+                            </div>
+                          </div>
+                        ) : (
+                          <button type="button" role="checkbox" aria-checked={on} onClick={() => toggle(e.id)} className="flex w-full items-center gap-3 px-3 py-3 text-left transition hover:bg-paper/60">
+                            <span className={cn("grid h-5 w-5 shrink-0 place-items-center rounded-md border-2 transition", on ? "border-ink bg-ink text-paper" : "border-ink/30 bg-surface")}>
+                              {on && <CheckIcon className="h-3 w-3" />}
+                            </span>
+                            <span className="flex-1 text-sm font-semibold text-ink">{e.name}</span>
+                            <span className="text-sm font-bold tabular-nums text-mustard-ink">+{formatPrice(e.price)}</span>
+                          </button>
+                        )}
                       </li>
                     );
                   })}
@@ -215,7 +257,7 @@ export function ItemSheet({ item, category, closed, onClose, onAdd }: Props) {
           <div className="flex items-center gap-1 rounded-full bg-ink p-1 text-paper">
             <button
               type="button"
-              onClick={() => setQty((q) => Math.max(1, q - 1))}
+              onClick={() => changeQty(qty - 1)}
               disabled={qty <= 1}
               aria-label="Menos"
               className="grid h-9 w-9 place-items-center rounded-full transition hover:bg-paper/20 disabled:opacity-40"
@@ -225,7 +267,7 @@ export function ItemSheet({ item, category, closed, onClose, onAdd }: Props) {
             <span className="min-w-[1.5rem] text-center font-bold tabular-nums">{qty}</span>
             <button
               type="button"
-              onClick={() => setQty((q) => Math.min(99, q + 1))}
+              onClick={() => changeQty(qty + 1)}
               aria-label="Más"
               className="grid h-9 w-9 place-items-center rounded-full bg-mustard text-on-mustard transition hover:bg-mustard-deep"
             >
@@ -235,11 +277,11 @@ export function ItemSheet({ item, category, closed, onClose, onAdd }: Props) {
 
           <button
             type="button"
-            disabled={off || closed}
+            disabled={off || closed || (requiredExtraSelection && selectedTotal !== qty)}
             onClick={() => onAdd({ qty, extras: selectedExtras, note, size: size ?? undefined })}
             className="flex flex-1 items-center justify-between gap-3 rounded-full bg-ink px-5 py-3 font-bold text-paper shadow-lg transition hover:opacity-90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <span>{closed ? "Cerrado por ahora" : off ? "No disponible" : "Agregar al pedido"}</span>
+            <span>{closed ? "Cerrado por ahora" : off ? "No disponible" : requiredExtraSelection && selectedTotal !== qty ? "Elige los sabores" : "Agregar al pedido"}</span>
             <span className="tabular-nums">{formatPrice(total)}</span>
           </button>
         </footer>
