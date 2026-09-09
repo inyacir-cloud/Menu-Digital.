@@ -1,6 +1,7 @@
 import type { MenuItem } from "../types";
 import { resolveImage } from "../data/menu";
 import { formatPrice } from "../utils/format";
+import { availableSizes, minPrice, shortSizeName } from "../utils/menu";
 import { cn } from "../utils/cn";
 import { ItemBadge } from "./ItemBadge";
 import { ItemControl } from "./ItemControl";
@@ -20,6 +21,8 @@ export function MenuItemRow({ item, qty, closed, onQuickAdd, onOpen, onDecrement
   const off = item.unavailable === true;
   const thumb = resolveImage(item.image);
   const ownExtras = item.extras ?? [];
+  const sizes = availableSizes(item);
+  const hasSizes = sizes.length > 0;
 
   return (
     <li
@@ -66,6 +69,11 @@ export function MenuItemRow({ item, qty, closed, onQuickAdd, onOpen, onDecrement
         {item.description && (
           <p className="mt-1 text-[0.8rem] leading-snug text-ink/60 sm:text-sm">{item.description}</p>
         )}
+        {hasSizes && !off && (
+          <p className="mt-1 text-[0.72rem] font-medium leading-snug text-sky-700 sm:text-xs">
+            {sizes.map((size) => `${shortSizeName(size.name)} ${formatPrice(size.price)}`).join(" · ")}
+          </p>
+        )}
         {ownExtras.length > 0 && !off && (
           <p className="mt-0.5 text-[0.7rem] font-semibold text-mustard-ink">
             Extras: {ownExtras.map((e) => (e.price > 0 ? `${e.name} +${formatPrice(e.price)}` : e.name)).join(" · ")}
@@ -75,7 +83,7 @@ export function MenuItemRow({ item, qty, closed, onQuickAdd, onOpen, onDecrement
 
       {/* Precio */}
       <span className="text-[1.05rem] font-semibold tabular-nums text-ink sm:text-lg md:text-xl">
-        {formatPrice(item.price)}
+        {hasSizes ? `Desde ${formatPrice(minPrice(item))}` : formatPrice(item.price)}
       </span>
 
       {/* Agregar / cantidad */}
