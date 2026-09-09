@@ -14,6 +14,7 @@ import type {
 } from "../types";
 import {
   DEFAULT_BEBIDAS,
+  DEFAULT_CATEGORIES,
   DEFAULT_MENU,
   DEFAULT_SEASONAL,
   DEFAULT_SETTINGS,
@@ -21,13 +22,28 @@ import {
 } from "../data/menu";
 import { normalizeHex } from "../utils/color";
 import { uid } from "../utils/id";
-import { withQuickCheeseExtra } from "../utils/menu";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
 import { serializeMenuForSupabase } from "../utils/supabaseMenu";
 
 const STORAGE_KEY = "egf-menu-data-v3";
 /** Versiones anteriores: se migran automáticamente al cargar */
 const LEGACY_KEYS = ["egf-menu-data-v2", "egf-menu-data-v1"];
+
+/**
+ * Productos que dejaron de existir como línea del menú (el "Con Queso +" y
+ * duplicados). Al migrar datos guardados se retiran de la lista.
+ */
+const RETIRED_ITEM_IDS = new Set([
+  "taco-queso-extra",
+  "goda-queso-extra",
+  "ques-queso-extra",
+  "goda-chorizo",
+  "ques-came-rancho",
+  "sope-con-queso-orega",
+  "sope-quesadilla",
+  "sope-bistec-queso",
+  "sope-campechana-queso",
+]);
 
 type Raw = Record<string, unknown>;
 
@@ -76,9 +92,9 @@ function normalizeItem(raw: unknown): MenuItem | null {
   if (str(r.cartName).trim()) item.cartName = str(r.cartName).trim();
   if (str(r.image)) item.image = str(r.image);
   const extras = normalizeExtras(r.extras);
-  if (Array.isArray(r.extras)) item.extras = extras;
+  if (extras.length > 0) item.extras = extras;
   const sizes = normalizeSizes(r.sizes);
-  if (Array.isArray(r.sizes)) item.sizes = sizes;
+  if (sizes.length > 0) item.sizes = sizes;
   const unavailableSizes = (Array.isArray(r.unavailableSizes) ? r.unavailableSizes : [])
     .filter((id): id is string => typeof id === "string" && sizes.some((s) => s.id === id));
   if (unavailableSizes.length > 0) item.unavailableSizes = unavailableSizes;
@@ -112,7 +128,7 @@ function normalizeCategory(raw: unknown): MenuCategory | null {
       continue;
     }
     const item = normalizeItem(rawItem);
-    if (item) items.push({ ...item, extras: withQuickCheeseExtra(item.extras) });
+    if (item) items.push(item);
   }
   // Extras que en versiones anteriores eran de toda la categoría → pasan a cada producto
   inherited.push(...normalizeExtras(r.extras));
@@ -231,6 +247,7 @@ function normalizeCoupons(raw: unknown): Coupon[] {
 function normalizeBebidas(raw: unknown): BebidasSection {
   const r = asObj(raw);
   const d = DEFAULT_BEBIDAS;
+  const defaultsById = new Map(d.items.map((i) => [i.id, i] as const));
   return {
     enabled: r.enabled === true,
     title: str(r.title).trim() || d.title,
@@ -239,31 +256,22 @@ function normalizeBebidas(raw: unknown): BebidasSection {
       .map((rawItem) => {
         const item = normalizeItem(rawItem);
         if (!item) return null;
+        // Si el sabor guardado es de los oficiales y no tiene tamaños, se agregan
+        const def = defaultsById.get(item.id);
+        if (def?.sizes && (!item.sizes || item.sizes.length === 0)) item.sizes = def.sizes;
         return item;
       })
       .filter((i): i is MenuItem => i !== null),
   };
 }
 
-function dedupeCategories(categories: MenuCategory[]): MenuCategory[] {
-  const seen = new Set<string>();
-  return categories.filter((category) => {
-    const key = category.title.trim().toLowerCase();
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
-}
-
 export function normalizeMenuData(raw: unknown): MenuData {
   if (!raw || typeof raw !== "object") throw new Error("El archivo no tiene un formato válido");
   const r = raw as Raw;
   if (!Array.isArray(r.categories)) throw new Error("El archivo no contiene categorías del menú");
-  const categories = dedupeCategories(
-    r.categories
-      .map(normalizeCategory)
-      .filter((c): c is MenuCategory => c !== null),
-  );
+  const categories = r.categories
+    .map(normalizeCategory)
+    .filter((c): c is MenuCategory => c !== null);
   return {
     categories,
     seasonal: normalizeSeasonal(r.seasonal),
@@ -273,35 +281,51 @@ export function normalizeMenuData(raw: unknown): MenuData {
   };
 }
 
-async function loadSupabaseMenu(): Promise<MenuData | null> {
-  if (!isSupabaseConfigured) return null;
+/**
+ * Migración desde versiones guardadas: retira productos obsoletos, alinea los
+ * productos oficiales (precios, nombres y extras propios) con el menú actual y
+ * conserva los productos y categorías creados por el administrador.
+ */
+function reconcileWithDefaults(data: MenuData): MenuData {
+  const defaultsById = new Map(DEFAULT_CATEGORIES.map((c) => [c.id, c] as const));
 
-  try {
-    const { data, error } = await supabase.rpc("get_menu");
-    if (error || !data || typeof data !== "object") return null;
-    return normalizeMenuData(data as Record<string, unknown>);
-  } catch {
-    return null;
-  }
+  const categories = data.categories.map((c) => {
+    const d = defaultsById.get(c.id);
+    if (!d) return c;
+
+    const surviving = c.items.filter((i) => !RETIRED_ITEM_IDS.has(i.id));
+    const survivingById = new Map(surviving.map((i) => [i.id, i] as const));
+
+    const merged: MenuItem[] = d.items.map((di) => {
+      const prev = survivingById.get(di.id);
+      if (!prev) return di;
+      survivingById.delete(di.id);
+      // Se conservan los ajustes locales (agotado, foto, etiqueta); el resto se alinea
+      return {
+        ...di,
+        unavailable: prev.unavailable,
+        image: prev.image ?? di.image,
+        badge: prev.badge ?? di.badge,
+      };
+    });
+    for (const custom of survivingById.values()) merged.push(custom);
+
+    return { ...c, items: merged };
+  });
+
+  const present = new Set(categories.map((c) => c.id));
+  for (const d of DEFAULT_CATEGORIES) if (!present.has(d.id)) categories.push(d);
+
+  return { ...data, categories };
 }
 
 function loadInitial(): MenuData {
-  if (isSupabaseConfigured) {
-    return {
-      categories: [],
-      seasonal: { enabled: false, title: "De temporada", note: "Pregunta si hay", items: [] },
-      bebidas: { enabled: false, title: "Bebidas del día", note: "Disponibilidad del día", items: [] },
-      coupons: [],
-      settings: DEFAULT_SETTINGS,
-    };
-  }
-
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) return normalizeMenuData(JSON.parse(raw));
     for (const key of LEGACY_KEYS) {
       const legacy = localStorage.getItem(key);
-      if (legacy) return normalizeMenuData(JSON.parse(legacy));
+      if (legacy) return reconcileWithDefaults(normalizeMenuData(JSON.parse(legacy)));
     }
   } catch {
     /* datos corruptos: usar el menú por defecto */
@@ -330,93 +354,70 @@ export function useMenuStore() {
   const syncQueue = useRef(Promise.resolve());
 
   useEffect(() => {
+    if (!isSupabaseConfigured) return;
     let active = true;
-
-    void (async () => {
-      const remote = await loadSupabaseMenu();
+    void supabase.rpc("get_menu").then(({ data: remote, error }) => {
       if (!active) return;
-      if (!remote) return;
-      setData(remote);
+      if (!error && remote && typeof remote === "object") {
+        try {
+          setData(normalizeMenuData(remote));
+        } catch {
+          setStorageError("Supabase devolvió un menú con formato inválido; se conserva la copia local.");
+        }
+      } else if (error) {
+        setStorageError("No se pudo cargar el menú online; se está usando la copia local.");
+      }
       setRemoteReady(true);
-    })();
-
+    });
     return () => {
       active = false;
     };
   }, []);
 
   useEffect(() => {
-    if (!isSupabaseConfigured) {
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-        setStorageError(null);
-      } catch {
-        setStorageError(
-          "No se pudieron guardar los últimos cambios: el almacenamiento del navegador está lleno. Quita algunas fotos o usa imágenes más pequeñas.",
-        );
-      }
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      setStorageError(null);
+    } catch {
+      setStorageError(
+        "No se pudieron guardar los últimos cambios: el almacenamiento del navegador está lleno. Quita algunas fotos o usa imágenes más pequeñas.",
+      );
     }
-
     if (!isSupabaseConfigured || !remoteReady) return;
-
     const version = ++syncVersion.current;
-    syncQueue.current = syncQueue.current
-      .then(async () => {
-        if (version !== syncVersion.current) return;
-        const payload = serializeMenuForSupabase(data);
+    syncQueue.current = syncQueue.current.then(async () => {
+      if (version !== syncVersion.current) return;
+      const { data: session } = await supabase.auth.getSession();
+      if (!session.session) return;
+      const payload = serializeMenuForSupabase(data);
+      const settings = await supabase.from("settings").upsert(payload.settings, { onConflict: "id" });
+      if (settings.error) throw settings.error;
 
-        const settingsResult = await supabase.from("settings").upsert(payload.settings, { onConflict: "id" });
-        if (settingsResult.error) throw settingsResult.error;
+      const clearTable = async (table: string) => {
+        const result = await supabase.from(table).delete().neq("id", "00000000-0000-0000-0000-000000000000");
+        if (result.error) throw result.error;
+      };
+      await clearTable("item_extras");
+      await clearTable("item_sizes");
+      await clearTable("menu_items");
+      await clearTable("categories");
+      await clearTable("coupons");
 
-        // El estado local es la fuente de verdad después de hidratarse. Quitamos
-        // filas que el administrador eliminó para que Supabase no conserve basura.
-        const keep = (ids: Array<string | undefined>) => ids.filter((id): id is string => Boolean(id));
-        const deleteMissing = async (table: string, ids: Array<string | undefined>) => {
-          const query = supabase.from(table).delete();
-          const kept = keep(ids);
-          const result = kept.length > 0 ? await query.not("id", "in", `(${kept.join(",")})`) : await query.neq("id", "");
-          if (result.error) throw result.error;
-        };
-
-        await deleteMissing("item_extras", payload.itemExtras.map((item) => item.id));
-        await deleteMissing("item_sizes", payload.itemSizes.map((item) => item.id));
-        await deleteMissing("menu_items", payload.menuItems.map((item) => item.id));
-        await deleteMissing("categories", payload.categories.map((category) => category.id));
-        await deleteMissing("coupons", payload.coupons.map((coupon) => coupon.id));
-
-        const { error: categoriesError } = await supabase.from("categories").upsert(payload.categories, {
-          onConflict: "id",
-          ignoreDuplicates: false,
-        });
-        if (categoriesError) throw categoriesError;
-
-        const { error: itemsError } = await supabase.from("menu_items").upsert(payload.menuItems, {
-          onConflict: "id",
-          ignoreDuplicates: false,
-        });
-        if (itemsError) throw itemsError;
-
-        const { error: extrasError } = await supabase.from("item_extras").upsert(payload.itemExtras, {
-          onConflict: "id",
-          ignoreDuplicates: false,
-        });
-        if (extrasError) throw extrasError;
-
-        const { error: sizesError } = await supabase.from("item_sizes").upsert(payload.itemSizes, {
-          onConflict: "id",
-          ignoreDuplicates: false,
-        });
-        if (sizesError) throw sizesError;
-
-        const { error: couponsError } = await supabase.from("coupons").upsert(payload.coupons, {
-          onConflict: "id",
-          ignoreDuplicates: false,
-        });
-        if (couponsError) throw couponsError;
-      })
-      .catch((error) => {
-        console.warn("Supabase full menu sync crashed:", error);
-      });
+      for (const [table, rows] of [
+        ["categories", payload.categories],
+        ["menu_items", payload.menuItems],
+        ["item_extras", payload.itemExtras],
+        ["item_sizes", payload.itemSizes],
+        ["coupons", payload.coupons],
+      ] as const) {
+        if (rows.length === 0) continue;
+        const result = await supabase.from(table).insert(rows);
+        if (result.error) throw result.error;
+      }
+      setStorageError(null);
+    }).catch(() => {
+      setStorageError("No se pudieron sincronizar los cambios con Supabase.");
+    });
   }, [data, remoteReady]);
 
   const setCategories = useCallback((updater: (prev: MenuCategory[]) => MenuCategory[]) => {
@@ -639,19 +640,7 @@ export function useMenuStore() {
     }
   }, []);
 
-  const reset = useCallback(() => {
-    if (isSupabaseConfigured) {
-      setData({
-        categories: [],
-        seasonal: { enabled: false, title: "De temporada", note: "Pregunta si hay", items: [] },
-        bebidas: { enabled: false, title: "Bebidas del día", note: "Disponibilidad del día", items: [] },
-        coupons: [],
-        settings: DEFAULT_SETTINGS,
-      });
-      return;
-    }
-    setData(DEFAULT_MENU);
-  }, []);
+  const reset = useCallback(() => setData(DEFAULT_MENU), []);
 
   return {
     categories: data.categories,

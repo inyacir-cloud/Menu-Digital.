@@ -139,7 +139,7 @@ export function SecurityEditor({ store, auth, notify }: Props) {
       <Card className="ring-red-200">
         <h4 className="font-bold text-red-700">Zona de riesgo</h4>
         <p className="mt-1 text-sm text-ink/65">
-          Vuelve al menú original con sus seis categorías, precios y fotos.
+          Vuelve al menú original con sus tres categorías, precios y fotos.
         </p>
         <div className="mt-3">
           <Button variant="danger" onClick={resetMenu}>

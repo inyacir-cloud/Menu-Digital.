@@ -300,7 +300,7 @@ create policy "lectura publica item_sizes"  on public.item_sizes  for select usi
 drop policy if exists "lectura publica coupons"     on public.coupons;
 create policy "lectura publica coupons"     on public.coupons     for select using (true);
 
--- ---- Escritura para el panel del menú (modo simple, sin login de Supabase) ----
+-- ---- Escritura solo para el administrador (usuario autenticado) ----
 drop policy if exists "admin escribe settings"    on public.settings;
 create policy "admin escribe settings"    on public.settings
   for all to authenticated using (true) with check (true);

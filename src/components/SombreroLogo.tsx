@@ -59,7 +59,7 @@ export function BrandLogo({ name, tagline, logo, onSecret, className, artClassNa
   };
 
   const parts = name.split(/\s*&\s*/);
-  const displayLogo = defaultLogo;
+  const displayLogo = logo || defaultLogo;
 
   return (
     <div

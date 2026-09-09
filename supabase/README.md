@@ -81,11 +81,11 @@ El menú se lee público, pero **editar** requiere iniciar sesión.
 
 ---
 
-## 5. Conectar la app (opcional, cuando quieras migrar de localStorage)
+## 5. Conectar la app
 
-> Hoy la app guarda todo en el navegador (localStorage). Estos pasos son para
-> cuando decidas leer/escribir desde Supabase. No es obligatorio para que la
-> app funcione.
+La app ya está preparada para leer el menú con `get_menu()` y sincronizar los
+cambios del panel de administración con Supabase. Si Supabase no responde,
+conserva una copia local como respaldo.
 
 Instala el cliente:
 
@@ -109,6 +109,7 @@ Crea un archivo `.env` en la raíz del proyecto (no lo subas a git):
 ```
 VITE_SUPABASE_URL=https://xxxxxxxx.supabase.co
 VITE_SUPABASE_ANON_KEY=tu-anon-key
+VITE_ADMIN_EMAIL=admin@gordoflaca.com
 ```
 
 ### Leer el menú completo (público)

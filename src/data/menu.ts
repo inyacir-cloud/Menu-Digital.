@@ -35,8 +35,7 @@ export function resolveImage(src?: string): string | undefined {
 }
 
 /** Contraseña inicial del panel de administración (cámbiala desde el panel) */
-export const DEFAULT_PASSWORD = "251225";
-export const LEGACY_DEFAULT_PASSWORD = "gordoflaca";
+export const DEFAULT_PASSWORD = "gordoflaca";
 
 export const DEFAULT_THEME: Theme = {
   background: "#FFFFFF",

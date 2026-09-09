@@ -16,7 +16,3 @@ const SALT = "egf·menu·2024";
 export function hashPassword(password: string): string {
   return fnv1a(SALT + password, 0x811c9dc5) + fnv1a(password + SALT, 0x01000193);
 }
-
-export function isPasswordMatch(password: string, expectedHash: string): boolean {
-  return hashPassword(password) === expectedHash;
-}

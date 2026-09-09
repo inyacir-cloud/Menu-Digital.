@@ -82,9 +82,8 @@ export default function App() {
 
   const navCategories = useMemo(() => {
     const list = [...store.categories];
-    const ids = new Set(list.map((c) => c.id));
-    if (seasonalCategory && !ids.has(seasonalCategory.id)) list.push(seasonalCategory);
-    if (bebidasCategory && !ids.has(bebidasCategory.id)) list.push(bebidasCategory);
+    if (seasonalCategory) list.push(seasonalCategory);
+    if (bebidasCategory) list.push(bebidasCategory);
     return list;
   }, [store.categories, seasonalCategory, bebidasCategory]);
 
