@@ -416,7 +416,15 @@ export function useMenuStore() {
         if (result.error) throw result.error;
       }
       setStorageError(null);
-    }).catch(() => {
+    }).catch((error: unknown) => {
+      const message =
+        error && typeof error === "object" && "message" in error ? String(error.message) : String(error ?? "");
+      if (/required_extra_selection|column .* does not exist|schema cache/i.test(message)) {
+        setStorageError(
+          "Supabase necesita la migración 20260908_required_extra_selection.sql. Ejecútala en SQL Editor para guardar estos cambios.",
+        );
+        return;
+      }
       setStorageError("No se pudieron sincronizar los cambios con Supabase.");
     });
   }, [data, remoteReady]);
