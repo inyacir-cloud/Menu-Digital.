@@ -4,7 +4,7 @@ import type { MenuStore } from "../../hooks/useMenuStore";
 import { formatPrice } from "../../utils/format";
 import { isAvailable, shortSizeName } from "../../utils/menu";
 import { cn } from "../../utils/cn";
-import { CupIcon, PencilIcon, PlusIcon, TrashIcon } from "../icons";
+import { GlassIceIcon, PencilIcon, PlusIcon, TrashIcon } from "../icons";
 import { ItemForm } from "./MenuEditor";
 import { Button, Card, Field, IconBtn, SectionTitle, Switch, TextInput, Toggle } from "./ui";
 
@@ -44,7 +44,7 @@ export function BebidasEditor({ store, notify }: Props) {
       <div>
         <SectionTitle className="flex items-center gap-2">
           <span className="grid h-8 w-8 place-items-center rounded-full bg-wa text-white">
-            <CupIcon className="h-4 w-4" />
+            <GlassIceIcon className="h-4 w-4" />
           </span>
           Bebidas del día
         </SectionTitle>

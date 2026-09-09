@@ -198,6 +198,18 @@ export function CopyIcon(props: IconProps) {
   );
 }
 
+/** Vaso frío con cubos de hielo para la sección de bebidas */
+export function GlassIceIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" {...base} {...props}>
+      <path d="M6 4h12l-1.2 16H7.2L6 4z" />
+      <path d="M7 8h10" />
+      <path d="M8.5 6.5l2 2 2-2 2 2" />
+      <path d="M9.5 13l1.8 1.8 2-2 1.5 1.5" />
+    </svg>
+  );
+}
+
 export function ClockIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" {...base} strokeWidth={2} {...props}>

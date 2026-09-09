@@ -1,6 +1,6 @@
 import type { MenuCategory, MenuItem } from "../types";
 import { isAvailable } from "../utils/menu";
-import { CupIcon, HelpIcon } from "./icons";
+import { GlassIceIcon, HelpIcon } from "./icons";
 import { MenuItemRow } from "./MenuItemRow";
 
 interface Props {
@@ -25,7 +25,7 @@ export function BebidasBand({ category, qtyOf, closed, onQuickAdd, onOpen, onDec
       <div className="relative overflow-hidden rounded-[1.75rem] border-2 border-dashed border-sky-300 bg-sky-50/80 px-4 py-5 sm:px-6 sm:py-6">
         <header className="flex flex-wrap items-center gap-x-3 gap-y-2">
           <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-sky-400 text-white shadow-sm">
-            <CupIcon className="h-5 w-5" />
+            <GlassIceIcon className="h-5 w-5" />
           </span>
           <div className="min-w-0">
             <h2

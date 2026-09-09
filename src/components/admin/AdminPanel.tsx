@@ -7,7 +7,7 @@ import { cn } from "../../utils/cn";
 import {
   ChatIcon,
   CloseIcon,
-  CupIcon,
+  GlassIceIcon,
   GearIcon,
   LeafIcon,
   ListIcon,
@@ -40,7 +40,7 @@ const GROUPS: { title: string; tabs: TabDef[] }[] = [
     tabs: [
       { id: "menu", label: "Productos", sub: "Categorías y platillos", icon: <ListIcon className="h-4 w-4" /> },
       { id: "temporada", label: "Temporada", sub: "Productos de temporada", icon: <LeafIcon className="h-4 w-4" /> },
-      { id: "bebidas", label: "Bebidas del día", sub: "Aguas de sabor y refrescos", icon: <CupIcon className="h-4 w-4" /> },
+      { id: "bebidas", label: "Bebidas del día", sub: "Aguas de sabor y refrescos", icon: <GlassIceIcon className="h-4 w-4" /> },
       { id: "cupones", label: "Cupones", sub: "Códigos de descuento", icon: <TicketIcon className="h-4 w-4" /> },
     ],
   },
