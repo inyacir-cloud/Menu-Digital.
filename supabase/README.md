@@ -41,8 +41,9 @@ tostada), ejecuta también
 
 Para habilitar combos sin recrear las tablas existentes, ejecuta
 [`migrations/20260908_combos.sql`](./migrations/20260908_combos.sql). Después
-vuelve a ejecutar en el SQL Editor la función `get_menu()` de
-[`schema.sql`](./schema.sql), porque debe incluir la clave `combos`.
+ejecuta también
+[`migrations/20260909_fix_get_menu_combos.sql`](./migrations/20260909_fix_get_menu_combos.sql)
+para que `get_menu()` devuelva la clave `combos`.
 
 ## 3. Consigue tus llaves
 

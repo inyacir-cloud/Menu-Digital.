@@ -428,7 +428,9 @@ export function useMenuStore() {
       if (!active) return;
       if (!error && remote && typeof remote === "object") {
         try {
-          setData(reconcileWithDefaults(normalizeMenuData(remote)));
+          const normalized = reconcileWithDefaults(normalizeMenuData(remote));
+          const hasCombos = Object.prototype.hasOwnProperty.call(remote, "combos");
+          setData((current) => (hasCombos ? normalized : { ...normalized, combos: current.combos }));
         } catch {
           setStorageError("Supabase devolvió un menú con formato inválido; se conserva la copia local.");
         }
