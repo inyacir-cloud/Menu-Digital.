@@ -398,6 +398,7 @@ function reconcileWithDefaults(data: MenuData): MenuData {
 }
 
 function loadInitial(): MenuData {
+  if (isSupabaseConfigured) return DEFAULT_MENU;
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) return normalizeMenuData(JSON.parse(raw));
@@ -438,16 +439,17 @@ export function useMenuStore() {
       if (!active) return;
       if (!error && remote && typeof remote === "object") {
         try {
-          const normalized = reconcileWithDefaults(normalizeMenuData(remote));
-          const hasCombos = Object.prototype.hasOwnProperty.call(remote, "combos");
-          setData((current) => (hasCombos ? normalized : { ...normalized, combos: current.combos }));
+          const remoteMenu = { ...remote, combos: Array.isArray(remote.combos) ? remote.combos : [] };
+          setData(normalizeMenuData(remoteMenu));
+          localStorage.removeItem(STORAGE_KEY);
+          for (const key of LEGACY_KEYS) localStorage.removeItem(key);
         } catch {
           setStorageError("Supabase devolvió un menú con formato inválido; se conserva la copia local.");
         }
       } else if (error) {
         setStorageError("No se pudo cargar el menú online; se está usando la copia local.");
       }
-      setRemoteReady(true);
+      setRemoteReady(!error && !!remote);
     });
     return () => {
       active = false;
@@ -456,7 +458,12 @@ export function useMenuStore() {
 
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      if (isSupabaseConfigured) {
+        localStorage.removeItem(STORAGE_KEY);
+        for (const key of LEGACY_KEYS) localStorage.removeItem(key);
+      } else {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      }
       setStorageError(null);
     } catch {
       setStorageError(
