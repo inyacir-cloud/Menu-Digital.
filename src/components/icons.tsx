@@ -210,6 +210,16 @@ export function GlassIceIcon(props: IconProps) {
   );
 }
 
+export function TacoIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" {...base} {...props}>
+      <path d="M4 12a8 8 0 0116 0v3H4v-3z" />
+      <path d="M4 15c1.5 2 3 3 4.5 3s3-1 4.5-1 3 1 4.5 1 3-1 4.5-3" />
+      <path d="M8 11h.01M12 9h.01M16 11h.01" strokeWidth={3} />
+    </svg>
+  );
+}
+
 export function ClockIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" {...base} strokeWidth={2} {...props}>
