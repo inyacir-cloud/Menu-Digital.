@@ -95,11 +95,10 @@ function normalizeItem(raw: unknown): MenuItem | null {
   if (r.unavailable === true) item.unavailable = true;
   if (str(r.cartName).trim()) item.cartName = str(r.cartName).trim();
   if (str(r.image)) item.image = str(r.image);
-  const extras = normalizeExtras(r.extras);
-  if (extras.length > 0) item.extras = extras;
+  if (Array.isArray(r.extras)) item.extras = normalizeExtras(r.extras);
   if (r.requiredExtraSelection === true) item.requiredExtraSelection = true;
-  const sizes = normalizeSizes(r.sizes);
-  if (sizes.length > 0) item.sizes = sizes;
+  const sizes = Array.isArray(r.sizes) ? normalizeSizes(r.sizes) : [];
+  if (Array.isArray(r.sizes)) item.sizes = sizes;
   const unavailableSizes = (Array.isArray(r.unavailableSizes) ? r.unavailableSizes : [])
     .filter((id): id is string => typeof id === "string" && sizes.some((s) => s.id === id));
   if (unavailableSizes.length > 0) item.unavailableSizes = unavailableSizes;
@@ -362,6 +361,12 @@ function reconcileWithDefaults(data: MenuData): MenuData {
         unavailable: prev.unavailable,
         image: prev.image ?? di.image,
         badge: prev.badge ?? di.badge,
+        description: prev.description ?? di.description,
+        cartName: prev.cartName ?? di.cartName,
+        extras: prev.extras ?? di.extras,
+        requiredExtraSelection: prev.requiredExtraSelection ?? di.requiredExtraSelection,
+        sizes: prev.sizes ?? di.sizes,
+        unavailableSizes: prev.unavailableSizes ?? di.unavailableSizes,
       };
     });
     const mergedNames = new Set(merged.map((item) => item.name.trim().toLowerCase()));
