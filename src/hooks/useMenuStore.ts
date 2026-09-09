@@ -475,7 +475,10 @@ export function useMenuStore() {
     syncQueue.current = syncQueue.current.then(async () => {
       if (version !== syncVersion.current) return;
       const { data: session } = await supabase.auth.getSession();
-      if (!session.session) return;
+      if (!session.session) {
+        setStorageError("No hay una sesión de administrador activa. Inicia sesión nuevamente para guardar en Supabase.");
+        return;
+      }
       const payload = serializeMenuForSupabase(data);
       const settings = await supabase.from("settings").upsert(payload.settings, { onConflict: "id" });
       if (settings.error) throw settings.error;
