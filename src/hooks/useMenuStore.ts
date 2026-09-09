@@ -64,11 +64,16 @@ const money = (v: unknown): number => Math.max(0, Math.round(num(v) * 100) / 100
 function normalizeExtras(raw: unknown): Extra[] {
   if (!Array.isArray(raw)) return [];
   const out: Extra[] = [];
+  const seen = new Set<string>();
   for (const e of raw) {
     const r = asObj(e);
     const name = str(r.name).trim();
     if (!name) continue;
-    out.push({ id: str(r.id) || uid("extra"), name, price: money(r.price) });
+    const price = money(r.price);
+    const key = `${name.toLocaleLowerCase()}|${price}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({ id: str(r.id) || uid("extra"), name, price });
   }
   return out;
 }
@@ -76,11 +81,16 @@ function normalizeExtras(raw: unknown): Extra[] {
 function normalizeSizes(raw: unknown): SizeOption[] {
   if (!Array.isArray(raw)) return [];
   const out: SizeOption[] = [];
+  const seen = new Set<string>();
   for (const s of raw) {
     const r = asObj(s);
     const name = str(r.name).trim();
     if (!name) continue;
-    out.push({ id: str(r.id) || uid("size"), name, price: money(r.price) });
+    const price = money(r.price);
+    const key = `${name.toLocaleLowerCase()}|${price}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({ id: str(r.id) || uid("size"), name, price });
   }
   return out;
 }

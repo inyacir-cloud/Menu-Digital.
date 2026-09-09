@@ -45,6 +45,10 @@ ejecuta también
 [`migrations/20260909_fix_get_menu_combos.sql`](./migrations/20260909_fix_get_menu_combos.sql)
 para que `get_menu()` devuelva la clave `combos`.
 
+Si aparecen extras o tamaños repetidos, ejecuta
+[`migrations/20260909_cleanup_duplicate_options.sql`](./migrations/20260909_cleanup_duplicate_options.sql)
+para conservar una sola fila por producto, nombre y precio.
+
 ## 3. Consigue tus llaves
 
 En **Project Settings → API** copia:
