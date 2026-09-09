@@ -157,8 +157,15 @@ export function AdminPanel({ store, auth, onClose, onLogout, notify }: Props) {
 
       {/* Avisos globales */}
       {store.storageError && (
-        <div className="bg-red-600 px-4 py-2 text-center text-xs font-medium text-white">
-          {store.storageError}
+        <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 bg-red-600 px-4 py-2 text-center text-xs font-medium text-white">
+          <span>{store.storageError}</span>
+          <button
+            type="button"
+            onClick={onLogout}
+            className="font-bold underline underline-offset-2 hover:text-red-100"
+          >
+            Volver a iniciar sesión
+          </button>
         </div>
       )}
       {auth.isDefaultPassword && tab !== "seguridad" && (
