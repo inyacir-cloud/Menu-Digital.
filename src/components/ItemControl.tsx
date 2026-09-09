@@ -1,5 +1,5 @@
 import { cn } from "../utils/cn";
-import { LockIcon, MinusIcon, PlusIcon } from "./icons";
+import { MinusIcon, PlusIcon } from "./icons";
 
 interface Props {
   name: string;
@@ -14,19 +14,7 @@ interface Props {
 
 /** Botón "+" / control de cantidad que aparece junto a cada precio */
 export function ItemControl({ name, qty, unavailable, closed, onAdd, onDecrement, className }: Props) {
-  if (closed) {
-    return (
-      <span
-        className={cn(
-          "inline-flex items-center gap-1 whitespace-nowrap rounded-full border border-ink/20 bg-ink/5 px-2.5 py-1 text-[0.6rem] font-bold uppercase tracking-wider text-ink/50",
-          className,
-        )}
-      >
-        <LockIcon className="h-3 w-3" />
-        Cerrado
-      </span>
-    );
-  }
+  if (closed) return null;
 
   if (unavailable) {
     return (
