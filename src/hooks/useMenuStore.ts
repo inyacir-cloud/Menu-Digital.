@@ -297,11 +297,14 @@ function reconcileWithDefaults(data: MenuData): MenuData {
 
     const surviving = c.items.filter((i) => !RETIRED_ITEM_IDS.has(i.id));
     const survivingById = new Map(surviving.map((i) => [i.id, i] as const));
+    const survivingByName = new Map(surviving.map((i) => [i.name.trim().toLowerCase(), i] as const));
 
     const merged: MenuItem[] = d.items.map((di) => {
-      const prev = survivingById.get(di.id);
+      const prev = survivingById.get(di.id) ?? survivingByName.get(di.name.trim().toLowerCase());
       if (!prev) return di;
       survivingById.delete(di.id);
+      survivingById.delete(prev.id);
+      survivingByName.delete(prev.name.trim().toLowerCase());
       // Se conservan los ajustes locales (agotado, foto, etiqueta); el resto se alinea
       return {
         ...di,
@@ -310,7 +313,14 @@ function reconcileWithDefaults(data: MenuData): MenuData {
         badge: prev.badge ?? di.badge,
       };
     });
-    for (const custom of survivingById.values()) merged.push(custom);
+    const mergedNames = new Set(merged.map((item) => item.name.trim().toLowerCase()));
+    for (const custom of survivingById.values()) {
+      const name = custom.name.trim().toLowerCase();
+      if (!mergedNames.has(name)) {
+        merged.push(custom);
+        mergedNames.add(name);
+      }
+    }
 
     return { ...c, items: merged };
   });
