@@ -11,6 +11,7 @@ export interface MenuSyncPayload {
 	itemExtras: Array<Record<string, unknown>>;
 	itemSizes: Array<Record<string, unknown>>;
 	coupons: Array<Record<string, unknown>>;
+	combos: Array<Record<string, unknown>>;
 }
 
 function readIdMap(): IdMap {
@@ -108,6 +109,35 @@ export function buildMenuSyncPayload(data: MenuData): MenuSyncPayload {
 		itemExtras,
 		itemSizes,
 		coupons: data.coupons.map((coupon) => ({ id: uuidFor(coupon.id, map), code: coupon.code, type: coupon.type, value: coupon.value, enabled: coupon.enabled, max_uses: coupon.maxUses, used: coupon.used, expires_at: coupon.expiresAt ?? null, min_order: coupon.minOrder ?? null })),
+		combos: data.combos.map((combo, comboIndex) => ({
+			id: uuidFor(combo.id, map),
+			name: combo.name,
+			price: combo.price,
+			description: combo.description ?? null,
+			badge: combo.badge ?? null,
+			image: combo.image ?? null,
+			enabled: combo.enabled,
+			sort_order: comboIndex,
+			groups: combo.groups.map((group, groupIndex) => ({
+				id: uuidFor(`${combo.id}:group:${group.id}`, map),
+				title: group.title,
+				required: group.required,
+				min_selections: group.minSelections,
+				max_selections: group.maxSelections,
+				selection_mode: group.selectionMode ?? "products",
+				category_id: group.categoryId ?? null,
+				category_title: group.categoryTitle ?? null,
+				sort_order: groupIndex,
+				options: group.options.map((option, optionIndex) => ({
+					id: uuidFor(`${combo.id}:option:${option.id}`, map),
+					item_id: uuidFor(option.itemId, map),
+					label: option.label,
+					category_title: option.categoryTitle ?? null,
+					unavailable: Boolean(option.unavailable),
+					sort_order: optionIndex,
+				})),
+			})),
+		})),
 	};
 }
 

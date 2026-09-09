@@ -39,6 +39,11 @@ Para habilitar opciones obligatorias por unidad (por ejemplo, el sabor de cada
 tostada), ejecuta también
 [`migrations/20260908_required_extra_selection.sql`](./migrations/20260908_required_extra_selection.sql).
 
+Para habilitar combos sin recrear las tablas existentes, ejecuta
+[`migrations/20260908_combos.sql`](./migrations/20260908_combos.sql). Después
+vuelve a ejecutar en el SQL Editor la función `get_menu()` de
+[`schema.sql`](./schema.sql), porque debe incluir la clave `combos`.
+
 ## 3. Consigue tus llaves
 
 En **Project Settings → API** copia:
@@ -74,6 +79,7 @@ El menú se lee público, pero **editar** requiere iniciar sesión.
 | `item_extras`         | Extras por producto (ej. “Con Queso + $7”)                          |
 | `item_sizes`          | Tamaños con precio (ej. Medio litro / Litro) y su encendido/apagado |
 | `coupons`             | Cupones de descuento con máximo de usos y vigencia                   |
+| `combos`              | Ofertas con precio fijo y grupos de productos elegibles              |
 | `orders`              | Historial de pedidos (opcional)                                     |
 | bucket `menu-images`  | Almacenamiento público para logo y fotos                            |
 | función `get_menu()`  | Devuelve TODO el menú en un JSON igual al que usa la app            |

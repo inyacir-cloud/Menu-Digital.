@@ -19,13 +19,14 @@ import {
 import { MenuEditor } from "./MenuEditor";
 import { SeasonalEditor } from "./SeasonalEditor";
 import { BebidasEditor } from "./BebidasEditor";
+import { CombosEditor } from "./CombosEditor";
 import { CouponEditor } from "./CouponEditor";
 import { BusinessEditor } from "./BusinessEditor";
 import { MessageEditor } from "./MessageEditor";
 import { ThemeEditor } from "./ThemeEditor";
 import { SecurityEditor } from "./SecurityEditor";
 
-type Tab = "menu" | "temporada" | "bebidas" | "cupones" | "negocio" | "mensaje" | "colores" | "seguridad";
+type Tab = "menu" | "temporada" | "bebidas" | "combos" | "cupones" | "negocio" | "mensaje" | "colores" | "seguridad";
 
 interface TabDef {
   id: Tab;
@@ -41,6 +42,7 @@ const GROUPS: { title: string; tabs: TabDef[] }[] = [
       { id: "menu", label: "Productos", sub: "Categorías y platillos", icon: <ListIcon className="h-4 w-4" /> },
       { id: "temporada", label: "Temporada", sub: "Productos de temporada", icon: <LeafIcon className="h-4 w-4" /> },
       { id: "bebidas", label: "Bebidas del día", sub: "Aguas de sabor y refrescos", icon: <GlassIceIcon className="h-4 w-4" /> },
+      { id: "combos", label: "Combos", sub: "Ofertas y elecciones", icon: <TicketIcon className="h-4 w-4" /> },
       { id: "cupones", label: "Cupones", sub: "Códigos de descuento", icon: <TicketIcon className="h-4 w-4" /> },
     ],
   },
@@ -276,6 +278,7 @@ export function AdminPanel({ store, auth, onClose, onLogout, notify }: Props) {
               {tab === "menu" && <MenuEditor store={store} notify={notify} />}
               {tab === "temporada" && <SeasonalEditor store={store} notify={notify} />}
               {tab === "bebidas" && <BebidasEditor store={store} notify={notify} />}
+              {tab === "combos" && <CombosEditor store={store} notify={notify} />}
               {tab === "cupones" && <CouponEditor store={store} notify={notify} />}
               {tab === "negocio" && <BusinessEditor key="negocio" store={store} notify={notify} />}
               {tab === "mensaje" && <MessageEditor key="mensaje" store={store} notify={notify} />}

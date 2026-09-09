@@ -5,12 +5,13 @@ import { useLocalStorage } from "./useLocalStorage";
 
 const STORAGE_KEY = "egf-menu-cart-v3";
 
-function makeKey(itemId: string, sizeId: string | undefined, extras: Extra[], note: string): string {
+function makeKey(itemId: string, sizeId: string | undefined, extras: Extra[], note: string, comboSelections: CartLine["comboSelections"] = []): string {
   const ids = extras
     .map((e) => e.id)
     .sort()
     .join(",");
-  return `${itemId}|${sizeId ?? ""}|${ids}|${note.trim().toLowerCase()}`;
+  const comboKey = comboSelections.map((selection) => `${selection.groupId}:${selection.optionId}`).sort().join(",");
+  return `${itemId}|${sizeId ?? ""}|${ids}|${comboKey}|${note.trim().toLowerCase()}`;
 }
 
 /** Índice de la línea más reciente de un producto (para +/− desde el menú) */
@@ -44,7 +45,8 @@ export function useCart() {
       const size = opts.size ? { ...opts.size } : undefined;
       const note = (opts.note ?? "").trim();
       const qty = Math.max(1, Math.round(opts.qty ?? 1));
-      const key = makeKey(item.id, size?.id, extras, note);
+      const comboSelections = opts.comboSelections?.map((selection) => ({ ...selection })) ?? [];
+      const key = makeKey(item.id, size?.id, extras, note, comboSelections);
       const now = Date.now();
       setLines((prev) => {
         const idx = prev.findIndex((l) => l.key === key);
@@ -67,6 +69,7 @@ export function useCart() {
             note,
             qty,
             addedAt: now,
+            comboSelections,
           },
         ];
       });
@@ -106,11 +109,15 @@ export function useCart() {
    * no existen o están agotados y actualiza nombres, precios y extras editados.
    */
   const sync = useCallback(
-    (categories: MenuCategory[]) => {
+    (categories: MenuCategory[], combos: MenuItem[] = []) => {
       setLines((prev) => {
         if (prev.length === 0) return prev;
         const index = new Map<string, { item: MenuItem; category: MenuCategory }>();
         for (const c of categories) for (const it of c.items) index.set(it.id, { item: it, category: c });
+        if (combos.length > 0) {
+          const comboCategory: MenuCategory = { id: "combos", title: "Combos", items: combos, imageSide: "right" };
+          for (const item of combos) index.set(item.id, { item, category: comboCategory });
+        }
 
         const merged = new Map<string, CartLine>();
         for (const l of prev) {
@@ -127,7 +134,7 @@ export function useCart() {
               undefined
             : undefined;
           if (l.size && !size) continue;
-          const key = makeKey(l.itemId, size?.id, extras, l.note);
+          const key = makeKey(l.itemId, size?.id, extras, l.note, l.comboSelections);
           const updated: CartLine = {
             ...l,
             key,
@@ -137,6 +144,7 @@ export function useCart() {
             price: found.item.price,
             categoryId: found.category.id,
             categoryTitle: found.category.title,
+            comboSelections: l.comboSelections,
           };
           const existing = merged.get(key);
           merged.set(

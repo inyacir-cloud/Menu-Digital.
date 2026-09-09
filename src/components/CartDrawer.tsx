@@ -388,6 +388,11 @@ export function CartDrawer({
                                     {l.extras.map((e) => `+ ${e.name}`).join(" · ")}
                                   </p>
                                 )}
+                                {(l.comboSelections?.length ?? 0) > 0 && (
+                                  <p className="text-xs font-medium text-sky-700">
+                                    {l.comboSelections?.map((selection) => selection.label).join(" · ")}
+                                  </p>
+                                )}
                                 {l.note && <p className="truncate text-xs italic text-ink/55">“{l.note}”</p>}
                                 <p className="text-xs text-ink/55">{formatPrice(lineUnitPrice(l))} c/u</p>
                               </div>

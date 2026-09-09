@@ -1,5 +1,6 @@
 import type {
   BebidasSection,
+  Combo,
   Coupon,
   Extra,
   MenuCategory,
@@ -335,6 +336,8 @@ export const DEFAULT_BEBIDAS: BebidasSection = {
   ],
 };
 
+export const DEFAULT_COMBOS: Combo[] = [];
+
 /** Cupones de ejemplo, pausados: actívalos o crea los tuyos desde el panel */
 export const DEFAULT_COUPONS: Coupon[] = [
   {
@@ -362,6 +365,7 @@ export const DEFAULT_MENU: MenuData = {
   categories: DEFAULT_CATEGORIES,
   seasonal: DEFAULT_SEASONAL,
   bebidas: DEFAULT_BEBIDAS,
+  combos: DEFAULT_COMBOS,
   coupons: DEFAULT_COUPONS,
   settings: DEFAULT_SETTINGS,
 };

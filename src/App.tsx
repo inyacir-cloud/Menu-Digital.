@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { CustomerInfo, MenuCategory, MenuItem } from "./types";
+import type { Combo, ComboSelection, CustomerInfo, MenuCategory, MenuItem } from "./types";
 import { useCart } from "./hooks/useCart";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import { useMenuStore } from "./hooks/useMenuStore";
@@ -13,6 +13,8 @@ import { CategoryNav } from "./components/CategoryNav";
 import { MenuSection } from "./components/MenuSection";
 import { SeasonalBand } from "./components/SeasonalBand";
 import { BebidasBand } from "./components/BebidasBand";
+import { ComboBand } from "./components/ComboBand";
+import { ComboSheet } from "./components/ComboSheet";
 import { SplashScreen } from "./components/SplashScreen";
 import { Footer } from "./components/Footer";
 import { CartButton } from "./components/CartButton";
@@ -92,6 +94,10 @@ export default function App() {
     () => (bebidasCategory ? bebidasCategory.items.filter(isAvailable).slice(0, 4) : []),
     [bebidasCategory],
   );
+  const comboItems = useMemo<MenuItem[]>(
+    () => store.combos.map((combo) => ({ id: combo.id, name: combo.name, price: combo.price, unavailable: !combo.enabled })),
+    [store.combos],
+  );
 
   /** Cupón escrito por el cliente (persiste hasta que se envía el pedido) */
   const [appliedCode, setAppliedCode] = useLocalStorage<string>("egf-menu-coupon-v1", "");
@@ -108,6 +114,7 @@ export default function App() {
   const [view, setView] = useState<"splash" | "menu">("splash");
   const [cartOpen, setCartOpen] = useState(false);
   const [sheet, setSheet] = useState<SheetState | null>(null);
+  const [comboSheet, setComboSheet] = useState<Combo | null>(null);
   const [loginOpen, setLoginOpen] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
   const [toast, setToast] = useState<ToastData | null>(null);
@@ -139,8 +146,8 @@ export default function App() {
   // (incluye temporada: al desactivarla se retiran sus líneas del carrito)
   const { sync } = cart;
   useEffect(() => {
-    sync(navCategories);
-  }, [navCategories, sync]);
+    sync(navCategories, comboItems);
+  }, [navCategories, comboItems, sync]);
 
   /* ---- Pedido ---- */
 
@@ -176,6 +183,15 @@ export default function App() {
     },
     [sheet, cart, notify],
   );
+
+  const handleComboAdd = useCallback((selections: ComboSelection[]) => {
+    if (!comboSheet || closed) return;
+    const category: MenuCategory = { id: "combos", title: "Combos", items: comboItems, imageSide: "right" };
+    const item: MenuItem = { id: comboSheet.id, name: comboSheet.name, price: comboSheet.price };
+    cart.add(item, category, { comboSelections: selections });
+    notify(`${comboSheet.name} agregado`);
+    setComboSheet(null);
+  }, [comboSheet, comboItems, cart, closed, notify]);
 
   /* ---- Administración ---- */
   const openSecret = useCallback(() => {
@@ -273,6 +289,7 @@ export default function App() {
                   onDecrement={cart.decrementItem}
                 />
               )}
+              <ComboBand combos={store.combos} closed={closed} qtyOf={cart.qtyOf} onOpen={setComboSheet} />
               {store.categories.length === 0 && !seasonalCategory && !bebidasCategory && (
                 <p className="py-16 text-center text-lg text-ink/60">
                   Estamos preparando el menú. ¡Vuelve pronto! 🌮
@@ -318,6 +335,10 @@ export default function App() {
           onClose={closeSheet}
           onAdd={handleSheetAdd}
         />
+      )}
+
+      {comboSheet && (
+        <ComboSheet combo={comboSheet} closed={closed} onClose={() => setComboSheet(null)} onAdd={handleComboAdd} />
       )}
 
       <CartDrawer

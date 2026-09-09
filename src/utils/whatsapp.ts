@@ -23,6 +23,7 @@ function buildOrderBlock(lines: CartLine[]): string {
       for (const e of l.extras) {
         out.push(e.price > 0 ? `     ↳ ${e.name} (+${formatPrice(e.price)} c/u)` : `     ↳ ${e.name}`);
       }
+      for (const selection of l.comboSelections ?? []) out.push(`     ↳ ${selection.groupTitle}: ${selection.label}`);
       if (l.note) out.push(`     📝 ${l.note}`);
     }
     out.push("");

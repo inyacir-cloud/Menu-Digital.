@@ -149,10 +149,54 @@ export interface BebidasSection {
   items: MenuItem[];
 }
 
+export interface ComboOption {
+  id: string;
+  itemId: string;
+  label: string;
+  categoryTitle?: string;
+  unavailable?: boolean;
+}
+
+export type ComboSelectionMode = "products" | "category";
+
+export interface ComboGroup {
+  id: string;
+  title: string;
+  required: boolean;
+  minSelections: number;
+  maxSelections: number;
+  options: ComboOption[];
+  /** products = lista manual; category = todos los productos de la categoría */
+  selectionMode?: ComboSelectionMode;
+  categoryId?: string;
+  categoryTitle?: string;
+}
+
+export interface Combo {
+  id: string;
+  name: string;
+  price: number;
+  description?: string;
+  badge?: string;
+  image?: string;
+  enabled: boolean;
+  groups: ComboGroup[];
+}
+
+export interface ComboSelection {
+  groupId: string;
+  groupTitle: string;
+  optionId: string;
+  itemId: string;
+  label: string;
+  categoryTitle?: string;
+}
+
 export interface MenuData {
   categories: MenuCategory[];
   seasonal: SeasonalSection;
   bebidas: BebidasSection;
+  combos: Combo[];
   coupons: Coupon[];
   settings: Settings;
 }
@@ -172,6 +216,7 @@ export interface CartLine {
   note: string;
   qty: number;
   addedAt: number;
+  comboSelections?: ComboSelection[];
 }
 
 export interface AddOptions {
@@ -179,6 +224,7 @@ export interface AddOptions {
   extras?: Extra[];
   note?: string;
   size?: SizeOption;
+  comboSelections?: ComboSelection[];
 }
 
 export type DeliveryMode = "envio" | "recoger";

@@ -185,9 +185,6 @@ create table if not exists public.item_sizes (
 
 create index if not exists item_sizes_item_idx on public.item_sizes (item_id);
 
--- ============================================================================
---  7. CUPONES DE DESCUENTO
--- ============================================================================
 create table if not exists public.coupons (
   id          uuid primary key default gen_random_uuid(),
   code        text    not null unique,                -- se guarda en MAYÚSCULAS
@@ -201,6 +198,30 @@ create table if not exists public.coupons (
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now()
 );
+create index if not exists coupons_code_idx on public.coupons (code);
+create index if not exists coupons_enabled_idx on public.coupons (enabled);
+create index if not exists coupons_expires_at_idx on public.coupons (expires_at);
+
+-- ============================================================================
+--  8. COMBOS (ofertas compuestas por referencias a productos existentes)
+-- ============================================================================
+create table if not exists public.combos (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  price numeric(10,2) not null default 0 check (price >= 0),
+  description text,
+  badge text,
+  image text,
+  enabled boolean not null default true,
+  sort_order int not null default 0,
+  groups jsonb not null default '[]'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+drop trigger if exists trg_combos_updated on public.combos;
+create trigger trg_combos_updated before update on public.combos for each row execute function public.set_updated_at();
+create index if not exists combos_sort_idx on public.combos (sort_order);
 
 drop trigger if exists trg_coupons_updated on public.coupons;
 create trigger trg_coupons_updated
@@ -280,6 +301,7 @@ alter table public.menu_items  enable row level security;
 alter table public.item_extras enable row level security;
 alter table public.item_sizes  enable row level security;
 alter table public.coupons     enable row level security;
+alter table public.combos      enable row level security;
 alter table public.orders      enable row level security;
 
 -- ---- Lectura pública (menú visible para todos) ----
@@ -300,6 +322,8 @@ create policy "lectura publica item_sizes"  on public.item_sizes  for select usi
 
 drop policy if exists "lectura publica coupons"     on public.coupons;
 create policy "lectura publica coupons"     on public.coupons     for select using (true);
+drop policy if exists "lectura publica combos" on public.combos;
+create policy "lectura publica combos" on public.combos for select using (true);
 
 -- ---- Escritura solo para el administrador (usuario autenticado) ----
 drop policy if exists "admin escribe settings"    on public.settings;
@@ -324,6 +348,9 @@ create policy "admin escribe item_sizes"  on public.item_sizes
 
 drop policy if exists "admin escribe coupons"     on public.coupons;
 create policy "admin escribe coupons"     on public.coupons
+  for all to authenticated using (true) with check (true);
+drop policy if exists "admin escribe combos" on public.combos;
+create policy "admin escribe combos" on public.combos
   for all to authenticated using (true) with check (true);
 
 -- ---- Pedidos: cualquiera crea, solo admin lee / actualiza ----
@@ -449,6 +476,16 @@ as $$
         select coalesce(jsonb_agg(v.data order by v.sort_order), '[]'::jsonb)
         from public.menu_items_json v where v.section = 'bebidas'
       )
+    ),
+    'combos', (
+      select coalesce(jsonb_agg(
+        jsonb_strip_nulls(jsonb_build_object(
+          'id', cb.id, 'name', cb.name, 'price', cb.price,
+          'description', cb.description, 'badge', cb.badge, 'image', cb.image,
+          'enabled', cb.enabled, 'groups', cb.groups
+        )) order by cb.sort_order
+      ), '[]'::jsonb)
+      from public.combos cb
     ),
     'coupons', (
       select coalesce(jsonb_agg(

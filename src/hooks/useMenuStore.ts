@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   BebidasSection,
+  Combo,
+  ComboGroup,
+  ComboOption,
   Coupon,
   Extra,
   MenuCategory,
@@ -15,6 +18,7 @@ import type {
 import {
   DEFAULT_BEBIDAS,
   DEFAULT_CATEGORIES,
+  DEFAULT_COMBOS,
   DEFAULT_MENU,
   DEFAULT_SEASONAL,
   DEFAULT_SETTINGS,
@@ -266,6 +270,52 @@ function normalizeBebidas(raw: unknown): BebidasSection {
   };
 }
 
+function normalizeCombos(raw: unknown): Combo[] {
+  if (!Array.isArray(raw)) return [...DEFAULT_COMBOS];
+  return raw.flatMap((rawCombo) => {
+    const r = asObj(rawCombo);
+    const name = str(r.name).trim();
+    if (!name) return [];
+    const groups: ComboGroup[] = (Array.isArray(r.groups) ? r.groups : []).flatMap((rawGroup) => {
+      const g = asObj(rawGroup);
+      const title = str(g.title).trim();
+      if (!title) return [];
+      const options: ComboOption[] = (Array.isArray(g.options) ? g.options : []).flatMap((rawOption) => {
+        const o = asObj(rawOption);
+        const itemId = str(o.itemId);
+        const label = str(o.label).trim();
+        if (!itemId || !label) return [];
+        return [{ id: str(o.id) || uid("combo-opt"), itemId, label, categoryTitle: str(o.categoryTitle ?? o.category_title).trim() || undefined, unavailable: o.unavailable === true }];
+      });
+      if (options.length === 0) return [];
+      const maxSelections = Math.max(1, Math.round(num(g.maxSelections, 1)));
+      const minSelections = Math.max(0, Math.min(maxSelections, Math.round(num(g.minSelections, g.required === false ? 0 : 1))));
+      return [{
+        id: str(g.id) || uid("combo-group"),
+        title,
+        required: g.required !== false,
+        minSelections,
+        maxSelections,
+        options,
+        selectionMode: (g.selectionMode ?? g.selection_mode) === "category" ? "category" : "products",
+        categoryId: str(g.categoryId ?? g.category_id) || undefined,
+        categoryTitle: str(g.categoryTitle ?? g.category_title).trim() || undefined,
+      }];
+    });
+    if (groups.length === 0) return [];
+    return [{
+      id: str(r.id) || uid("combo"),
+      name,
+      price: money(r.price),
+      description: str(r.description).trim() || undefined,
+      badge: str(r.badge).trim() || undefined,
+      image: str(r.image) || undefined,
+      enabled: r.enabled !== false,
+      groups,
+    }];
+  });
+}
+
 export function normalizeMenuData(raw: unknown): MenuData {
   if (!raw || typeof raw !== "object") throw new Error("El archivo no tiene un formato válido");
   const r = raw as Raw;
@@ -277,6 +327,7 @@ export function normalizeMenuData(raw: unknown): MenuData {
     categories,
     seasonal: normalizeSeasonal(r.seasonal),
     bebidas: normalizeBebidas(r.bebidas),
+    combos: normalizeCombos(r.combos),
     coupons: normalizeCoupons(r.coupons),
     settings: normalizeSettings(r.settings),
   };
@@ -418,6 +469,7 @@ export function useMenuStore() {
         ["item_extras", payload.itemExtras],
         ["item_sizes", payload.itemSizes],
         ["coupons", payload.coupons],
+        ["combos", payload.combos],
       ] as const) {
         if (rows.length === 0) continue;
         const result = await supabase.from(table).upsert(rows, { onConflict: "id" });
@@ -428,6 +480,7 @@ export function useMenuStore() {
       await deleteMissing("menu_items", payload.menuItems.map((row) => String(row.id)));
       await deleteMissing("categories", payload.categories.map((row) => String(row.id)));
       await deleteMissing("coupons", payload.coupons.map((row) => String(row.id)));
+      await deleteMissing("combos", payload.combos.map((row) => String(row.id)));
       setStorageError(null);
     }).catch((error: unknown) => {
       const message =
@@ -620,6 +673,22 @@ export function useMenuStore() {
     [setBebidas],
   );
 
+  const addCombo = useCallback((combo: Omit<Combo, "id">) => {
+    setData((d) => ({ ...d, combos: [...d.combos, { ...combo, id: uid("combo") }] }));
+  }, []);
+
+  const updateCombo = useCallback((id: string, patch: Partial<Omit<Combo, "id">>) => {
+    setData((d) => ({ ...d, combos: d.combos.map((combo) => (combo.id === id ? { ...combo, ...patch } : combo)) }));
+  }, []);
+
+  const removeCombo = useCallback((id: string) => {
+    setData((d) => ({ ...d, combos: d.combos.filter((combo) => combo.id !== id) }));
+  }, []);
+
+  const moveCombo = useCallback((id: string, dir: -1 | 1) => {
+    setData((d) => ({ ...d, combos: swap(d.combos, d.combos.findIndex((combo) => combo.id === id), dir) }));
+  }, []);
+
   /* ---------- Cupones ---------- */
 
   const addCoupon = useCallback(
@@ -668,6 +737,7 @@ export function useMenuStore() {
     categories: data.categories,
     seasonal: data.seasonal,
     bebidas: data.bebidas,
+    combos: data.combos,
     coupons: data.coupons,
     settings: data.settings,
     storageError,
@@ -690,6 +760,10 @@ export function useMenuStore() {
     updateBebida,
     removeBebida,
     moveBebida,
+    addCombo,
+    updateCombo,
+    removeCombo,
+    moveCombo,
     addCoupon,
     updateCoupon,
     removeCoupon,
