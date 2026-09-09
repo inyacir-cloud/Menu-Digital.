@@ -218,6 +218,12 @@ export default function App() {
     notify("Sesión cerrada");
   }, [auth, notify]);
 
+  const handleReLogin = useCallback(() => {
+    auth.logout();
+    setAdminOpen(false);
+    setLoginOpen(true);
+  }, [auth]);
+
   const closeCart = useCallback(() => setCartOpen(false), []);
   const closeSheet = useCallback(() => setSheet(null), []);
   const closeLogin = useCallback(() => setLoginOpen(false), []);
@@ -371,7 +377,7 @@ export default function App() {
       )}
 
       {adminOpen && auth.authed && (
-        <AdminPanel store={store} auth={auth} onClose={closeAdmin} onLogout={handleLogout} notify={notify} />
+        <AdminPanel store={store} auth={auth} onClose={closeAdmin} onLogout={handleLogout} onReLogin={handleReLogin} notify={notify} />
       )}
     </>
   );

@@ -62,10 +62,11 @@ interface Props {
   auth: AdminAuth;
   onClose: () => void;
   onLogout: () => void;
+  onReLogin: () => void;
   notify: (text: string) => void;
 }
 
-export function AdminPanel({ store, auth, onClose, onLogout, notify }: Props) {
+export function AdminPanel({ store, auth, onClose, onLogout, onReLogin, notify }: Props) {
   const [tab, setTab] = useState<Tab>("menu");
   const [sideOpen, setSideOpen] = useState(false);
 
@@ -161,7 +162,7 @@ export function AdminPanel({ store, auth, onClose, onLogout, notify }: Props) {
           <span>{store.storageError}</span>
           <button
             type="button"
-            onClick={onLogout}
+            onClick={onReLogin}
             className="font-bold underline underline-offset-2 hover:text-red-100"
           >
             Volver a iniciar sesión
