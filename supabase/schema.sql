@@ -191,6 +191,7 @@ create table if not exists public.coupons (
   type        text    not null default 'percent' check (type in ('percent','monto')),
   value       numeric(10,2) not null default 0 check (value >= 0),
   enabled     boolean not null default true,
+  visibility  text    not null default 'public' check (visibility in ('public','private')),
   max_uses    int     not null default 0 check (max_uses >= 0),  -- 0 = sin límite
   used        int     not null default 0 check (used >= 0),
   expires_at  date,                                    -- opcional

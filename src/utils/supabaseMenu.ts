@@ -108,7 +108,7 @@ export function buildMenuSyncPayload(data: MenuData): MenuSyncPayload {
 		menuItems,
 		itemExtras,
 		itemSizes,
-		coupons: data.coupons.map((coupon) => ({ id: uuidFor(coupon.id, map), code: coupon.code, type: coupon.type, value: coupon.value, enabled: coupon.enabled, max_uses: coupon.maxUses, used: coupon.used, expires_at: coupon.expiresAt ?? null, min_order: coupon.minOrder ?? null })),
+		coupons: data.coupons.map((coupon) => ({ id: uuidFor(coupon.id, map), code: coupon.code, type: coupon.type, value: coupon.value, enabled: coupon.enabled, visibility: coupon.visibility, max_uses: coupon.maxUses, used: coupon.used, expires_at: coupon.expiresAt ?? null, min_order: coupon.minOrder ?? null })),
 		combos: data.combos.map((combo, comboIndex) => ({
 			id: uuidFor(combo.id, map),
 			name: combo.name,

@@ -109,6 +109,7 @@ export interface Settings {
 }
 
 export type CouponType = "percent" | "monto";
+export type CouponVisibility = "public" | "private";
 
 export interface Coupon {
   id: string;
@@ -118,6 +119,8 @@ export interface Coupon {
   type: CouponType;
   value: number;
   enabled: boolean;
+  /** Público: aparece en notificaciones. Privado: solo se usa con el código. */
+  visibility: CouponVisibility;
   /** Máximo de usos totales del cupón (0 = sin límite) */
   maxUses: number;
   /** Cuántas veces ya se usó */

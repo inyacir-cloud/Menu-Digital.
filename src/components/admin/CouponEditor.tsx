@@ -16,13 +16,14 @@ interface Draft {
   id: string | null;
   code: string;
   type: CouponType;
+  visibility: "public" | "private";
   value: string;
   maxUses: string;
   minOrder: string;
   expiresAt: string;
 }
 
-const EMPTY: Draft = { id: null, code: "", type: "percent", value: "10", maxUses: "0", minOrder: "", expiresAt: "" };
+const EMPTY: Draft = { id: null, code: "", type: "percent", visibility: "public", value: "10", maxUses: "0", minOrder: "", expiresAt: "" };
 
 
 
@@ -41,6 +42,7 @@ export function CouponEditor({ store, notify }: Props) {
       id: c.id,
       code: c.code,
       type: c.type,
+      visibility: c.visibility,
       value: String(c.value),
       maxUses: String(c.maxUses),
       minOrder: c.minOrder ? String(c.minOrder) : "",
@@ -64,6 +66,7 @@ export function CouponEditor({ store, notify }: Props) {
     const payload = {
       code,
       type: draft.type,
+      visibility: draft.visibility,
       value: Math.round(value * 100) / 100,
       maxUses,
       minOrder: minOrder > 0 ? minOrder : undefined,
@@ -150,6 +153,16 @@ export function CouponEditor({ store, notify }: Props) {
               options={[
                 { value: "percent", label: "Porcentaje %" },
                 { value: "monto", label: "Pesos $" },
+              ]}
+            />
+          </Field>
+          <Field label="Visibilidad" hint="Los privados no aparecen en la campana" plain>
+            <Segmented
+              value={draft.visibility}
+              onChange={(visibility) => set({ visibility: visibility as Draft["visibility"] })}
+              options={[
+                { value: "public", label: "Público" },
+                { value: "private", label: "Privado" },
               ]}
             />
           </Field>
@@ -242,6 +255,9 @@ export function CouponEditor({ store, notify }: Props) {
                       <span className="font-mono text-sm font-extrabold tracking-wide text-ink">{c.code}</span>
                       <span className="rounded-full bg-mustard/30 px-2 py-0.5 text-[0.65rem] font-bold text-ink/80">
                         {couponLabel(c)}
+                      </span>
+                      <span className={cn("rounded-full px-2 py-0.5 text-[0.65rem] font-bold", c.visibility === "public" ? "bg-emerald-100 text-emerald-700" : "bg-ink/10 text-ink/65")}>
+                        {c.visibility === "public" ? "Público" : "Privado"}
                       </span>
                       {expired && (
                         <span className="rounded-full bg-red-100 px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-wider text-red-700">

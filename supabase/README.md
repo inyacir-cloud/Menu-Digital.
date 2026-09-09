@@ -45,6 +45,11 @@ ejecuta también
 [`migrations/20260909_fix_get_menu_combos.sql`](./migrations/20260909_fix_get_menu_combos.sql)
 para que `get_menu()` devuelva la clave `combos`.
 
+Para elegir si un cupón aparece en las notificaciones, ejecuta
+[`migrations/20260910_coupon_visibility.sql`](./migrations/20260910_coupon_visibility.sql).
+Los cupones existentes quedan como públicos; los privados siguen aplicando por
+código, pero no se anuncian en la campana.
+
 Si aparecen extras o tamaños repetidos, ejecuta
 [`migrations/20260909_cleanup_duplicate_options.sql`](./migrations/20260909_cleanup_duplicate_options.sql)
 para conservar una sola fila por producto, nombre y precio.

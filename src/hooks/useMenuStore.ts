@@ -247,6 +247,7 @@ function normalizeCoupons(raw: unknown): Coupon[] {
       type: r.type === "monto" ? "monto" : "percent",
       value: Math.max(0, num(r.value)),
       enabled: r.enabled !== false,
+      visibility: r.visibility === "private" ? "private" : "public",
       maxUses: Math.max(0, Math.round(num(r.maxUses, 0))),
       used: Math.max(0, Math.round(num(r.used, 0))),
     };

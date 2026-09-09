@@ -25,6 +25,7 @@ import { LockIcon } from "./components/icons";
 import { AdminBar } from "./components/admin/AdminBar";
 import { AdminLogin } from "./components/admin/AdminLogin";
 import { AdminPanel } from "./components/admin/AdminPanel";
+import { makeCouponNotification, NotificationCenter, type MenuNotification } from "./components/NotificationCenter";
 
 const EMPTY_CUSTOMER: CustomerInfo = {
   name: "",
@@ -118,6 +119,21 @@ export default function App() {
   const [loginOpen, setLoginOpen] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
   const [toast, setToast] = useState<ToastData | null>(null);
+
+  const notifications = useMemo<MenuNotification[]>(
+    () => [
+      ...store.coupons.map(makeCouponNotification).filter((notification): notification is MenuNotification => notification !== null),
+      ...store.combos
+        .filter((combo) => combo.enabled)
+        .map((combo) => ({
+          id: `combo-${combo.id}`,
+          kind: "combo" as const,
+          title: `${combo.name} disponible`,
+          description: combo.description || "Arma tu combo favorito y agrégalo a tu pedido.",
+        })),
+    ],
+    [store.coupons, store.combos],
+  );
 
   const notify = useCallback((text: string) => setToast({ id: Date.now(), text }), []);
 
@@ -228,6 +244,9 @@ export default function App() {
   const closeSheet = useCallback(() => setSheet(null), []);
   const closeLogin = useCallback(() => setLoginOpen(false), []);
   const closeAdmin = useCallback(() => setAdminOpen(false), []);
+  const goToCombos = useCallback(() => {
+    document.getElementById("combos")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
 
   return (
     <>
@@ -331,6 +350,18 @@ export default function App() {
         />
       )}
       <Toast toast={toast} />
+
+      {view === "menu" && (
+        <NotificationCenter
+          notifications={notifications}
+          onUseCoupon={(code) => {
+            setAppliedCode(code);
+            setCartOpen(true);
+            notify(`Cupón ${code} listo para usar`);
+          }}
+          onGoToCombos={goToCombos}
+        />
+      )}
 
       {sheet && (
         <ItemSheet
