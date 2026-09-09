@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { Extra } from "../../types";
 import { uid } from "../../utils/id";
 import { QUICK_CHEESE_EXTRA, withQuickCheeseExtra } from "../../utils/menu";
@@ -13,6 +14,7 @@ interface Props {
 
 /** Lista editable de extras (nombre + precio adicional) */
 export function ExtrasEditor({ label, value, onChange, hint }: Props) {
+  const [priceDrafts, setPriceDrafts] = useState<Record<string, string>>({});
   const update = (id: string, patch: Partial<Extra>) =>
     onChange(value.map((e) => (e.id === id ? { ...e, ...patch } : e)));
   const remove = (id: string) => onChange(value.filter((e) => e.id !== id));
@@ -42,8 +44,19 @@ export function ExtrasEditor({ label, value, onChange, hint }: Props) {
                   min={0}
                   step="0.5"
                   inputMode="decimal"
-                  value={e.price}
-                  onChange={(ev) => update(e.id, { price: Math.max(0, Number(ev.target.value) || 0) })}
+                  value={priceDrafts[e.id] ?? String(e.price)}
+                  onChange={(ev) => {
+                    const raw = ev.target.value;
+                    setPriceDrafts((drafts) => ({ ...drafts, [e.id]: raw }));
+                    if (raw !== "") update(e.id, { price: Math.max(0, Number(raw)) });
+                  }}
+                  onBlur={() => {
+                    const raw = priceDrafts[e.id];
+                    if (raw === "") {
+                      setPriceDrafts((drafts) => ({ ...drafts, [e.id]: "0" }));
+                      update(e.id, { price: 0 });
+                    }
+                  }}
                   aria-label={`Precio del extra ${i + 1}`}
                   className="pl-8"
                 />

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { SizeOption } from "../../types";
 import { uid } from "../../utils/id";
 import { PlusIcon, TrashIcon } from "../icons";
@@ -12,6 +13,7 @@ interface Props {
 
 /** Lista editable de tamaños / presentaciones con precio propio */
 export function SizesEditor({ label, value, onChange, hint }: Props) {
+  const [priceDrafts, setPriceDrafts] = useState<Record<string, string>>({});
   const update = (id: string, patch: Partial<SizeOption>) =>
     onChange(value.map((s) => (s.id === id ? { ...s, ...patch } : s)));
   const remove = (id: string) => onChange(value.filter((s) => s.id !== id));
@@ -41,8 +43,19 @@ export function SizesEditor({ label, value, onChange, hint }: Props) {
                   min={0}
                   step="0.5"
                   inputMode="decimal"
-                  value={s.price}
-                  onChange={(ev) => update(s.id, { price: Math.max(0, Number(ev.target.value) || 0) })}
+                  value={priceDrafts[s.id] ?? String(s.price)}
+                  onChange={(ev) => {
+                    const raw = ev.target.value;
+                    setPriceDrafts((drafts) => ({ ...drafts, [s.id]: raw }));
+                    if (raw !== "") update(s.id, { price: Math.max(0, Number(raw)) });
+                  }}
+                  onBlur={() => {
+                    const raw = priceDrafts[s.id];
+                    if (raw === "") {
+                      setPriceDrafts((drafts) => ({ ...drafts, [s.id]: "0" }));
+                      update(s.id, { price: 0 });
+                    }
+                  }}
                   aria-label={`Precio del tamaño ${i + 1}`}
                   className="pl-7"
                 />
