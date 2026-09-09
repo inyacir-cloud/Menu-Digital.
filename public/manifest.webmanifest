@@ -1,0 +1,19 @@
+{
+  "name": "El Gordo & La Flaca · Menú Digital",
+  "short_name": "El Gordo & La Flaca",
+  "description": "Menú digital de El Gordo & La Flaca. Consulta el menú y envía tu pedido por WhatsApp.",
+  "lang": "es-MX",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#c9a52e",
+  "icons": [
+    {
+      "src": "/logo2.png",
+      "sizes": "500x500",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
