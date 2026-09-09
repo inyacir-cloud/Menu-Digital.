@@ -429,8 +429,20 @@ export function useMenuStore() {
   const [data, setData] = useState<MenuData>(loadInitial);
   const [storageError, setStorageError] = useState<string | null>(null);
   const [remoteReady, setRemoteReady] = useState(!isSupabaseConfigured);
+  const [authVersion, setAuthVersion] = useState(0);
   const syncVersion = useRef(0);
   const syncQueue = useRef(Promise.resolve());
+
+  useEffect(() => {
+    if (!isSupabaseConfigured) return;
+    const { data } = supabase.auth.onAuthStateChange((event, session) => {
+      if ((event === "INITIAL_SESSION" || event === "SIGNED_IN") && session) {
+        setAuthVersion((version) => version + 1);
+        setStorageError(null);
+      }
+    });
+    return () => data.subscription.unsubscribe();
+  }, []);
 
   useEffect(() => {
     if (!isSupabaseConfigured) return;
@@ -520,7 +532,7 @@ export function useMenuStore() {
       }
       setStorageError("No se pudieron sincronizar los cambios con Supabase.");
     });
-  }, [data, remoteReady]);
+  }, [data, remoteReady, authVersion]);
 
   const setCategories = useCallback((updater: (prev: MenuCategory[]) => MenuCategory[]) => {
     setData((d) => ({ ...d, categories: updater(d.categories) }));
