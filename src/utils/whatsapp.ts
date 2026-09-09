@@ -20,7 +20,9 @@ function buildOrderBlock(lines: CartLine[]): string {
     for (const l of items) {
       const sizeLabel = l.size ? ` (${l.size.name})` : "";
       out.push(`▪️ ${l.qty} × ${l.name}${sizeLabel} — ${formatPrice(lineTotal(l))}`);
-      for (const e of l.extras) out.push(`     ↳ ${e.name} (+${formatPrice(e.price)} c/u)`);
+      for (const e of l.extras) {
+        out.push(e.price > 0 ? `     ↳ ${e.name} (+${formatPrice(e.price)} c/u)` : `     ↳ ${e.name}`);
+      }
       if (l.note) out.push(`     📝 ${l.note}`);
     }
     out.push("");

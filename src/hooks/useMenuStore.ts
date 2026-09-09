@@ -289,9 +289,10 @@ export function normalizeMenuData(raw: unknown): MenuData {
  */
 function reconcileWithDefaults(data: MenuData): MenuData {
   const defaultsById = new Map(DEFAULT_CATEGORIES.map((c) => [c.id, c] as const));
+  const defaultsByTitle = new Map(DEFAULT_CATEGORIES.map((c) => [c.title.trim().toLowerCase(), c] as const));
 
   const categories = data.categories.map((c) => {
-    const d = defaultsById.get(c.id);
+    const d = defaultsById.get(c.id) ?? defaultsByTitle.get(c.title.trim().toLowerCase());
     if (!d) return c;
 
     const surviving = c.items.filter((i) => !RETIRED_ITEM_IDS.has(i.id));
@@ -314,8 +315,8 @@ function reconcileWithDefaults(data: MenuData): MenuData {
     return { ...c, items: merged };
   });
 
-  const present = new Set(categories.map((c) => c.id));
-  for (const d of DEFAULT_CATEGORIES) if (!present.has(d.id)) categories.push(d);
+  const present = new Set(categories.map((c) => c.title.trim().toLowerCase()));
+  for (const d of DEFAULT_CATEGORIES) if (!present.has(d.title.trim().toLowerCase())) categories.push(d);
 
   return { ...data, categories };
 }
@@ -361,7 +362,7 @@ export function useMenuStore() {
       if (!active) return;
       if (!error && remote && typeof remote === "object") {
         try {
-          setData(normalizeMenuData(remote));
+          setData(reconcileWithDefaults(normalizeMenuData(remote)));
         } catch {
           setStorageError("Supabase devolvió un menú con formato inválido; se conserva la copia local.");
         }
@@ -394,15 +395,12 @@ export function useMenuStore() {
       const settings = await supabase.from("settings").upsert(payload.settings, { onConflict: "id" });
       if (settings.error) throw settings.error;
 
-      const clearTable = async (table: string) => {
-        const result = await supabase.from(table).delete().neq("id", "00000000-0000-0000-0000-000000000000");
+      const deleteMissing = async (table: string, ids: string[]) => {
+        const result = ids.length > 0
+          ? await supabase.from(table).delete().not("id", "in", `(${ids.join(",")})`)
+          : await supabase.from(table).delete().neq("id", "00000000-0000-0000-0000-000000000000");
         if (result.error) throw result.error;
       };
-      await clearTable("item_extras");
-      await clearTable("item_sizes");
-      await clearTable("menu_items");
-      await clearTable("categories");
-      await clearTable("coupons");
 
       for (const [table, rows] of [
         ["categories", payload.categories],
@@ -412,9 +410,14 @@ export function useMenuStore() {
         ["coupons", payload.coupons],
       ] as const) {
         if (rows.length === 0) continue;
-        const result = await supabase.from(table).insert(rows);
+        const result = await supabase.from(table).upsert(rows, { onConflict: "id" });
         if (result.error) throw result.error;
       }
+      await deleteMissing("item_extras", payload.itemExtras.map((row) => String(row.id)));
+      await deleteMissing("item_sizes", payload.itemSizes.map((row) => String(row.id)));
+      await deleteMissing("menu_items", payload.menuItems.map((row) => String(row.id)));
+      await deleteMissing("categories", payload.categories.map((row) => String(row.id)));
+      await deleteMissing("coupons", payload.coupons.map((row) => String(row.id)));
       setStorageError(null);
     }).catch((error: unknown) => {
       const message =

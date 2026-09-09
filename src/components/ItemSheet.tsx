@@ -214,7 +214,9 @@ export function ItemSheet({ item, category, closed, onClose, onAdd }: Props) {
                         {requiredExtraSelection ? (
                           <div className="flex items-center gap-3 px-3 py-2.5">
                             <span className="flex-1 text-sm font-semibold text-ink">{e.name}</span>
-                            <span className="text-sm font-bold tabular-nums text-mustard-ink">+{formatPrice(e.price)}</span>
+                            {e.price > 0 && (
+                              <span className="text-sm font-bold tabular-nums text-mustard-ink">+{formatPrice(e.price)}</span>
+                            )}
                             <div className="flex items-center gap-1 rounded-full bg-ink p-1 text-paper">
                               <button type="button" onClick={() => changeExtraCount(e.id, -1)} disabled={count === 0} aria-label={`Quitar ${e.name}`} className="grid h-7 w-7 place-items-center rounded-full disabled:opacity-35"><MinusIcon className="h-3.5 w-3.5" /></button>
                               <span className="min-w-5 text-center text-sm font-bold">{count}</span>
@@ -227,7 +229,9 @@ export function ItemSheet({ item, category, closed, onClose, onAdd }: Props) {
                               {on && <CheckIcon className="h-3 w-3" />}
                             </span>
                             <span className="flex-1 text-sm font-semibold text-ink">{e.name}</span>
-                            <span className="text-sm font-bold tabular-nums text-mustard-ink">+{formatPrice(e.price)}</span>
+                            {e.price > 0 && (
+                              <span className="text-sm font-bold tabular-nums text-mustard-ink">+{formatPrice(e.price)}</span>
+                            )}
                           </button>
                         )}
                       </li>

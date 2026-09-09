@@ -68,7 +68,7 @@ export function MenuItemRow({ item, qty, closed, onQuickAdd, onOpen, onDecrement
         )}
         {ownExtras.length > 0 && !off && (
           <p className="mt-0.5 text-[0.7rem] font-semibold text-mustard-ink">
-            Extras: {ownExtras.map((e) => `${e.name} +${formatPrice(e.price)}`).join(" · ")}
+            Extras: {ownExtras.map((e) => (e.price > 0 ? `${e.name} +${formatPrice(e.price)}` : e.name)).join(" · ")}
           </p>
         )}
       </div>
