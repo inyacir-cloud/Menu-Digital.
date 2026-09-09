@@ -291,14 +291,14 @@ function normalizeCombos(raw: unknown): Combo[] {
       if (!title) return [];
       const options: ComboOption[] = (Array.isArray(g.options) ? g.options : []).flatMap((rawOption) => {
         const o = asObj(rawOption);
-        const itemId = str(o.itemId);
+        const itemId = str(o.itemId ?? o.item_id);
         const label = str(o.label).trim();
         if (!itemId || !label) return [];
         return [{ id: str(o.id) || uid("combo-opt"), itemId, label, categoryTitle: str(o.categoryTitle ?? o.category_title).trim() || undefined, unavailable: o.unavailable === true }];
       });
       if (options.length === 0) return [];
-      const maxSelections = Math.max(1, Math.round(num(g.maxSelections, 1)));
-      const minSelections = Math.max(0, Math.min(maxSelections, Math.round(num(g.minSelections, g.required === false ? 0 : 1))));
+      const maxSelections = Math.max(1, Math.round(num(g.maxSelections ?? g.max_selections, 1)));
+      const minSelections = Math.max(0, Math.min(maxSelections, Math.round(num(g.minSelections ?? g.min_selections, g.required === false ? 0 : 1))));
       return [{
         id: str(g.id) || uid("combo-group"),
         title,
