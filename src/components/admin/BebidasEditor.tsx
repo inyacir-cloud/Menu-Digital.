@@ -278,18 +278,8 @@ export function BebidasEditor({ store, notify }: Props) {
             <ItemForm
               allowAnother
               onSave={(values, another) => {
-                const nextValues =
-                  group === "aguas" && (!values.sizes || values.sizes.length === 0)
-                    ? {
-                        ...values,
-                        sizes: [
-                          { id: "litro", name: "Litro", price: 35 },
-                          { id: "medio-litro", name: "Medio litro", price: 25 },
-                        ],
-                      }
-                    : values;
-                store.addBebida(nextValues);
-                notify(`"${nextValues.name}" agregado`);
+                store.addBebida(values);
+                notify(`"${values.name}" agregado`);
                 if (!another) setAdding(false);
               }}
               onCancel={() => setAdding(false)}

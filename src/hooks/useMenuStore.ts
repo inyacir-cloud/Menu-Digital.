@@ -681,7 +681,18 @@ export function useMenuStore() {
 
   const addBebida = useCallback(
     (input: ItemInput) => {
-      setBebidas((prev) => ({ ...prev, items: [...prev.items, { ...input, id: uid("item") }] }));
+      const isAgua = /\b(agua|aguas|horchata|jamaica|tamarindo|limonada)\b/i.test(input.name);
+      const item =
+        isAgua && (!input.sizes || input.sizes.length === 0)
+          ? {
+              ...input,
+              sizes: [
+                { id: "litro", name: "Litro", price: 35 },
+                { id: "medio-litro", name: "Medio litro", price: 25 },
+              ],
+            }
+          : input;
+      setBebidas((prev) => ({ ...prev, items: [...prev.items, { ...item, id: uid("item") }] }));
     },
     [setBebidas],
   );
