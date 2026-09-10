@@ -21,8 +21,12 @@ export function BebidasEditor({ store, notify }: Props) {
   const bebidas = store.bebidas;
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
+  const [group, setGroup] = useState<"aguas" | "refrescos">("aguas");
 
   const enabledCount = bebidas.items.filter(isAvailable).length;
+  const isAgua = (item: MenuItem) =>
+    /\b(agua|aguas|horchata|jamaica|tamarindo|limonada)\b/i.test(item.name);
+  const groupItems = bebidas.items.filter((item) => (group === "aguas" ? isAgua(item) : !isAgua(item)));
 
   const toggleSize = (item: MenuItem, size: SizeOption) => {
     const off = new Set(item.unavailableSizes ?? []);
@@ -97,14 +101,35 @@ export function BebidasEditor({ store, notify }: Props) {
             />
           </Field>
         </div>
+
+        <div className="grid grid-cols-2 gap-2 rounded-xl bg-paper p-1" role="tablist" aria-label="Tipo de bebida">
+          {([
+            ["aguas", "Aguas", bebidas.items.filter(isAgua).length],
+            ["refrescos", "Refrescos", bebidas.items.filter((item) => !isAgua(item)).length],
+          ] as const).map(([value, label, count]) => (
+            <button
+              key={value}
+              type="button"
+              role="tab"
+              aria-selected={group === value}
+              onClick={() => setGroup(value)}
+              className={cn(
+                "rounded-lg px-3 py-2 text-sm font-bold transition",
+                group === value ? "bg-ink text-paper shadow-sm" : "text-ink/60 hover:bg-white hover:text-ink",
+              )}
+            >
+              {label} <span className="font-normal opacity-70">({count})</span>
+            </button>
+          ))}
+        </div>
       </Card>
 
       <Card>
         <div className="flex items-center justify-between gap-3">
           <h4 className="font-bold">
-            Bebidas{" "}
+            {group === "aguas" ? "Aguas" : "Refrescos"}{" "}
             <span className="text-sm font-normal text-ink/50">
-              ({enabledCount} de {bebidas.items.length} disponibles hoy)
+              ({groupItems.filter(isAvailable).length} de {groupItems.length} disponibles hoy)
             </span>
           </h4>
           {!adding && (
@@ -121,7 +146,7 @@ export function BebidasEditor({ store, notify }: Props) {
         )}
 
         <ul className="mt-3 space-y-1.5">
-          {bebidas.items.map((item) => {
+          {groupItems.map((item) => {
             const active = isAvailable(item);
             const sizes = item.sizes ?? [];
             const priceLabel =
