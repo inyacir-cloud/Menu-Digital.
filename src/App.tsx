@@ -22,10 +22,12 @@ import { CartDrawer } from "./components/CartDrawer";
 import { ItemSheet, type SheetSelection } from "./components/ItemSheet";
 import { Toast, type ToastData } from "./components/Toast";
 import { LockIcon } from "./components/icons";
+import { CloseIcon } from "./components/icons";
 import { AdminBar } from "./components/admin/AdminBar";
 import { AdminLogin } from "./components/admin/AdminLogin";
 import { AdminPanel } from "./components/admin/AdminPanel";
 import { makeCouponNotification, NotificationCenter, type MenuNotification } from "./components/NotificationCenter";
+import waterImage from "../a.webp";
 
 const EMPTY_CUSTOMER: CustomerInfo = {
   name: "",
@@ -118,7 +120,16 @@ export default function App() {
   const [comboSheet, setComboSheet] = useState<Combo | null>(null);
   const [loginOpen, setLoginOpen] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
+  const [waterNoticeOpen, setWaterNoticeOpen] = useState(false);
   const [toast, setToast] = useState<ToastData | null>(null);
+
+  const waterItems = useMemo(
+    () =>
+      store.bebidas.items.filter(
+        (item) => isAvailable(item) && /\b(agua|aguas|horchata|jamaica|tamarindo|limonada)\b/i.test(item.name),
+      ),
+    [store.bebidas.items],
+  );
 
   const notifications = useMemo<MenuNotification[]>(
     () => [
@@ -248,13 +259,18 @@ export default function App() {
     document.getElementById("combos")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, []);
 
+  const enterMenu = useCallback(() => {
+    setView("menu");
+    setWaterNoticeOpen(waterItems.length > 0);
+  }, [waterItems.length]);
+
   return (
     <>
       {view === "splash" ? (
         <SplashScreen
           settings={store.settings}
           authed={auth.authed}
-          onEnter={() => setView("menu")}
+          onEnter={enterMenu}
           onSecret={openSecret}
         />
       ) : (
@@ -409,6 +425,58 @@ export default function App() {
 
       {adminOpen && auth.authed && (
         <AdminPanel store={store} auth={auth} onClose={closeAdmin} onLogout={handleLogout} onReLogin={handleReLogin} notify={notify} />
+      )}
+      {waterNoticeOpen && (
+        <div className="fixed inset-0 z-40 grid place-items-center bg-ink/55 px-4 py-6 backdrop-blur-sm">
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="water-notice-title"
+            className="relative max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-[1.75rem] bg-paper p-5 text-center shadow-2xl ring-1 ring-black/10 sm:p-7"
+          >
+            <button
+              type="button"
+              onClick={() => setWaterNoticeOpen(false)}
+              aria-label="Cerrar aviso de aguas"
+              className="absolute right-3 top-3 grid h-10 w-10 place-items-center rounded-full text-ink/55 transition hover:bg-ink/8 hover:text-ink"
+            >
+              <CloseIcon className="h-5 w-5" />
+            </button>
+            <img
+              src={waterImage}
+              alt="Aguas frescas del día"
+              className="mx-auto h-36 w-full rounded-2xl object-cover object-center sm:h-44"
+            />
+            <p className="mt-5 text-xs font-bold uppercase tracking-[0.18em] text-sky-600">Hoy tenemos</p>
+            <h2 id="water-notice-title" className="mt-1 text-2xl font-bold text-ink sm:text-3xl">
+              Aguas del día
+            </h2>
+            <ul className="mt-4 space-y-2 text-left">
+              {waterItems.map((item) => (
+                <li key={item.id} className="rounded-xl bg-white/70 px-4 py-3 ring-1 ring-ink/8">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="font-bold text-ink">{item.name}</span>
+                    <span className="shrink-0 text-sm font-bold text-sky-700">
+                      {item.sizes?.length ? `Desde $${Math.min(...item.sizes.map((size) => size.price))}` : `$${item.price}`}
+                    </span>
+                  </div>
+                  {item.sizes?.length ? (
+                    <p className="mt-1 text-xs text-ink/60">
+                      {item.sizes.map((size) => `${size.name} $${size.price}`).join(" · ")}
+                    </p>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+            <button
+              type="button"
+              onClick={() => setWaterNoticeOpen(false)}
+              className="mt-5 w-full rounded-full bg-ink px-5 py-3 font-bold text-paper transition hover:opacity-90"
+            >
+              Ver el menú
+            </button>
+          </section>
+        </div>
       )}
     </>
   );
