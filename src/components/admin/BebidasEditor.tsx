@@ -277,6 +277,14 @@ export function BebidasEditor({ store, notify }: Props) {
             <h4 className="mb-2 text-sm font-bold">Nueva bebida</h4>
             <ItemForm
               allowAnother
+              defaultSizes={
+                group === "aguas"
+                  ? [
+                      { id: "litro", name: "Litro", price: 35 },
+                      { id: "medio-litro", name: "Medio litro", price: 25 },
+                    ]
+                  : undefined
+              }
               onSave={(values, another) => {
                 store.addBebida(values);
                 notify(`"${values.name}" agregado`);

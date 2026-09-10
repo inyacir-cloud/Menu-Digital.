@@ -424,12 +424,13 @@ function CategoryForm({ initial, onSave, onCancel }: CategoryFormProps) {
 
 export interface ItemFormProps {
   initial?: MenuItem;
+  defaultSizes?: SizeOption[];
   allowAnother?: boolean;
   onSave: (values: ItemInput, another: boolean) => void;
   onCancel: () => void;
 }
 
-export function ItemForm({ initial, allowAnother, onSave, onCancel }: ItemFormProps) {
+export function ItemForm({ initial, defaultSizes, allowAnother, onSave, onCancel }: ItemFormProps) {
   const [name, setName] = useState(initial?.name ?? "");
   const [price, setPrice] = useState(initial ? String(initial.price) : "");
   const [description, setDescription] = useState(initial?.description ?? "");
@@ -439,7 +440,7 @@ export function ItemForm({ initial, allowAnother, onSave, onCancel }: ItemFormPr
   const [image, setImage] = useState<string | undefined>(initial?.image);
   const [extras, setExtras] = useState<Extra[]>(() => withQuickCheeseExtra(initial?.extras));
   const [requiredExtraSelection, setRequiredExtraSelection] = useState(initial?.requiredExtraSelection ?? false);
-  const [sizes, setSizes] = useState<SizeOption[]>(initial?.sizes ?? []);
+  const [sizes, setSizes] = useState<SizeOption[]>(initial?.sizes ?? defaultSizes ?? []);
   const [errors, setErrors] = useState<{ name?: string; price?: string }>({});
   const nameRef = useRef<HTMLInputElement>(null);
 
@@ -483,7 +484,7 @@ export function ItemForm({ initial, allowAnother, onSave, onCancel }: ItemFormPr
     setImage(undefined);
     setExtras(withQuickCheeseExtra());
     setRequiredExtraSelection(false);
-    setSizes([]);
+    setSizes(defaultSizes ?? []);
     setErrors({});
     nameRef.current?.focus();
   };
