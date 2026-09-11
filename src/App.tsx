@@ -28,7 +28,6 @@ import { AdminLogin } from "./components/admin/AdminLogin";
 import { AdminPanel } from "./components/admin/AdminPanel";
 import { makeCouponNotification, NotificationCenter, type MenuNotification } from "./components/NotificationCenter";
 import waterImage from "../a.webp";
-import notificationSound from "../noti.mp3";
 
 const EMPTY_CUSTOMER: CustomerInfo = {
   name: "",
@@ -272,9 +271,6 @@ export default function App() {
     setView("menu");
     const hasWaterNotice = waterItems.length > 0;
     setWaterNoticeOpen(hasWaterNotice);
-    if (hasWaterNotice) {
-      void new Audio(notificationSound).play().catch(() => undefined);
-    }
   }, [waterItems.length]);
 
   return (
