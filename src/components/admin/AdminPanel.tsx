@@ -308,7 +308,7 @@ export function AdminPanel({ store, auth, onClose, onLogout, onReLogin, notify }
 }
 
 function AdminHome({ onSelect }: { onSelect: (tab: Tab) => void }) {
-  const shortcuts = GROUPS.find((group) => group.title === "Configuraciones")?.tabs ?? [];
+  const shortcuts = GROUPS.find((group) => group.title === "Datos del menú")?.tabs ?? [];
 
   return (
     <div className="space-y-6">
@@ -318,8 +318,8 @@ function AdminHome({ onSelect }: { onSelect: (tab: Tab) => void }) {
       </div>
 
       <section>
-        <h3 className="text-lg font-bold text-ink">Configuraciones</h3>
-        <p className="mt-1 text-sm text-ink/60">Elige una opción para editar la información del negocio.</p>
+        <h3 className="text-lg font-bold text-ink">Datos del menú</h3>
+        <p className="mt-1 text-sm text-ink/60">Elige una opción para administrar el contenido del menú.</p>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           {shortcuts.map((shortcut) => (
             <button
