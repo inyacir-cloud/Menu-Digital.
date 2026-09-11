@@ -26,7 +26,7 @@ import { MessageEditor } from "./MessageEditor";
 import { ThemeEditor } from "./ThemeEditor";
 import { SecurityEditor } from "./SecurityEditor";
 
-type Tab = "menu" | "temporada" | "bebidas" | "combos" | "cupones" | "negocio" | "mensaje" | "colores" | "seguridad";
+type Tab = "inicio" | "menu" | "temporada" | "bebidas" | "combos" | "cupones" | "negocio" | "mensaje" | "colores" | "seguridad";
 
 interface TabDef {
   id: Tab;
@@ -36,6 +36,10 @@ interface TabDef {
 }
 
 const GROUPS: { title: string; tabs: TabDef[] }[] = [
+  {
+    title: "Panel",
+    tabs: [{ id: "inicio", label: "Inicio", sub: "Resumen y accesos rápidos", icon: <GearIcon className="h-4 w-4" /> }],
+  },
   {
     title: "Datos del menú",
     tabs: [
@@ -67,7 +71,7 @@ interface Props {
 }
 
 export function AdminPanel({ store, auth, onClose, onLogout, onReLogin, notify }: Props) {
-  const [tab, setTab] = useState<Tab>("menu");
+  const [tab, setTab] = useState<Tab>("inicio");
   const [sideOpen, setSideOpen] = useState(false);
 
   // Bloquear scroll del fondo + cerrar con Escape
@@ -283,6 +287,7 @@ export function AdminPanel({ store, auth, onClose, onLogout, onReLogin, notify }
 
           <div className="px-5 py-6 lg:px-8">
             <div className="mx-auto max-w-4xl">
+              {tab === "inicio" && <AdminHome onSelect={selectTab} />}
               {tab === "menu" && <MenuEditor store={store} notify={notify} />}
               {tab === "temporada" && <SeasonalEditor store={store} notify={notify} />}
               {tab === "bebidas" && <BebidasEditor store={store} notify={notify} />}
@@ -298,6 +303,42 @@ export function AdminPanel({ store, auth, onClose, onLogout, onReLogin, notify }
           </div>
         </main>
       </div>
+    </div>
+  );
+}
+
+function AdminHome({ onSelect }: { onSelect: (tab: Tab) => void }) {
+  const shortcuts = GROUPS.find((group) => group.title === "Configuraciones")?.tabs ?? [];
+
+  return (
+    <div className="space-y-6">
+      <div className="overflow-hidden rounded-2xl bg-[#111827] p-5 text-center shadow-sm sm:p-8">
+        <img src="/logo2.png" alt="El Gordo & La Flaca" className="mx-auto h-auto max-h-32 w-auto max-w-[18rem] object-contain" />
+        <p className="mt-4 text-sm font-semibold text-white/65">Panel de administración</p>
+      </div>
+
+      <section>
+        <h3 className="text-lg font-bold text-ink">Configuraciones</h3>
+        <p className="mt-1 text-sm text-ink/60">Elige una opción para editar la información del negocio.</p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          {shortcuts.map((shortcut) => (
+            <button
+              key={shortcut.id}
+              type="button"
+              onClick={() => onSelect(shortcut.id)}
+              className="flex items-center gap-3 rounded-2xl bg-white p-4 text-left ring-1 ring-ink/8 transition hover:-translate-y-0.5 hover:ring-ink/20"
+            >
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-paper text-ink/70">
+                {shortcut.icon}
+              </span>
+              <span>
+                <span className="block font-bold text-ink">{shortcut.label}</span>
+                <span className="mt-0.5 block text-xs text-ink/55">{shortcut.sub}</span>
+              </span>
+            </button>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }
