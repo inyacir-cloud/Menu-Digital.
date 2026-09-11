@@ -430,6 +430,7 @@ export function useMenuStore() {
   const [data, setData] = useState<MenuData>(loadInitial);
   const [storageError, setStorageError] = useState<string | null>(null);
   const [remoteReady, setRemoteReady] = useState(!isSupabaseConfigured);
+  const [isLoading, setIsLoading] = useState(isSupabaseConfigured);
   const [authVersion, setAuthVersion] = useState(0);
   const syncVersion = useRef(0);
   const syncQueue = useRef(Promise.resolve());
@@ -463,6 +464,12 @@ export function useMenuStore() {
         setStorageError("No se pudo cargar el menú online; se está usando la copia local.");
       }
       setRemoteReady(!error && !!remote);
+    }).catch(() => {
+      if (!active) return;
+      setStorageError("No se pudo cargar el menú online; se está usando la copia local.");
+      setRemoteReady(false);
+    }).finally(() => {
+      if (active) setIsLoading(false);
     });
     return () => {
       active = false;
@@ -792,6 +799,7 @@ export function useMenuStore() {
     coupons: data.coupons,
     settings: data.settings,
     storageError,
+    isLoading,
     addCategory,
     updateCategory,
     removeCategory,

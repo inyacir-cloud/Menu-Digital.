@@ -7,6 +7,7 @@ import { BagIcon, EyeIcon, LockIcon, WhatsAppIcon } from "./icons";
 interface Props {
   settings: Settings;
   authed: boolean;
+  isLoading: boolean;
   onEnter: () => void;
   onAdminEnter: () => void;
   onSecret: () => void;
@@ -16,7 +17,7 @@ interface Props {
  * Portada: solo el logo sobre el fondo del menú, con el estado
  * abierto/cerrado y el acceso oculto a administración abajo.
  */
-export function SplashScreen({ settings, authed, onEnter, onAdminEnter, onSecret }: Props) {
+export function SplashScreen({ settings, authed, isLoading, onEnter, onAdminEnter, onSecret }: Props) {
   const href = buildWhatsAppUrl(settings.contactMessage, settings.whatsappNumber);
 
   return (
@@ -34,7 +35,12 @@ export function SplashScreen({ settings, authed, onEnter, onAdminEnter, onSecret
           className="w-80 sm:w-[26rem]"
         />
 
-        {settings.open ? (
+        {isLoading ? (
+          <div className="mt-7 inline-flex items-center gap-2 rounded-full bg-surface/80 px-5 py-2.5 text-sm font-semibold text-ink/65 ring-1 ring-ink/10">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-mustard" aria-hidden="true" />
+            Cargando menú…
+          </div>
+        ) : settings.open ? (
           <>
             <span className="mt-5 inline-flex items-center gap-2 rounded-full bg-wa/15 px-4 py-1.5 text-sm font-bold text-wa-deep ring-1 ring-wa/30">
               <span className="h-2 w-2 animate-pulse rounded-full bg-wa" aria-hidden="true" />
