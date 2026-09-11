@@ -28,6 +28,7 @@ import { AdminLogin } from "./components/admin/AdminLogin";
 import { AdminPanel } from "./components/admin/AdminPanel";
 import { makeCouponNotification, NotificationCenter, type MenuNotification } from "./components/NotificationCenter";
 import waterImage from "../a.webp";
+import notificationSound from "../noti.mp3";
 
 const EMPTY_CUSTOMER: CustomerInfo = {
   name: "",
@@ -142,8 +143,16 @@ export default function App() {
           title: `${combo.name} disponible`,
           description: combo.description || "Arma tu combo favorito y agrégalo a tu pedido.",
         })),
+      ...(waterItems.length > 0
+        ? [{
+            id: "water-of-the-day",
+            kind: "water" as const,
+            title: "Aguas del día",
+            description: waterItems.map((item) => item.name).join(" · "),
+          }]
+        : []),
     ],
-    [store.coupons, store.combos],
+    [store.coupons, store.combos, waterItems],
   );
 
   const notify = useCallback((text: string) => setToast({ id: Date.now(), text }), []);
@@ -261,7 +270,11 @@ export default function App() {
 
   const enterMenu = useCallback(() => {
     setView("menu");
-    setWaterNoticeOpen(waterItems.length > 0);
+    const hasWaterNotice = waterItems.length > 0;
+    setWaterNoticeOpen(hasWaterNotice);
+    if (hasWaterNotice) {
+      void new Audio(notificationSound).play().catch(() => undefined);
+    }
   }, [waterItems.length]);
 
   return (
@@ -376,6 +389,7 @@ export default function App() {
             notify(`Cupón ${code} listo para usar`);
           }}
           onGoToCombos={goToCombos}
+          onOpenWater={() => setWaterNoticeOpen(true)}
         />
       )}
 
@@ -447,9 +461,9 @@ export default function App() {
               alt="Aguas frescas del día"
               className="mx-auto h-36 w-full rounded-2xl object-cover object-center sm:h-44"
             />
-            <p className="mt-5 text-xs font-bold uppercase tracking-[0.18em] text-sky-600">Hoy tenemos</p>
+            <p className="mt-5 text-xs font-bold uppercase tracking-[0.18em] text-sky-600">El Agua de hoy es</p>
             <h2 id="water-notice-title" className="mt-1 text-2xl font-bold text-ink sm:text-3xl">
-              Aguas del día
+              
             </h2>
             <ul className="mt-4 space-y-2 text-left">
               {waterItems.map((item) => (

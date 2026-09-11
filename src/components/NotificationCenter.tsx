@@ -1,11 +1,11 @@
 import { useState } from "react";
 import type { Coupon } from "../types";
 import { couponLabel, isExpired } from "../utils/coupon";
-import { BellIcon, CloseIcon, TacoIcon, TicketIcon } from "./icons";
+import { BellIcon, CloseIcon, GlassIceIcon, TacoIcon, TicketIcon } from "./icons";
 
 export interface MenuNotification {
   id: string;
-  kind: "coupon" | "combo";
+  kind: "coupon" | "combo" | "water";
   title: string;
   description: string;
   code?: string;
@@ -15,9 +15,10 @@ interface Props {
   notifications: MenuNotification[];
   onUseCoupon: (code: string) => void;
   onGoToCombos: () => void;
+  onOpenWater: () => void;
 }
 
-export function NotificationCenter({ notifications, onUseCoupon, onGoToCombos }: Props) {
+export function NotificationCenter({ notifications, onUseCoupon, onGoToCombos, onOpenWater }: Props) {
   const [open, setOpen] = useState(false);
   const [hasUnread, setHasUnread] = useState(true);
   const visible = notifications;
@@ -62,7 +63,13 @@ export function NotificationCenter({ notifications, onUseCoupon, onGoToCombos }:
                 <article key={notification.id} className="relative rounded-xl p-3 pr-10 transition hover:bg-paper/70">
                   <div className="flex gap-3">
                     <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-full ${notification.kind === "coupon" ? "bg-mustard/25 text-mustard-ink" : "bg-emerald-100 text-emerald-700"}`}>
-                      {notification.kind === "coupon" ? <TicketIcon className="h-4.5 w-4.5" /> : <TacoIcon className="h-4.5 w-4.5" />}
+                      {notification.kind === "coupon" ? (
+                        <TicketIcon className="h-4.5 w-4.5" />
+                      ) : notification.kind === "water" ? (
+                        <GlassIceIcon className="h-4.5 w-4.5" />
+                      ) : (
+                        <TacoIcon className="h-4.5 w-4.5" />
+                      )}
                     </span>
                     <div className="min-w-0">
                       <h3 className="font-bold text-ink">{notification.title}</h3>
@@ -70,6 +77,10 @@ export function NotificationCenter({ notifications, onUseCoupon, onGoToCombos }:
                       {notification.kind === "coupon" ? (
                         <button type="button" onClick={() => onUseCoupon(notification.code ?? "")} className="mt-2 rounded-full bg-mustard px-3 py-1.5 text-xs font-bold text-on-mustard transition hover:bg-mustard-deep">
                           Usar cupón
+                        </button>
+                      ) : notification.kind === "water" ? (
+                        <button type="button" onClick={onOpenWater} className="mt-2 rounded-full bg-sky-500 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-sky-600">
+                          Ver aguas
                         </button>
                       ) : (
                         <button type="button" onClick={onGoToCombos} className="mt-2 rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-emerald-700">
