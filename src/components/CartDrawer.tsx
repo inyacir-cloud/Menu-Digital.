@@ -26,6 +26,17 @@ import { LocationPicker } from "./LocationPicker";
 const inputCls =
   "mt-1 w-full rounded-xl border bg-paper/40 px-3 py-2.5 text-sm text-ink outline-none transition placeholder:text-ink/40 focus:border-ink focus:bg-surface focus:ring-2 focus:ring-mustard/40";
 
+function transferAccountNumber(details: string): string | null {
+  const lines = details.split(/\r?\n/);
+  const labeled = lines.filter((line) => /\b(clabe|cuenta|n[uú]mero de cuenta)\b/i.test(line));
+  const candidates = [...labeled, ...lines.filter((line) => !labeled.includes(line))]
+    .flatMap((line) => line.match(/(?:\d[\d\s-]?){9,}\d/g) ?? [])
+    .map((value) => value.replace(/\D/g, ""))
+    .filter((value) => value.length >= 10 && value.length <= 18);
+
+  return candidates.sort((a, b) => (b.length === 18 ? 1 : 0) - (a.length === 18 ? 1 : 0))[0] ?? null;
+}
+
 interface Props {
   open: boolean;
   onClose: () => void;
@@ -221,8 +232,12 @@ export function CartDrawer({
 
   const copyDetails = async () => {
     if (!selectedPayment?.details) return;
+    const copyValue =
+      selectedPayment.id === "transferencia"
+        ? transferAccountNumber(selectedPayment.details) ?? selectedPayment.details
+        : selectedPayment.details;
     try {
-      await navigator.clipboard.writeText(selectedPayment.details);
+      await navigator.clipboard.writeText(copyValue);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1500);
     } catch {
@@ -749,7 +764,11 @@ export function CartDrawer({
                                   className="mt-1.5 inline-flex items-center gap-1 font-semibold underline underline-offset-2"
                                 >
                                   <CopyIcon className="h-3.5 w-3.5" />
-                                  {copied ? "¡Copiado!" : "Copiar datos"}
+                                  {copied
+                                    ? "¡Copiado!"
+                                    : selectedPayment.id === "transferencia"
+                                      ? "Copiar CLABE / cuenta"
+                                      : "Copiar datos"}
                                 </button>
                               </>
                             ) : (
