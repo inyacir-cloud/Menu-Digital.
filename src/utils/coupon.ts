@@ -35,6 +35,27 @@ export function couponLabel(coupon: Coupon): string {
     : `${formatPrice(coupon.value)} de descuento`;
 }
 
+/** Condiciones resumidas para mostrar un cupón en novedades públicas. */
+export function couponConditions(coupon: Coupon): string {
+  const conditions = [couponLabel(coupon)];
+  conditions.push(
+    coupon.minOrder && coupon.minOrder > 0
+      ? `pedido mínimo de ${formatPrice(coupon.minOrder)}`
+      : "sin compra mínima",
+  );
+  conditions.push(
+    coupon.expiresAt
+      ? `válido hasta el ${coupon.expiresAt.split("-").reverse().join("/")}`
+      : "sin fecha de vencimiento",
+  );
+  conditions.push(
+    coupon.maxUses > 0
+      ? `${Math.max(0, coupon.maxUses - coupon.used)} uso${coupon.maxUses - coupon.used === 1 ? "" : "s"} disponible${coupon.maxUses - coupon.used === 1 ? "" : "s"}`
+      : "usos ilimitados",
+  );
+  return conditions.join(" · ");
+}
+
 export function isExpired(coupon: Coupon, now = new Date()): boolean {
   return !!coupon.expiresAt && new Date(`${coupon.expiresAt}T23:59:59`) < now;
 }

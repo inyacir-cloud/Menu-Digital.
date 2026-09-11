@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { Coupon } from "../types";
-import { couponLabel, isExpired } from "../utils/coupon";
+import { couponConditions, isExpired } from "../utils/coupon";
 import { BellIcon, CloseIcon, GlassIceIcon, TacoIcon, TicketIcon } from "./icons";
 
 export interface MenuNotification {
@@ -105,7 +105,7 @@ export function makeCouponNotification(coupon: Coupon): MenuNotification | null 
     id: `coupon-${coupon.id}`,
     kind: "coupon",
     title: `Cupón ${coupon.code}`,
-    description: `${couponLabel(coupon)} de descuento en tu pedido.`,
+    description: couponConditions(coupon),
     code: coupon.code,
   };
 }
