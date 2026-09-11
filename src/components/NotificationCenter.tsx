@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Coupon } from "../types";
 import { couponLabel, isExpired } from "../utils/coupon";
 import { BellIcon, CloseIcon, GlassIceIcon, TacoIcon, TicketIcon } from "./icons";
@@ -21,7 +21,15 @@ interface Props {
 export function NotificationCenter({ notifications, onUseCoupon, onGoToCombos, onOpenWater }: Props) {
   const [open, setOpen] = useState(false);
   const [hasUnread, setHasUnread] = useState(true);
+  const [bellVibrating, setBellVibrating] = useState(false);
   const visible = notifications;
+
+  useEffect(() => {
+    if (visible.length === 0) return;
+    setBellVibrating(true);
+    const timer = window.setTimeout(() => setBellVibrating(false), 5000);
+    return () => window.clearTimeout(timer);
+  }, [visible.length]);
 
   return (
     <div className="fixed right-4 top-4 z-40 sm:right-6 sm:top-6">
@@ -35,7 +43,7 @@ export function NotificationCenter({ notifications, onUseCoupon, onGoToCombos, o
         aria-expanded={open}
         className="relative grid h-12 w-12 place-items-center rounded-full border-2 border-ink/15 bg-paper/95 text-ink shadow-lg backdrop-blur transition hover:scale-105"
       >
-        <BellIcon className="h-5 w-5" />
+        <BellIcon className={bellVibrating ? "h-5 w-5 animate-bell-vibration" : "h-5 w-5"} />
         {hasUnread && visible.length > 0 && (
           <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-terracotta px-1 text-[0.65rem] font-bold text-white">
             {visible.length > 9 ? "9+" : visible.length}
