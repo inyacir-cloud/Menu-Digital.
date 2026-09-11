@@ -312,9 +312,9 @@ function AdminHome({ onSelect }: { onSelect: (tab: Tab) => void }) {
 
   return (
     <div className="space-y-6">
-      <div className="overflow-hidden rounded-2xl bg-[#111827] p-5 text-center shadow-sm sm:p-8">
+      <div className="overflow-hidden rounded-2xl bg-paper-light p-5 text-center shadow-sm ring-1 ring-ink/8 sm:p-8">
         <img src="/logo2.png" alt="El Gordo & La Flaca" className="mx-auto h-auto max-h-32 w-auto max-w-[18rem] object-contain" />
-        <p className="mt-4 text-sm font-semibold text-white/65">Panel de administración</p>
+        <p className="mt-4 text-sm font-semibold text-ink/60">Panel de administración</p>
       </div>
 
       <section>
