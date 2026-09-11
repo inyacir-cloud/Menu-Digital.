@@ -23,12 +23,17 @@ function facebookHref(value: string): string | null {
   return `https://www.facebook.com/${v.replace(/^@/, "")}`;
 }
 
+function mapsHref(value: string): string | null {
+  const address = value.trim();
+  if (!address) return null;
+  if (/^https?:\/\//i.test(address)) return address;
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+}
+
 export function Footer({ settings }: Props) {
   const [open, setOpen] = useState(false);
   const whatsappHref = buildWhatsAppUrl(settings.contactMessage, settings.whatsappNumber);
-  const mapsHref = settings.address
-    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(settings.address)}`
-    : null;
+  const locationHref = mapsHref(settings.address);
   const fbHref = facebookHref(settings.facebook);
 
   return (
@@ -56,9 +61,9 @@ export function Footer({ settings }: Props) {
               </InfoLine>
 
               <InfoLine icon={<PinIcon className="h-4 w-4" />} label="Dirección">
-                {mapsHref ? (
+                {locationHref ? (
                   <a
-                    href={mapsHref}
+                    href={locationHref}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="underline decoration-ink/30 underline-offset-4 transition hover:decoration-ink"
