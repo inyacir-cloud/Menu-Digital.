@@ -48,11 +48,6 @@ export function couponConditions(coupon: Coupon): string {
       ? `válido hasta el ${coupon.expiresAt.split("-").reverse().join("/")}`
       : "sin fecha de vencimiento",
   );
-  conditions.push(
-    coupon.maxUses > 0
-      ? `${Math.max(0, coupon.maxUses - coupon.used)} uso${coupon.maxUses - coupon.used === 1 ? "" : "s"} disponible${coupon.maxUses - coupon.used === 1 ? "" : "s"}`
-      : "usos ilimitados",
-  );
   return conditions.join(" · ");
 }
 
