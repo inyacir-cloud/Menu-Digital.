@@ -8,6 +8,7 @@ interface Props {
   settings: Settings;
   authed: boolean;
   onEnter: () => void;
+  onAdminEnter: () => void;
   onSecret: () => void;
 }
 
@@ -15,7 +16,7 @@ interface Props {
  * Portada: solo el logo sobre el fondo del menú, con el estado
  * abierto/cerrado y el acceso oculto a administración abajo.
  */
-export function SplashScreen({ settings, authed, onEnter, onSecret }: Props) {
+export function SplashScreen({ settings, authed, onEnter, onAdminEnter, onSecret }: Props) {
   const href = buildWhatsAppUrl(settings.contactMessage, settings.whatsappNumber);
 
   return (
@@ -82,7 +83,7 @@ export function SplashScreen({ settings, authed, onEnter, onSecret }: Props) {
         {authed && (
           <button
             type="button"
-            onClick={onEnter}
+            onClick={onAdminEnter}
             className="mt-5 text-xs font-semibold text-ink/50 underline underline-offset-4 transition hover:text-ink"
           >
             Entrar en modo administrador

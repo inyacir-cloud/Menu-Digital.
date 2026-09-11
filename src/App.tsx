@@ -280,6 +280,7 @@ export default function App() {
           settings={store.settings}
           authed={auth.authed}
           onEnter={enterMenu}
+          onAdminEnter={() => setAdminOpen(true)}
           onSecret={openSecret}
         />
       ) : (

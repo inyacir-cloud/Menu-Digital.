@@ -37,7 +37,7 @@ interface Props {
 const BADGE_SUGGESTIONS = ["Más pedido", "Nuevo", "Recomendado", "Picante"];
 
 export function MenuEditor({ store, notify }: Props) {
-  const [expanded, setExpanded] = useState<string | null>(store.categories[0]?.id ?? null);
+  const [expanded, setExpanded] = useState<string | null>(null);
   const [addingCategory, setAddingCategory] = useState(false);
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
   const [addingItemFor, setAddingItemFor] = useState<string | null>(null);
