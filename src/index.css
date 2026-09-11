@@ -29,7 +29,7 @@
   --animate-toast: toast 2.2s ease both;
   --animate-wiggle: wiggle 0.5s ease-in-out;
   --animate-shake: shake 0.4s ease both;
-  --animate-bell-vibration: bell-vibration 0.55s ease-in-out infinite;
+  --animate-bell-vibration: bell-vibration 1.2s ease-in-out infinite;
 
   @keyframes pop {
     0% {
