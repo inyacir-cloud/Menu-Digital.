@@ -2,7 +2,7 @@ import { useState, type ReactNode } from "react";
 import type { Settings } from "../types";
 import { buildWhatsAppUrl } from "../utils/whatsapp";
 import { cn } from "../utils/cn";
-import { PaymentBadges } from "./PaymentBadges";
+import { PaymentIcon } from "./PaymentBadges";
 import {
   ChevronDownIcon,
   ClockIcon,
@@ -35,6 +35,7 @@ export function Footer({ settings }: Props) {
   const whatsappHref = buildWhatsAppUrl(settings.contactMessage, settings.whatsappNumber);
   const locationHref = mapsHref(settings.address);
   const fbHref = facebookHref(settings.facebook);
+  const enabledPayments = settings.payments.filter((payment) => payment.enabled);
 
   return (
     <footer className="relative z-10 mx-4 mt-10 sm:mx-8 md:mx-14 md:mt-14">
@@ -89,9 +90,23 @@ export function Footer({ settings }: Props) {
                   "Próximamente"
                 )}
               </InfoLine>
-            </div>
 
-            <PaymentBadges payments={settings.payments} className="mt-4" />
+              {enabledPayments.length > 0 && (
+                <InfoLine
+                  icon={<PaymentIcon id={enabledPayments[0].id} className="h-7 w-7" />}
+                  label="Formas de pago"
+                >
+                  <span className="flex flex-wrap gap-x-2 gap-y-1">
+                    {enabledPayments.map((payment, index) => (
+                      <span key={payment.id}>
+                        {index > 0 && <span className="mr-2 text-ink/35">·</span>}
+                        {payment.label}
+                      </span>
+                    ))}
+                  </span>
+                </InfoLine>
+              )}
+            </div>
 
             <div className="mt-4 flex justify-center">
               <a
