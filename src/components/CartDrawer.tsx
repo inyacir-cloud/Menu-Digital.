@@ -37,6 +37,10 @@ function transferAccountNumber(details: string): string | null {
   return candidates.sort((a, b) => (b.length === 18 ? 1 : 0) - (a.length === 18 ? 1 : 0))[0] ?? null;
 }
 
+function mercadoPagoLink(details: string): string | null {
+  return details.match(/https?:\/\/[^\s]+/i)?.[0]?.replace(/[),.;]+$/, "") ?? null;
+}
+
 interface Props {
   open: boolean;
   onClose: () => void;
@@ -243,6 +247,11 @@ export function CartDrawer({
     } catch {
       /* portapapeles no disponible */
     }
+  };
+
+  const openMercadoPago = () => {
+    const link = selectedPayment?.id === "mercadopago" ? mercadoPagoLink(selectedPayment.details) : null;
+    if (link) window.open(link, "_blank", "noopener,noreferrer");
   };
 
   if (!open) return null;
@@ -754,7 +763,25 @@ export function CartDrawer({
 
                         {selectedPayment && selectedPayment.id !== "efectivo" && (
                           <div className="mt-3 animate-fade rounded-xl bg-mustard/15 p-3 text-xs text-ink/80">
-                            {selectedPayment.details ? (
+                            {selectedPayment.id === "mercadopago" ? (
+                              <>
+                                <p className="font-bold">Paga con Mercado Pago</p>
+                                <p className="mt-1 leading-relaxed">
+                                  Abre el enlace, coloca el monto total de tu compra ({formatPrice(grandTotal)}) y se abrirá la aplicación de Mercado Pago.
+                                </p>
+                                {mercadoPagoLink(selectedPayment.details) ? (
+                                  <button
+                                    type="button"
+                                    onClick={openMercadoPago}
+                                    className="mt-2 inline-flex items-center rounded-full bg-sky-600 px-4 py-2 font-bold text-white transition hover:bg-sky-700"
+                                  >
+                                    Abrir Mercado Pago
+                                  </button>
+                                ) : (
+                                  <p className="mt-1 text-red-700">El enlace de Mercado Pago aún no está configurado.</p>
+                                )}
+                              </>
+                            ) : selectedPayment.details ? (
                               <>
                                 <p className="font-bold">Datos para {selectedPayment.label}</p>
                                 <p className="mt-0.5 whitespace-pre-line font-mono">{selectedPayment.details}</p>

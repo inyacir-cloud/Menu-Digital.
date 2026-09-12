@@ -12,7 +12,7 @@ interface Props {
 const PAYMENT_HINTS: Record<PaymentId, string> = {
   efectivo: "Opcional. Ej. “Procura traer cambio” o “Aceptamos billetes de $500”.",
   transferencia: "Banco, CLABE y nombre del titular. El cliente los verá al elegir este método.",
-  mercadopago: "Alias, CVU o link de cobro de Mercado Pago.",
+  mercadopago: "Pega únicamente el link de cobro de Mercado Pago; el cliente lo abrirá para pagar el total.",
 };
 
 export function BusinessEditor({ store, notify }: Props) {
