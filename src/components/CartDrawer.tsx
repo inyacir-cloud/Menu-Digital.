@@ -766,9 +766,11 @@ export function CartDrawer({
                             {selectedPayment.id === "mercadopago" ? (
                               <>
                                 <p className="font-bold">Paga con Mercado Pago</p>
-                                <p className="mt-1 leading-relaxed">
-                                  Abre el enlace, coloca el monto total de tu compra ({formatPrice(grandTotal)}) y se abrirá la aplicación de Mercado Pago.
-                                </p>
+                                <ol className="mt-1 list-decimal space-y-0.5 pl-4 leading-relaxed">
+                                  <li>Abre el enlace de Mercado Pago.</li>
+                                  <li>Coloca el total de tu compra: <strong>{formatPrice(grandTotal)}</strong>.</li>
+                                  <li>Confirma el pago en la aplicación.</li>
+                                </ol>
                                 {mercadoPagoLink(selectedPayment.details) ? (
                                   <button
                                     type="button"
