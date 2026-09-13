@@ -423,7 +423,11 @@ export function CartDrawer({
                 . Tu carrito quedó vacío, listo para armar uno nuevo.
               </p>
               {sentPaymentDetails && sentPaymentDetails.id !== "efectivo" && (
-                <details className="mt-3 w-full max-w-[34ch] rounded-xl border border-ink/10 bg-ink/[0.03] text-left">
+                <>
+                  <p className="mt-3 max-w-[34ch] text-xs leading-relaxed text-ink/55">
+                    Si ya hiciste tu pago, puedes cerrar esta ventana. Si aún no, aquí tienes los datos una vez más.
+                  </p>
+                  <details className="mt-2 w-full max-w-[34ch] rounded-xl border border-ink/10 bg-ink/[0.03] text-left">
                   <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 text-xs font-semibold text-ink/75 [&::-webkit-details-marker]:hidden">
                     <span>Ver datos de pago: {sentPaymentDetails.label}</span>
                     <ChevronDownIcon className="h-3.5 w-3.5 shrink-0 transition-transform [[open]_&]:rotate-180" />
@@ -469,7 +473,8 @@ export function CartDrawer({
                       <p>Te enviaremos los datos para tu pago por WhatsApp.</p>
                     )}
                   </div>
-                </details>
+                  </details>
+                </>
               )}
 
               {needsCapture && (
