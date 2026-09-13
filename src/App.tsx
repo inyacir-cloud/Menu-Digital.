@@ -22,7 +22,7 @@ import { CartDrawer } from "./components/CartDrawer";
 import { ItemSheet, type SheetSelection } from "./components/ItemSheet";
 import { Toast, type ToastData } from "./components/Toast";
 import { LockIcon } from "./components/icons";
-import { CloseIcon } from "./components/icons";
+import { CloseIcon, PlusIcon } from "./components/icons";
 import { AdminBar } from "./components/admin/AdminBar";
 import { AdminLogin } from "./components/admin/AdminLogin";
 import { AdminPanel } from "./components/admin/AdminPanel";
@@ -559,10 +559,11 @@ export default function App() {
                       setWaterNoticeOpen(false);
                       if (bebidasCategory) handleQuickAdd(item, bebidasCategory);
                     }}
+                    aria-label={`Agregar ${item.name} al pedido`}
                     disabled={closed}
-                    className="mt-3 w-full rounded-full bg-sky-500 px-4 py-2 text-sm font-bold text-white transition hover:bg-sky-600 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="mt-3 ml-auto grid h-9 w-9 place-items-center rounded-full bg-sky-500 text-white shadow-[0_2px_0_0_#0284c7] transition hover:bg-sky-600 active:translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    {closed ? "No disponible ahora" : "Agregar al pedido"}
+                    {closed ? <span className="text-xs">-</span> : <PlusIcon className="h-4.5 w-4.5" />}
                   </button>
                 </li>
               ))}
