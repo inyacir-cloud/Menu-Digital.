@@ -421,6 +421,7 @@ export default function App() {
       {view === "menu" && !closed && (
         <CartButton
           count={cart.count}
+          total={Math.max(0, cart.total - (appliedCoupon?.discount ?? 0))}
           onOpen={() => setCartOpen(true)}
         />
       )}
