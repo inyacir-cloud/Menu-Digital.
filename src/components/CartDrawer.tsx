@@ -145,13 +145,8 @@ export function CartDrawer({
         return;
       }
 
-      const leave = window.confirm("¿Seguro que quieres salir sin hacer tu pedido?");
-      if (leave) {
-        historyEntryRef.current = false;
-        onClose();
-      } else {
-        window.history.pushState({ ...(window.history.state ?? {}), egfCart: true }, "", window.location.href);
-      }
+      historyEntryRef.current = false;
+      onClose();
     };
     const onBeforeUnload = (e: BeforeUnloadEvent) => {
       if (!hasItemsRef.current || sentRef.current) return;

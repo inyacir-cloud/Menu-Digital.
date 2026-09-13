@@ -122,6 +122,7 @@ export default function App() {
   const [loginOpen, setLoginOpen] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
   const [waterNoticeOpen, setWaterNoticeOpen] = useState(false);
+  const [exitNoticeOpen, setExitNoticeOpen] = useState(false);
   const [toast, setToast] = useState<ToastData | null>(null);
 
   const waterItems = useMemo(
@@ -177,6 +178,16 @@ export default function App() {
       setSheet(null);
     }
   }, [closed]);
+
+  useEffect(() => {
+    if (view !== "menu" || cartOpen) return;
+    const onPopState = () => {
+      window.history.pushState({ ...(window.history.state ?? {}), egfMenu: true }, "", window.location.href);
+      setExitNoticeOpen(true);
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, [view, cartOpen]);
 
   // Mantener el carrito coherente si el administrador edita el menú
   // (incluye temporada: al desactivarla se retiran sus líneas del carrito)
@@ -277,6 +288,7 @@ export default function App() {
 
   const enterMenu = useCallback(() => {
     setView("menu");
+    window.history.pushState({ ...(window.history.state ?? {}), egfMenu: true }, "", window.location.href);
     const hasWaterNotice = waterItems.length > 0;
     setWaterNoticeOpen(hasWaterNotice);
   }, [waterItems.length]);
@@ -385,6 +397,32 @@ export default function App() {
         />
       )}
       <Toast toast={toast} />
+
+      {exitNoticeOpen && view === "menu" && !cartOpen && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-ink/45 px-4 backdrop-blur-sm">
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="exit-notice-title"
+            className="w-full max-w-sm rounded-3xl bg-paper/90 p-7 text-center shadow-2xl ring-1 ring-white/50"
+          >
+            <div className="text-6xl" aria-hidden="true">😔</div>
+            <h2 id="exit-notice-title" className="mt-4 text-xl font-bold text-ink">
+              No te vayas todavía
+            </h2>
+            <p className="mt-2 text-sm leading-relaxed text-ink/65">
+              Tu menú sigue aquí. Cierra este mensaje para continuar eligiendo tu antojo.
+            </p>
+            <button
+              type="button"
+              onClick={() => setExitNoticeOpen(false)}
+              className="mt-5 w-full rounded-full bg-ink px-5 py-3 font-bold text-paper transition hover:opacity-90"
+            >
+              Seguir en el menú
+            </button>
+          </section>
+        </div>
+      )}
 
       {view === "menu" && (
         <NotificationCenter
