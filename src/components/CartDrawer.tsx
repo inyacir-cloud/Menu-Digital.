@@ -101,6 +101,7 @@ export function CartDrawer({
   const [attempted, setAttempted] = useState(false);
   const [sent, setSent] = useState(false);
   const [sentPayment, setSentPayment] = useState<PaymentMethod | null>(null);
+  const [sentTotal, setSentTotal] = useState(0);
   const [copied, setCopied] = useState(false);
   const [mapOpen, setMapOpen] = useState(false);
   const [codeInput, setCodeInput] = useState("");
@@ -187,6 +188,7 @@ export function CartDrawer({
     if (cart.lines.length > 0) {
       setSent(false);
       setSentPayment(null);
+      setSentTotal(0);
     } else {
       setStep(1);
     }
@@ -197,6 +199,7 @@ export function CartDrawer({
     if (!open) {
       setSent(false);
       setSentPayment(null);
+      setSentTotal(0);
       setAttempted(false);
       setStep(1);
     }
@@ -286,6 +289,7 @@ export function CartDrawer({
       return;
     }
     if (couponOk && appliedCoupon?.coupon) onRedeemCoupon(appliedCoupon.coupon.id);
+    setSentTotal(grandTotal);
     cart.clear();
     setSentPayment(selectedPayment);
     setAttempted(false);
@@ -419,16 +423,20 @@ export function CartDrawer({
                 . Tu carrito quedó vacío, listo para armar uno nuevo.
               </p>
               {sentPaymentDetails && sentPaymentDetails.id !== "efectivo" && (
-                <details className="mt-4 w-full max-w-[36ch] rounded-2xl border border-mustard/40 bg-mustard/10 text-left">
-                  <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3.5 py-3 text-sm font-bold text-ink [&::-webkit-details-marker]:hidden">
+                <details className="mt-3 w-full max-w-[34ch] rounded-xl border border-ink/10 bg-ink/[0.03] text-left">
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 text-xs font-semibold text-ink/75 [&::-webkit-details-marker]:hidden">
                     <span>Ver datos de pago: {sentPaymentDetails.label}</span>
-                    <ChevronDownIcon className="h-4 w-4 shrink-0 transition-transform [[open]_&]:rotate-180" />
+                    <ChevronDownIcon className="h-3.5 w-3.5 shrink-0 transition-transform [[open]_&]:rotate-180" />
                   </summary>
-                  <div className="border-t border-mustard/30 px-3.5 pb-3.5 pt-3 text-xs leading-relaxed text-ink/80">
+                  <div className="border-t border-ink/10 px-3 pb-3 pt-2.5 text-[0.7rem] leading-relaxed text-ink/75">
                     {sentPaymentDetails.id === "mercadopago" ? (
                       <>
-                        <p className="font-bold">Paga con Mercado Pago</p>
-                        <p className="mt-1">Abre el enlace, realiza el pago y envía la captura en WhatsApp.</p>
+                        <p className="font-semibold text-ink">Paga con Mercado Pago</p>
+                        <ol className="mt-1 list-decimal space-y-0.5 pl-4">
+                          <li>Abre el enlace de Mercado Pago.</li>
+                          <li>Coloca el total de tu compra: <strong>{formatPrice(sentTotal)}</strong>.</li>
+                          <li>Confirma el pago y envía la captura en WhatsApp.</li>
+                        </ol>
                         {mercadoPagoLink(sentPaymentDetails.details) ? (
                           <button
                             type="button"
@@ -436,7 +444,7 @@ export function CartDrawer({
                               const link = mercadoPagoLink(sentPaymentDetails.details);
                               if (link) window.open(link, "_blank", "noopener,noreferrer");
                             }}
-                            className="mt-2 inline-flex items-center rounded-full bg-sky-600 px-4 py-2 font-bold text-white transition hover:bg-sky-700"
+                            className="mt-2 inline-flex items-center rounded-full bg-sky-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-sky-700"
                           >
                             Abrir Mercado Pago
                           </button>
@@ -446,7 +454,7 @@ export function CartDrawer({
                       </>
                     ) : sentPaymentDetails.details ? (
                       <>
-                        <p className="font-bold">Datos para transferencia</p>
+                        <p className="font-semibold text-ink">Datos para transferencia</p>
                         <p className="mt-0.5 whitespace-pre-line font-mono">{sentPaymentDetails.details}</p>
                         <button
                           type="button"
