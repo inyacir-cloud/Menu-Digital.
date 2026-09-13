@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import type { CartApi } from "../hooks/useCart";
 import type { CartLine, CustomerInfo, DeliveryMode, MenuItem, Settings } from "../types";
 import type { AppliedCoupon } from "../utils/coupon";
@@ -111,20 +111,69 @@ export function CartDrawer({
   const addressRef = useRef<HTMLTextAreaElement>(null);
   const paymentRef = useRef<HTMLFieldSetElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
+  const stepRef = useRef(step);
+  const historyEntryRef = useRef(false);
+  const hasItemsRef = useRef(cart.lines.length > 0);
+  const sentRef = useRef(sent);
+
+  useEffect(() => {
+    stepRef.current = step;
+    hasItemsRef.current = cart.lines.length > 0;
+    sentRef.current = sent;
+  }, [step, cart.lines.length, sent]);
+
+  const requestClose = useCallback(() => {
+    if (sentRef.current || !hasItemsRef.current || window.confirm("¿Seguro que quieres salir sin hacer tu pedido?")) {
+      onClose();
+    }
+  }, [onClose]);
 
   // Bloquear scroll del fondo + cerrar con Escape
   useEffect(() => {
     if (!open) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+
+    window.history.pushState({ ...(window.history.state ?? {}), egfCart: true }, "", window.location.href);
+    historyEntryRef.current = true;
+
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && requestClose();
+    const onPopState = () => {
+      if (stepRef.current > 1) {
+        setStep((current) => (current > 1 ? ((current - 1) as 1 | 2 | 3 | 4) : current));
+        window.history.pushState({ ...(window.history.state ?? {}), egfCart: true }, "", window.location.href);
+        return;
+      }
+
+      const leave = window.confirm("¿Seguro que quieres salir sin hacer tu pedido?");
+      if (leave) {
+        historyEntryRef.current = false;
+        onClose();
+      } else {
+        window.history.pushState({ ...(window.history.state ?? {}), egfCart: true }, "", window.location.href);
+      }
+    };
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (!hasItemsRef.current || sentRef.current) return;
+      e.preventDefault();
+      e.returnValue = "";
+    };
+
     window.addEventListener("keydown", onKey);
+    window.addEventListener("popstate", onPopState);
+    window.addEventListener("beforeunload", onBeforeUnload);
     closeRef.current?.focus();
     return () => {
       document.body.style.overflow = prev;
       window.removeEventListener("keydown", onKey);
+      window.removeEventListener("popstate", onPopState);
+      window.removeEventListener("beforeunload", onBeforeUnload);
+      if (historyEntryRef.current) {
+        historyEntryRef.current = false;
+        window.history.back();
+      }
     };
-  }, [open, onClose]);
+  }, [open, requestClose]);
 
   // Al empezar un pedido nuevo se oculta el aviso de envío y se vuelve al paso 1
   useEffect(() => {
@@ -261,7 +310,7 @@ export function CartDrawer({
       {/* Fondo */}
       <div
         className="absolute inset-0 bg-ink/80"
-        onClick={onClose}
+        onClick={requestClose}
         aria-hidden="true"
       />
 
@@ -291,7 +340,7 @@ export function CartDrawer({
             <button
               ref={closeRef}
               type="button"
-              onClick={onClose}
+              onClick={requestClose}
               aria-label="Cerrar"
               className="grid h-10 w-10 place-items-center rounded-full text-ink/70 transition hover:bg-ink/10 hover:text-ink"
             >
@@ -372,7 +421,7 @@ export function CartDrawer({
 
               <button
                 type="button"
-                onClick={onClose}
+                onClick={requestClose}
                 className="mt-6 rounded-full bg-ink px-6 py-2.5 text-sm font-semibold text-paper transition hover:opacity-90 active:scale-[0.98]"
               >
                 Hacer otro pedido
