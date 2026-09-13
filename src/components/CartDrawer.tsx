@@ -532,7 +532,7 @@ export function CartDrawer({
                         <ChevronDownIcon className={cn("h-4 w-4 text-ink/55 transition-transform", suggestionsOpen && "rotate-180")} />
                       </button>
                       {suggestionsOpen && (
-                        <ul className="grid grid-cols-2 gap-1.5 px-3 pb-3">
+                        <ul className="space-y-1.5 px-3 pb-3">
                           {suggestions.map((s) => (
                             <li key={s.id}>
                               <button
