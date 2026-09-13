@@ -113,6 +113,7 @@ export function CartDrawer({
   const closeRef = useRef<HTMLButtonElement>(null);
   const stepRef = useRef(step);
   const historyEntryRef = useRef(false);
+  const restoringHistoryRef = useRef(false);
   const hasItemsRef = useRef(cart.lines.length > 0);
   const sentRef = useRef(sent);
 
@@ -139,9 +140,17 @@ export function CartDrawer({
 
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && requestClose();
     const onPopState = () => {
+      if (restoringHistoryRef.current) {
+        restoringHistoryRef.current = false;
+        return;
+      }
+
       if (stepRef.current > 1) {
-        setStep((current) => (current > 1 ? ((current - 1) as 1 | 2 | 3 | 4) : current));
-        window.history.pushState({ ...(window.history.state ?? {}), egfCart: true }, "", window.location.href);
+        const previousStep = (stepRef.current - 1) as 1 | 2 | 3 | 4;
+        stepRef.current = previousStep;
+        setStep(previousStep);
+        restoringHistoryRef.current = true;
+        window.history.forward();
         return;
       }
 
