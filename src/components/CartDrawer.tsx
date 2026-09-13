@@ -260,7 +260,7 @@ export function CartDrawer({
     <div className="fixed inset-0 z-50" role="presentation">
       {/* Fondo */}
       <div
-        className="absolute inset-0 animate-fade bg-ink/55 backdrop-blur-[2px]"
+        className="absolute inset-0 bg-ink/80"
         onClick={onClose}
         aria-hidden="true"
       />
@@ -270,7 +270,7 @@ export function CartDrawer({
         role="dialog"
         aria-modal="true"
         aria-labelledby="cart-title"
-        className="absolute inset-x-0 bottom-0 flex max-h-[92dvh] animate-slide-up flex-col rounded-t-3xl bg-paper-light text-ink shadow-2xl sm:inset-y-0 sm:left-auto sm:right-0 sm:w-[460px] sm:max-h-none sm:animate-slide-left sm:rounded-none"
+        className="absolute inset-0 flex animate-fade flex-col bg-paper-light text-ink shadow-2xl"
       >
         {/* Encabezado */}
         <header className="border-b border-ink/10 px-5 py-4">
