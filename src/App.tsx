@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Combo, ComboSelection, CustomerInfo, MenuCategory, MenuItem } from "./types";
 import { useCart } from "./hooks/useCart";
 import { useLocalStorage } from "./hooks/useLocalStorage";
@@ -124,6 +124,8 @@ export default function App() {
   const [waterNoticeOpen, setWaterNoticeOpen] = useState(false);
   const [exitNoticeOpen, setExitNoticeOpen] = useState(false);
   const [toast, setToast] = useState<ToastData | null>(null);
+  const sheetHistoryRef = useRef(false);
+  const closingSheetRef = useRef(false);
 
   const waterItems = useMemo(
     () =>
@@ -182,12 +184,25 @@ export default function App() {
   useEffect(() => {
     if (view !== "menu" || cartOpen) return;
     const onPopState = () => {
+      if (sheet) {
+        if (closingSheetRef.current) {
+          closingSheetRef.current = false;
+        }
+        sheetHistoryRef.current = false;
+        setSheet(null);
+        return;
+      }
+      if (comboSheet) {
+        window.history.pushState({ ...(window.history.state ?? {}), egfMenu: true }, "", window.location.href);
+        setComboSheet(null);
+        return;
+      }
       window.history.pushState({ ...(window.history.state ?? {}), egfMenu: true }, "", window.location.href);
       setExitNoticeOpen(true);
     };
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
-  }, [view, cartOpen]);
+  }, [view, cartOpen, sheet, comboSheet]);
 
   // Mantener el carrito coherente si el administrador edita el menú
   // (incluye temporada: al desactivarla se retiran sus líneas del carrito)
@@ -198,6 +213,12 @@ export default function App() {
 
   /* ---- Pedido ---- */
 
+  const openSheet = useCallback((item: MenuItem, category: MenuCategory) => {
+    window.history.pushState({ ...(window.history.state ?? {}), egfItem: true }, "", window.location.href);
+    sheetHistoryRef.current = true;
+    setSheet({ item, category });
+  }, []);
+
   /** Botón "+" junto al precio: agrega directo o abre la hoja si hay extras */
   const handleQuickAdd = useCallback(
     (item: MenuItem, category: MenuCategory) => {
@@ -207,17 +228,17 @@ export default function App() {
         return;
       }
       if (item.sizes?.length || availableExtras(item).length > 0) {
-        setSheet({ item, category });
+        openSheet(item, category);
         return;
       }
       if (cart.qtyOf(item.id) > 0) cart.incrementItem(item.id);
       else cart.add(item, category);
       notify(`${item.cartName ?? item.name} agregado`);
     },
-    [cart, notify, closed],
+    [cart, notify, closed, openSheet],
   );
 
-  const handleOpen = useCallback((item: MenuItem, category: MenuCategory) => setSheet({ item, category }), []);
+  const handleOpen = openSheet;
 
   const handleSheetAdd = useCallback(
     (selection: SheetSelection) => {
@@ -272,7 +293,15 @@ export default function App() {
   }, [auth]);
 
   const closeCart = useCallback(() => setCartOpen(false), []);
-  const closeSheet = useCallback(() => setSheet(null), []);
+  const closeSheet = useCallback(() => {
+    if (sheetHistoryRef.current) {
+      closingSheetRef.current = true;
+      sheetHistoryRef.current = false;
+      window.history.back();
+      return;
+    }
+    setSheet(null);
+  }, []);
   const closeLogin = useCallback(() => setLoginOpen(false), []);
   const closeAdmin = useCallback(() => setAdminOpen(false), []);
   const goToCombos = useCallback(() => {
