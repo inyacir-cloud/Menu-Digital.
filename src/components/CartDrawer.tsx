@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import type { CartApi } from "../hooks/useCart";
-import type { CartLine, CustomerInfo, DeliveryMode, MenuItem, Settings } from "../types";
+import type { CartLine, CustomerInfo, DeliveryMode, MenuItem, PaymentMethod, Settings } from "../types";
 import type { AppliedCoupon } from "../utils/coupon";
 import { couponLabel } from "../utils/coupon";
 import { formatPrice } from "../utils/format";
@@ -100,6 +100,7 @@ export function CartDrawer({
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [attempted, setAttempted] = useState(false);
   const [sent, setSent] = useState(false);
+  const [sentPayment, setSentPayment] = useState<PaymentMethod | null>(null);
   const [copied, setCopied] = useState(false);
   const [mapOpen, setMapOpen] = useState(false);
   const [codeInput, setCodeInput] = useState("");
@@ -185,6 +186,7 @@ export function CartDrawer({
   useEffect(() => {
     if (cart.lines.length > 0) {
       setSent(false);
+      setSentPayment(null);
     } else {
       setStep(1);
     }
@@ -194,6 +196,7 @@ export function CartDrawer({
   useEffect(() => {
     if (!open) {
       setSent(false);
+      setSentPayment(null);
       setAttempted(false);
       setStep(1);
     }
@@ -284,6 +287,7 @@ export function CartDrawer({
     }
     if (couponOk && appliedCoupon?.coupon) onRedeemCoupon(appliedCoupon.coupon.id);
     cart.clear();
+    setSentPayment(selectedPayment);
     setAttempted(false);
     setSent(true);
     onSent?.();
@@ -308,6 +312,8 @@ export function CartDrawer({
     const link = selectedPayment?.id === "mercadopago" ? mercadoPagoLink(selectedPayment.details) : null;
     if (link) window.open(link, "_blank", "noopener,noreferrer");
   };
+
+  const sentPaymentDetails = sentPayment ?? selectedPayment;
 
   if (!open) return null;
 
@@ -412,6 +418,51 @@ export function CartDrawer({
                 </span>
                 . Tu carrito quedó vacío, listo para armar uno nuevo.
               </p>
+              {sentPaymentDetails && sentPaymentDetails.id !== "efectivo" && (
+                <details className="mt-4 w-full max-w-[36ch] rounded-2xl border border-mustard/40 bg-mustard/10 text-left">
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3.5 py-3 text-sm font-bold text-ink [&::-webkit-details-marker]:hidden">
+                    <span>Ver datos de pago: {sentPaymentDetails.label}</span>
+                    <ChevronDownIcon className="h-4 w-4 shrink-0 transition-transform [[open]_&]:rotate-180" />
+                  </summary>
+                  <div className="border-t border-mustard/30 px-3.5 pb-3.5 pt-3 text-xs leading-relaxed text-ink/80">
+                    {sentPaymentDetails.id === "mercadopago" ? (
+                      <>
+                        <p className="font-bold">Paga con Mercado Pago</p>
+                        <p className="mt-1">Abre el enlace, realiza el pago y envía la captura en WhatsApp.</p>
+                        {mercadoPagoLink(sentPaymentDetails.details) ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const link = mercadoPagoLink(sentPaymentDetails.details);
+                              if (link) window.open(link, "_blank", "noopener,noreferrer");
+                            }}
+                            className="mt-2 inline-flex items-center rounded-full bg-sky-600 px-4 py-2 font-bold text-white transition hover:bg-sky-700"
+                          >
+                            Abrir Mercado Pago
+                          </button>
+                        ) : (
+                          <p className="mt-1 text-red-700">El enlace de Mercado Pago aún no está configurado.</p>
+                        )}
+                      </>
+                    ) : sentPaymentDetails.details ? (
+                      <>
+                        <p className="font-bold">Datos para transferencia</p>
+                        <p className="mt-0.5 whitespace-pre-line font-mono">{sentPaymentDetails.details}</p>
+                        <button
+                          type="button"
+                          onClick={copyDetails}
+                          className="mt-1.5 inline-flex items-center gap-1 font-semibold underline underline-offset-2"
+                        >
+                          <CopyIcon className="h-3.5 w-3.5" />
+                          {copied ? "¡Copiado!" : "Copiar CLABE / cuenta"}
+                        </button>
+                      </>
+                    ) : (
+                      <p>Te enviaremos los datos para tu pago por WhatsApp.</p>
+                    )}
+                  </div>
+                </details>
+              )}
 
               {needsCapture && (
                 <div className="mt-4 w-full max-w-[36ch] animate-fade rounded-2xl border border-dashed border-wa/50 bg-wa/10 p-3.5 text-left text-xs leading-relaxed text-ink/80">
