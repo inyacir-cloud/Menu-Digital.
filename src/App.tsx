@@ -126,10 +126,10 @@ export default function App() {
 
   const waterItems = useMemo(
     () =>
-      store.bebidas.items.filter(
+      (bebidasCategory?.items ?? []).filter(
         (item) => isAvailable(item) && /\b(agua|aguas|horchata|jamaica|tamarindo|limonada)\b/i.test(item.name),
       ),
-    [store.bebidas.items],
+    [bebidasCategory],
   );
 
   const notifications = useMemo<MenuNotification[]>(
@@ -268,6 +268,13 @@ export default function App() {
     document.getElementById("combos")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, []);
 
+  const goToWater = useCallback(() => {
+    setWaterNoticeOpen(false);
+    window.setTimeout(() => {
+      document.getElementById("bebidas")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 0);
+  }, []);
+
   const enterMenu = useCallback(() => {
     setView("menu");
     const hasWaterNotice = waterItems.length > 0;
@@ -388,7 +395,7 @@ export default function App() {
             notify(`Cupón ${code} listo para usar`);
           }}
           onGoToCombos={goToCombos}
-          onOpenWater={() => setWaterNoticeOpen(true)}
+          onGoToWater={goToWater}
         />
       )}
 
@@ -479,6 +486,17 @@ export default function App() {
                       {item.sizes.map((size) => `${size.name} $${size.price}`).join(" · ")}
                     </p>
                   ) : null}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setWaterNoticeOpen(false);
+                      if (bebidasCategory) handleQuickAdd(item, bebidasCategory);
+                    }}
+                    disabled={closed}
+                    className="mt-3 w-full rounded-full bg-sky-500 px-4 py-2 text-sm font-bold text-white transition hover:bg-sky-600 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {closed ? "No disponible ahora" : "Agregar al pedido"}
+                  </button>
                 </li>
               ))}
             </ul>

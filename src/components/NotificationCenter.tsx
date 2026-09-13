@@ -15,10 +15,10 @@ interface Props {
   notifications: MenuNotification[];
   onUseCoupon: (code: string) => void;
   onGoToCombos: () => void;
-  onOpenWater: () => void;
+  onGoToWater: () => void;
 }
 
-export function NotificationCenter({ notifications, onUseCoupon, onGoToCombos, onOpenWater }: Props) {
+export function NotificationCenter({ notifications, onUseCoupon, onGoToCombos, onGoToWater }: Props) {
   const [open, setOpen] = useState(false);
   const [hasUnread, setHasUnread] = useState(true);
   const visible = notifications;
@@ -79,8 +79,8 @@ export function NotificationCenter({ notifications, onUseCoupon, onGoToCombos, o
                           Usar cupón
                         </button>
                       ) : notification.kind === "water" ? (
-                        <button type="button" onClick={onOpenWater} className="mt-2 rounded-full bg-sky-500 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-sky-600">
-                          Ver aguas
+                        <button type="button" onClick={() => { setOpen(false); onGoToWater(); }} className="mt-2 rounded-full bg-sky-500 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-sky-600">
+                          Ver aguas del día
                         </button>
                       ) : (
                         <button type="button" onClick={onGoToCombos} className="mt-2 rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-emerald-700">
