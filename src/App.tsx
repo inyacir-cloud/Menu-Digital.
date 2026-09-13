@@ -458,8 +458,8 @@ export default function App() {
           notifications={notifications}
           onUseCoupon={(code) => {
             setAppliedCode(code);
-            setCartOpen(true);
-            notify(`Cupón ${code} listo para usar`);
+            if (cart.count > 0) setCartOpen(true);
+            notify(`Cupón ${code} guardado; se aplicará al pagar`);
           }}
           onGoToCombos={goToCombos}
           onGoToWater={goToWater}

@@ -75,7 +75,14 @@ export function NotificationCenter({ notifications, onUseCoupon, onGoToCombos, o
                       <h3 className="font-bold text-ink">{notification.title}</h3>
                       <p className="mt-0.5 text-sm leading-snug text-ink/65">{notification.description}</p>
                       {notification.kind === "coupon" ? (
-                        <button type="button" onClick={() => onUseCoupon(notification.code ?? "")} className="mt-2 rounded-full bg-mustard px-3 py-1.5 text-xs font-bold text-on-mustard transition hover:bg-mustard-deep">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setOpen(false);
+                            onUseCoupon(notification.code ?? "");
+                          }}
+                          className="mt-2 rounded-full bg-mustard px-3 py-1.5 text-xs font-bold text-on-mustard transition hover:bg-mustard-deep"
+                        >
                           Usar cupón
                         </button>
                       ) : notification.kind === "water" ? (
