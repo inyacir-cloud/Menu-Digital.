@@ -27,6 +27,7 @@ import {
 import { normalizeHex } from "../utils/color";
 import { uid } from "../utils/id";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
+import { resolveRemoteLoad } from "../utils/menuLoad";
 import { serializeMenuForSupabase } from "../utils/supabaseMenu";
 
 const STORAGE_KEY = "egf-menu-data-v3";
@@ -448,31 +449,57 @@ export function useMenuStore() {
 
   useEffect(() => {
     if (!isSupabaseConfigured) return;
+
     let active = true;
+    let settled = false;
+    const timeoutId = window.setTimeout(() => {
+      if (!active || settled) return;
+      settled = true;
+      const fallback = resolveRemoteLoad({ remote: null, error: new Error("timeout") });
+      setRemoteReady(fallback.remoteReady);
+      setStorageError(fallback.storageError);
+      setIsLoading(false);
+    }, 5000);
+
     void supabase.rpc("get_menu").then(({ data: remote, error }) => {
-      if (!active) return;
+      if (!active || settled) return;
+      settled = true;
+
       if (!error && remote && typeof remote === "object") {
         try {
           const remoteMenu = { ...remote, combos: Array.isArray(remote.combos) ? remote.combos : [] };
           setData(normalizeMenuData(remoteMenu));
           localStorage.removeItem(STORAGE_KEY);
           for (const key of LEGACY_KEYS) localStorage.removeItem(key);
+          const loaded = resolveRemoteLoad({ remote, error: null });
+          setRemoteReady(loaded.remoteReady);
+          setStorageError(loaded.storageError);
         } catch {
+          const fallback = resolveRemoteLoad({ remote: null, error: new Error("invalid format") });
+          setRemoteReady(fallback.remoteReady);
           setStorageError("Supabase devolvió un menú con formato inválido; se conserva la copia local.");
         }
-      } else if (error) {
-        setStorageError("No se pudo cargar el menú online; se está usando la copia local.");
+      } else {
+        const fallback = resolveRemoteLoad({ remote, error });
+        setRemoteReady(fallback.remoteReady);
+        setStorageError(fallback.storageError);
       }
-      setRemoteReady(!error && !!remote);
     }).catch(() => {
-      if (!active) return;
-      setStorageError("No se pudo cargar el menú online; se está usando la copia local.");
-      setRemoteReady(false);
+      if (!active || settled) return;
+      settled = true;
+      const fallback = resolveRemoteLoad({ remote: null, error: new Error("network") });
+      setRemoteReady(fallback.remoteReady);
+      setStorageError(fallback.storageError);
     }).finally(() => {
-      if (active) setIsLoading(false);
+      if (!active) return;
+      settled = true;
+      window.clearTimeout(timeoutId);
+      setIsLoading(false);
     });
     return () => {
       active = false;
+      settled = true;
+      window.clearTimeout(timeoutId);
     };
   }, []);
 

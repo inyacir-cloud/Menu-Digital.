@@ -13,11 +13,10 @@ interface Props {
   onQuickAdd: () => void;
   onOpen: () => void;
   onDecrement: () => void;
-  addButtonClassName?: string;
 }
 
 /** Fila de producto en las secciones tipo lista (platillos) */
-export function MenuItemRow({ item, qty, closed, onQuickAdd, onOpen, onDecrement, addButtonClassName }: Props) {
+export function MenuItemRow({ item, qty, closed, onQuickAdd, onOpen, onDecrement }: Props) {
   const inCart = qty > 0;
   const off = item.unavailable === true;
   const thumb = resolveImage(item.image);
@@ -96,7 +95,6 @@ export function MenuItemRow({ item, qty, closed, onQuickAdd, onOpen, onDecrement
           closed={closed}
           onAdd={onQuickAdd}
           onDecrement={onDecrement}
-          addButtonClassName={addButtonClassName}
         />
       </div>
     </li>

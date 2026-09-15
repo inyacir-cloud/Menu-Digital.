@@ -88,7 +88,7 @@ export const DEFAULT_SETTINGS: Settings = {
   theme: DEFAULT_THEME,
   templateV2: true,
   open: true,
-  closedNote: "Volvemos en un ratito. Mientras tanto, escríbenos por WhatsApp y con gusto te apartamos tu antojo. 🌮",
+  closedNote: "Hoy estamos cerrados. Mientras tanto, puedes consultar nuestro menú. 🌮",
 };
 
 /** Extra propio: "Con Queso + $7" (antes aparecía como producto suelto) */

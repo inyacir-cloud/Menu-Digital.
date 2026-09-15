@@ -10,11 +10,10 @@ interface Props {
   onAdd: () => void;
   onDecrement: () => void;
   className?: string;
-  addButtonClassName?: string;
 }
 
 /** Botón "+" / control de cantidad que aparece junto a cada precio */
-export function ItemControl({ name, qty, unavailable, closed, onAdd, onDecrement, className, addButtonClassName }: Props) {
+export function ItemControl({ name, qty, unavailable, closed, onAdd, onDecrement, className }: Props) {
   if (closed) return null;
 
   if (unavailable) {
@@ -46,10 +45,7 @@ export function ItemControl({ name, qty, unavailable, closed, onAdd, onDecrement
           type="button"
           onClick={onAdd}
           aria-label={`Agregar otro ${name}`}
-          className={cn(
-            "grid h-7 w-7 place-items-center rounded-full bg-mustard text-on-mustard transition hover:bg-mustard-deep active:scale-90 sm:h-8 sm:w-8",
-            addButtonClassName,
-          )}
+          className="grid h-7 w-7 place-items-center rounded-full bg-mustard text-on-mustard transition hover:bg-mustard-deep active:scale-90 sm:h-8 sm:w-8"
         >
           <PlusIcon className="h-3.5 w-3.5" />
         </button>
@@ -66,7 +62,6 @@ export function ItemControl({ name, qty, unavailable, closed, onAdd, onDecrement
       className={cn(
         "group grid h-9 w-9 place-items-center rounded-full bg-mustard text-on-mustard shadow-[0_2px_0_0_var(--color-mustard-deep)] transition-all hover:-translate-y-0.5 hover:bg-mustard-deep hover:shadow-[0_4px_0_0_var(--color-terracotta-deep)] active:translate-y-0.5 active:shadow-none",
         className,
-        addButtonClassName,
       )}
     >
       <PlusIcon className="h-4.5 w-4.5 transition-transform group-hover:rotate-90" />

@@ -54,7 +54,6 @@ export function BebidasBand({ category, qtyOf, closed, onQuickAdd, onOpen, onDec
               onQuickAdd={() => onQuickAdd(item, category)}
               onOpen={() => onOpen(item, category)}
               onDecrement={() => onDecrement(item.id)}
-              addButtonClassName="bg-sky-500 text-white shadow-[0_2px_0_0_#0284c7] hover:bg-sky-600"
             />
           ))}
         </ul>
