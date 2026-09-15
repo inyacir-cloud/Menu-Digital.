@@ -6,9 +6,9 @@ import { BagIcon, EyeIcon, LockIcon, WhatsAppIcon } from "./icons";
 
 interface Props {
   settings: Settings;
+  isOpen: boolean;
   authed: boolean;
   isLoading: boolean;
-  isOpen: boolean;
   onEnter: () => void;
   onAdminEnter: () => void;
   onSecret: () => void;
@@ -18,7 +18,7 @@ interface Props {
  * Portada: solo el logo sobre el fondo del menú, con el estado
  * abierto/cerrado y el acceso oculto a administración abajo.
  */
-export function SplashScreen({ settings, authed, isLoading, isOpen, onEnter, onAdminEnter, onSecret }: Props) {
+export function SplashScreen({ settings, isOpen, authed, isLoading, onEnter, onAdminEnter, onSecret }: Props) {
   const href = buildWhatsAppUrl(settings.contactMessage, settings.whatsappNumber);
 
   return (

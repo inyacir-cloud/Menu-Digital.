@@ -27,8 +27,7 @@ import { AdminBar } from "./components/admin/AdminBar";
 import { AdminLogin } from "./components/admin/AdminLogin";
 import { AdminPanel } from "./components/admin/AdminPanel";
 import { makeCouponNotification, NotificationCenter, type MenuNotification } from "./components/NotificationCenter";
-import { isBusinessOpenNow } from "./utils/businessSchedule";
-import { DEFAULT_SETTINGS } from "./data/menu";
+import { DEFAULT_BUSINESS_SCHEDULE, getEffectiveOpen } from "./utils/businessSchedule";
 import waterImage from "../a.webp";
 import notificationSound from "../noti.mp3";
 
@@ -174,17 +173,11 @@ export default function App() {
     applyTheme(store.settings.theme);
   }, [store.settings.theme]);
 
-  const scheduleMode = store.settings.scheduleMode ?? "automatic";
-  const schedule = store.settings.schedule ?? { ...DEFAULT_SETTINGS.schedule };
-
-  const effectiveOpen =
-    scheduleMode === "automatic"
-      ? store.settings.open && isBusinessOpenNow({
-          open: store.settings.open,
-          scheduleMode: "automatic",
-          schedule,
-        })
-      : store.settings.open;
+  const effectiveOpen = getEffectiveOpen({
+    open: store.settings.open,
+    scheduleMode: store.settings.scheduleMode ?? "automatic",
+    schedule: store.settings.schedule ?? DEFAULT_BUSINESS_SCHEDULE,
+  });
 
   // Con el negocio cerrado el menú queda solo de consulta: se cierra el carrito
   const closed = !effectiveOpen;
@@ -341,9 +334,9 @@ export default function App() {
       {view === "splash" ? (
         <SplashScreen
           settings={store.settings}
+          isOpen={effectiveOpen}
           authed={auth.authed}
           isLoading={store.isLoading}
-          isOpen={effectiveOpen}
           onEnter={enterMenu}
           onAdminEnter={() => setAdminOpen(true)}
           onSecret={openSecret}
@@ -357,7 +350,7 @@ export default function App() {
         <div className="paper-grain" aria-hidden="true" />
 
         <div className="relative z-10">
-          {auth.authed && <AdminBar open={store.settings.open} onEdit={() => setAdminOpen(true)} onLogout={handleLogout} />}
+          {auth.authed && <AdminBar open={effectiveOpen} onEdit={() => setAdminOpen(true)} onLogout={handleLogout} />}
 
           <Header settings={store.settings} onSecret={openSecret} />
 

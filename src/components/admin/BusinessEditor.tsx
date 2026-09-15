@@ -1,9 +1,9 @@
 import { useMemo, useState } from "react";
-import type { BusinessDaySchedule, BusinessSchedule, PaymentId, PaymentMethod, Settings } from "../../types";
+import type { BusinessDayName, BusinessSchedule, PaymentId, PaymentMethod, Settings } from "../../types";
 import type { MenuStore } from "../../hooks/useMenuStore";
-import { DEFAULT_SETTINGS } from "../../data/menu";
+import { DEFAULT_BUSINESS_SCHEDULE } from "../../utils/businessSchedule";
 import { PaymentIcon } from "../PaymentBadges";
-import { Button, Card, Field, SaveBar, SectionTitle, TextArea, TextInput, Toggle } from "./ui";
+import { Button, Card, Field, SaveBar, SectionTitle, TextArea, TextInput, Toggle, Segmented } from "./ui";
 
 interface Props {
   store: MenuStore;
@@ -16,7 +16,7 @@ const PAYMENT_HINTS: Record<PaymentId, string> = {
   mercadopago: "Pega únicamente el link de cobro de Mercado Pago; el cliente lo abrirá para pagar el total.",
 };
 
-const dayLabel: Record<keyof BusinessSchedule, string> = {
+const DAY_LABELS: Record<BusinessDayName, string> = {
   monday: "Lunes",
   tuesday: "Martes",
   wednesday: "Miércoles",
@@ -26,71 +26,72 @@ const dayLabel: Record<keyof BusinessSchedule, string> = {
   sunday: "Domingo",
 };
 
+const EMPTY_RANGE = { open: "11:30", close: "21:00" };
+
 export function BusinessEditor({ store, notify }: Props) {
-  const [form, setForm] = useState<Settings>(() => {
-    const base = store.settings ?? DEFAULT_SETTINGS;
-    return {
-      ...DEFAULT_SETTINGS,
-      ...base,
-      schedule: {
-        ...DEFAULT_SETTINGS.schedule,
-        ...(base.schedule ?? {}),
-      },
-    } as Settings;
-  });
+  const [form, setForm] = useState<Settings>(() => ({
+    ...store.settings,
+    schedule: { ...DEFAULT_BUSINESS_SCHEDULE, ...(store.settings.schedule ?? {}) },
+  }));
   const [error, setError] = useState<string | null>(null);
   const dirty = JSON.stringify(form) !== JSON.stringify(store.settings);
 
-  const scheduleEntries = useMemo(() => Object.entries(dayLabel) as Array<[keyof BusinessSchedule, string]>, []);
+  const scheduleEntries = useMemo(() => Object.entries(DAY_LABELS) as Array<[BusinessDayName, string]>, []);
 
   const set = (patch: Partial<Settings>) => setForm((f) => ({ ...f, ...patch }));
   const setPayment = (id: PaymentId, patch: Partial<PaymentMethod>) =>
     setForm((f) => ({ ...f, payments: f.payments.map((p) => (p.id === id ? { ...p, ...patch } : p)) }));
-  const updateDay = (day: keyof BusinessSchedule, patch: Partial<BusinessDaySchedule>) => {
+
+  const setDay = (day: BusinessDayName, patch: Partial<BusinessSchedule[BusinessDayName]>) => {
     setForm((f) => ({
       ...f,
       schedule: {
         ...f.schedule,
         [day]: {
-          ...f.schedule[day],
+          enabled: f.schedule[day]?.enabled ?? true,
+          ranges: f.schedule[day]?.ranges ?? DEFAULT_BUSINESS_SCHEDULE[day].ranges,
           ...patch,
         },
       },
     }));
   };
-  const updateRange = (day: keyof BusinessSchedule, index: number, patch: { open?: string; close?: string }) => {
+
+  const setRange = (day: BusinessDayName, index: number, patch: Partial<{ open: string; close: string }>) => {
     setForm((f) => ({
       ...f,
       schedule: {
         ...f.schedule,
         [day]: {
           ...f.schedule[day],
-          ranges: f.schedule[day].ranges.map((range, i) => (i === index ? { ...range, ...patch } : range)),
+          ranges: (f.schedule[day]?.ranges ?? DEFAULT_BUSINESS_SCHEDULE[day].ranges).map((range, rangeIndex) =>
+            rangeIndex === index ? { ...range, ...patch } : range,
+          ),
         },
       },
     }));
   };
-  const addRange = (day: keyof BusinessSchedule) => {
+
+  const addRange = (day: BusinessDayName) => {
     setForm((f) => ({
       ...f,
       schedule: {
         ...f.schedule,
         [day]: {
           ...f.schedule[day],
-          enabled: true,
-          ranges: [...f.schedule[day].ranges, { open: "11:30", close: "17:00" }],
+          ranges: [...(f.schedule[day]?.ranges ?? DEFAULT_BUSINESS_SCHEDULE[day].ranges), { ...EMPTY_RANGE }],
         },
       },
     }));
   };
-  const removeRange = (day: keyof BusinessSchedule, index: number) => {
+
+  const removeRange = (day: BusinessDayName, index: number) => {
     setForm((f) => ({
       ...f,
       schedule: {
         ...f.schedule,
         [day]: {
           ...f.schedule[day],
-          ranges: f.schedule[day].ranges.filter((_, i) => i !== index),
+          ranges: (f.schedule[day]?.ranges ?? DEFAULT_BUSINESS_SCHEDULE[day].ranges).filter((_, rangeIndex) => rangeIndex !== index),
         },
       },
     }));
@@ -161,117 +162,91 @@ export function BusinessEditor({ store, notify }: Props) {
         </Field>
       </Card>
 
-      <Card className="space-y-4">
-        <div className="flex items-start justify-between gap-3">
+      <Card className="space-y-5">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h4 className="font-bold">Horario y disponibilidad</h4>
-            <p className="text-sm text-ink/60">Automatiza la apertura según los días y horas del negocio, o úsalo manualmente cuando quieras cerrar el menú sin tocar el calendario.</p>
+            <h4 className="font-bold">Horarios del negocio</h4>
+            <p className="text-xs text-ink/55">Controla cuándo la página está abierta o cerrada.</p>
           </div>
-          <div className="rounded-full border border-ink/10 bg-paper px-2 py-1 text-[0.65rem] font-bold uppercase tracking-[0.14em] text-ink/60">
-            {form.scheduleMode === "automatic" ? "Automático" : "Manual"}
-          </div>
+          <Segmented
+            value={form.scheduleMode}
+            onChange={(value) => set({ scheduleMode: value })}
+            options={[
+              { value: "automatic", label: "Automático" },
+              { value: "manual", label: "Manual" },
+            ]}
+          />
         </div>
 
-        <div className="rounded-2xl bg-paper/60 p-3 ring-1 ring-ink/8">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <span className="text-sm font-semibold text-ink">Modo de apertura</span>
-            <div className="inline-flex rounded-full bg-ink/5 p-1">
-              <button
-                type="button"
-                onClick={() => set({ scheduleMode: "automatic" })}
-                className={`rounded-full px-3 py-1.5 text-xs font-bold transition ${
-                  form.scheduleMode === "automatic" ? "bg-ink text-paper shadow-sm" : "text-ink/60"
-                }`}
-              >
-                Automático
-              </button>
-              <button
-                type="button"
-                onClick={() => set({ scheduleMode: "manual" })}
-                className={`rounded-full px-3 py-1.5 text-xs font-bold transition ${
-                  form.scheduleMode === "manual" ? "bg-ink text-paper shadow-sm" : "text-ink/60"
-                }`}
-              >
-                Manual
-              </button>
-            </div>
+        {form.scheduleMode === "manual" ? (
+          <div className="rounded-2xl border border-ink/10 bg-ink/5 p-3">
+            <Toggle
+              checked={form.open}
+              onChange={(next) => set({ open: next })}
+              label={form.open ? "La página está abierta manualmente" : "La página está cerrada manualmente"}
+              description="Esto anula el horario automático cuando se usa el modo manual."
+            />
           </div>
-
-          {form.scheduleMode === "manual" ? (
-            <div className="mt-3 flex items-center justify-between rounded-xl border border-ink/10 bg-white p-3">
-              <div>
-                <p className="text-sm font-semibold text-ink">Abrir o cerrar el menú manualmente</p>
-                <p className="text-xs text-ink/55">Se usa cuando no quieres depender del calendario.</p>
-              </div>
-              <Toggle
-                checked={form.open}
-                onChange={(next) => set({ open: next })}
-                label={form.open ? "Menú abierto" : "Menú cerrado"}
-              />
-            </div>
-          ) : (
-            <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50/80 p-3 text-sm text-emerald-800">
-              El menú se abrirá o cerrará automáticamente según el horario configurado de cada día.
-            </div>
-          )}
-        </div>
-
-        <div className="space-y-3">
-          {scheduleEntries.map(([day, label]) => {
-            const dayConfig = form.schedule?.[day] ?? DEFAULT_SETTINGS.schedule[day];
-            return (
-              <div key={day} className="rounded-2xl border border-ink/10 bg-paper/50 p-3">
-                <div className="flex items-center justify-between gap-3">
-                  <span className="text-sm font-bold text-ink">{label}</span>
-                  <Toggle
-                    checked={dayConfig.enabled}
-                    onChange={(next) => updateDay(day, { enabled: next })}
-                    label={`${label} ${next ? "habilitado" : "deshabilitado"}`}
-                  />
-                </div>
-
-                {dayConfig.enabled && (
-                  <div className="mt-3 space-y-3">
-                    {dayConfig.ranges.length === 0 ? (
-                      <div className="rounded-xl border border-dashed border-ink/15 bg-white/70 p-3 text-xs text-ink/55">
-                        Sin horarios. Agrega un rango para habilitar este día.
-                      </div>
-                    ) : null}
-
-                    {dayConfig.ranges.map((range, index) => (
-                      <div key={`${day}-${index}`} className="flex flex-col gap-2 rounded-xl bg-white p-2.5 ring-1 ring-ink/8 sm:flex-row sm:items-center">
-                        <div className="grid grid-cols-2 gap-2 sm:flex-1">
-                          <TextInput
-                            type="time"
-                            value={range.open}
-                            onChange={(e) => updateRange(day, index, { open: e.target.value })}
-                          />
-                          <TextInput
-                            type="time"
-                            value={range.close}
-                            onChange={(e) => updateRange(day, index, { close: e.target.value })}
-                          />
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeRange(day, index)}
-                          className="w-full sm:w-auto"
-                        >
-                          Quitar
-                        </Button>
-                      </div>
-                    ))}
-
-                    <Button variant="ghost" size="sm" onClick={() => addRange(day)} className="w-full sm:w-auto">
-                      + Agregar rango
-                    </Button>
+        ) : (
+          <div className="space-y-3">
+            {scheduleEntries.map(([day, label]) => {
+              const daySchedule = form.schedule[day] ?? DEFAULT_BUSINESS_SCHEDULE[day];
+              return (
+                <div key={day} className="rounded-2xl border border-ink/10 bg-paper/60 p-3">
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-bold text-ink">{label}</span>
+                      <Toggle
+                        checked={daySchedule.enabled}
+                        onChange={(next) => setDay(day, { enabled: next })}
+                        label={daySchedule.enabled ? "Activo" : "Inactivo"}
+                      />
+                    </div>
+                    {daySchedule.enabled && (
+                      <Button size="sm" variant="ghost" onClick={() => addRange(day)}>
+                        + Rango
+                      </Button>
+                    )}
                   </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+
+                  {daySchedule.enabled ? (
+                    <div className="space-y-2">
+                      {(daySchedule.ranges ?? DEFAULT_BUSINESS_SCHEDULE[day].ranges).map((range, idx) => (
+                        <div key={`${day}-${idx}`} className="grid gap-2 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+                          <Field label="Apertura" plain>
+                            <TextInput
+                              type="time"
+                              value={range.open}
+                              onChange={(e) => setRange(day, idx, { open: e.target.value })}
+                            />
+                          </Field>
+                          <Field label="Cierre" plain>
+                            <TextInput
+                              type="time"
+                              value={range.close}
+                              onChange={(e) => setRange(day, idx, { close: e.target.value })}
+                            />
+                          </Field>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-[42px]"
+                            onClick={() => removeRange(day, idx)}
+                            disabled={(daySchedule.ranges ?? DEFAULT_BUSINESS_SCHEDULE[day].ranges).length <= 1}
+                          >
+                            Quitar
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-ink/55">Este día queda cerrado automáticamente.</p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </Card>
 
       <div className="space-y-3">

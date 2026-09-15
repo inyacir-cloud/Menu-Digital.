@@ -5,6 +5,7 @@ import type {
   Extra,
   MenuCategory,
   MenuData,
+  BusinessSchedule,
   SeasonalSection,
   Settings,
   Theme,
@@ -69,6 +70,8 @@ export const DEFAULT_MESSAGE_TEMPLATE = [
 
 export const DEFAULT_CONTACT_MESSAGE = "Hola, quiero hacer un pedido 🌮";
 
+export const DEFAULT_BUSINESS_SCHEDULE_CONFIG: BusinessSchedule = DEFAULT_BUSINESS_SCHEDULE;
+
 export const DEFAULT_SETTINGS: Settings = {
   name: "El Gordo & La Flaca",
   tagline: "Antojitos Mexicanos",
@@ -90,7 +93,7 @@ export const DEFAULT_SETTINGS: Settings = {
   templateV2: true,
   open: true,
   scheduleMode: "automatic",
-  schedule: DEFAULT_BUSINESS_SCHEDULE,
+  schedule: DEFAULT_BUSINESS_SCHEDULE_CONFIG,
   closedNote: "Hoy estamos cerrados. Mientras tanto, puedes consultar nuestro menú. 🌮",
 };
 
