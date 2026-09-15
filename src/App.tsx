@@ -27,6 +27,8 @@ import { AdminBar } from "./components/admin/AdminBar";
 import { AdminLogin } from "./components/admin/AdminLogin";
 import { AdminPanel } from "./components/admin/AdminPanel";
 import { makeCouponNotification, NotificationCenter, type MenuNotification } from "./components/NotificationCenter";
+import { isBusinessOpenNow } from "./utils/businessSchedule";
+import { DEFAULT_SETTINGS } from "./data/menu";
 import waterImage from "../a.webp";
 import notificationSound from "../noti.mp3";
 
@@ -172,8 +174,20 @@ export default function App() {
     applyTheme(store.settings.theme);
   }, [store.settings.theme]);
 
+  const scheduleMode = store.settings.scheduleMode ?? "automatic";
+  const schedule = store.settings.schedule ?? { ...DEFAULT_SETTINGS.schedule };
+
+  const effectiveOpen =
+    scheduleMode === "automatic"
+      ? store.settings.open && isBusinessOpenNow({
+          open: store.settings.open,
+          scheduleMode: "automatic",
+          schedule,
+        })
+      : store.settings.open;
+
   // Con el negocio cerrado el menú queda solo de consulta: se cierra el carrito
-  const closed = !store.settings.open;
+  const closed = !effectiveOpen;
   useEffect(() => {
     if (closed) {
       setCartOpen(false);
@@ -329,6 +343,7 @@ export default function App() {
           settings={store.settings}
           authed={auth.authed}
           isLoading={store.isLoading}
+          isOpen={effectiveOpen}
           onEnter={enterMenu}
           onAdminEnter={() => setAdminOpen(true)}
           onSecret={openSecret}

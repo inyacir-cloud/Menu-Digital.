@@ -173,6 +173,34 @@ function normalizeTheme(raw: unknown): Theme {
   };
 }
 
+function normalizeBusinessDay(raw: unknown): BusinessDaySchedule {
+  const r = asObj(raw);
+  const ranges = (Array.isArray(r.ranges) ? r.ranges : []).map((range) => {
+    const item = asObj(range);
+    const open = str(item.open).trim();
+    const close = str(item.close).trim();
+    return { open: /^\d{1,2}:\d{2}$/.test(open) ? open : "11:30", close: /^\d{1,2}:\d{2}$/.test(close) ? close : "17:00" };
+  });
+  return {
+    enabled: r.enabled === true,
+    ranges: ranges.length > 0 ? ranges.slice(0, 4) : [],
+  };
+}
+
+function normalizeSchedule(raw: unknown): BusinessSchedule {
+  const r = asObj(raw);
+  const d = DEFAULT_SETTINGS.schedule;
+  return {
+    monday: normalizeBusinessDay(r.monday ?? d.monday),
+    tuesday: normalizeBusinessDay(r.tuesday ?? d.tuesday),
+    wednesday: normalizeBusinessDay(r.wednesday ?? d.wednesday),
+    thursday: normalizeBusinessDay(r.thursday ?? d.thursday),
+    friday: normalizeBusinessDay(r.friday ?? d.friday),
+    saturday: normalizeBusinessDay(r.saturday ?? d.saturday),
+    sunday: normalizeBusinessDay(r.sunday ?? d.sunday),
+  };
+}
+
 function normalizeSettings(raw: unknown): Settings {
   const r = asObj(raw);
   const rawPayments = (Array.isArray(r.payments) ? r.payments : []).map(asObj);
@@ -206,6 +234,8 @@ function normalizeSettings(raw: unknown): Settings {
     contactMessage: str(r.contactMessage).trim() || d.contactMessage,
     theme: normalizeTheme(r.theme),
     open: r.open !== false,
+    scheduleMode: r.scheduleMode === "manual" ? "manual" : "automatic",
+    schedule: normalizeSchedule(r.schedule),
     closedNote: str(r.closedNote).trim() || d.closedNote,
     logo: str(r.logo) || undefined,
   };
@@ -650,7 +680,22 @@ export function useMenuStore() {
   );
 
   const updateSettings = useCallback((patch: Partial<Settings>) => {
-    setData((d) => ({ ...d, settings: { ...d.settings, ...patch } }));
+    setData((d) => {
+      const current = d.settings ?? DEFAULT_SETTINGS;
+      const nextSettings: Settings = {
+        ...DEFAULT_SETTINGS,
+        ...current,
+        ...patch,
+        schedule: {
+          ...DEFAULT_SETTINGS.schedule,
+          ...(current.schedule ?? {}),
+          ...(patch.schedule ?? {}),
+        },
+      };
+      if (patch.scheduleMode) nextSettings.scheduleMode = patch.scheduleMode;
+      if (!nextSettings.scheduleMode) nextSettings.scheduleMode = current.scheduleMode ?? "automatic";
+      return { ...d, settings: nextSettings };
+    });
   }, []);
 
   /* ---------- Sección de temporada ---------- */

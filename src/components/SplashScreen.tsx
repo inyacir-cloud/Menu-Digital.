@@ -8,6 +8,7 @@ interface Props {
   settings: Settings;
   authed: boolean;
   isLoading: boolean;
+  isOpen: boolean;
   onEnter: () => void;
   onAdminEnter: () => void;
   onSecret: () => void;
@@ -17,7 +18,7 @@ interface Props {
  * Portada: solo el logo sobre el fondo del menú, con el estado
  * abierto/cerrado y el acceso oculto a administración abajo.
  */
-export function SplashScreen({ settings, authed, isLoading, onEnter, onAdminEnter, onSecret }: Props) {
+export function SplashScreen({ settings, authed, isLoading, isOpen, onEnter, onAdminEnter, onSecret }: Props) {
   const href = buildWhatsAppUrl(settings.contactMessage, settings.whatsappNumber);
 
   return (
@@ -40,7 +41,7 @@ export function SplashScreen({ settings, authed, isLoading, onEnter, onAdminEnte
             <span className="h-2 w-2 animate-pulse rounded-full bg-mustard" aria-hidden="true" />
             Cargando menú…
           </div>
-        ) : settings.open ? (
+        ) : isOpen ? (
           <>
             <span className="mt-5 inline-flex items-center gap-2 rounded-full bg-wa/15 px-4 py-1.5 text-sm font-bold text-wa-deep ring-1 ring-wa/30">
               <span className="h-2 w-2 animate-pulse rounded-full bg-wa" aria-hidden="true" />

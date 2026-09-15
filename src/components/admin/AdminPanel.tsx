@@ -1,7 +1,8 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import type { MenuStore } from "../../hooks/useMenuStore";
 import type { AdminAuth } from "../../hooks/useAdminAuth";
 import { DEFAULT_THEME } from "../../data/menu";
+import { isBusinessOpenNow } from "../../utils/businessSchedule";
 import { themeStyle } from "../../utils/color";
 import { cn } from "../../utils/cn";
 import {
@@ -73,6 +74,18 @@ interface Props {
 export function AdminPanel({ store, auth, onClose, onLogout, onReLogin, notify }: Props) {
   const [tab, setTab] = useState<Tab>("inicio");
   const [sideOpen, setSideOpen] = useState(false);
+  const actualOpen = useMemo(() => {
+    const scheduleMode = store.settings.scheduleMode ?? "automatic";
+    const schedule = store.settings.schedule ?? { ...DEFAULT_SETTINGS.schedule };
+
+    return scheduleMode === "automatic"
+      ? isBusinessOpenNow({
+          open: store.settings.open,
+          scheduleMode: "automatic",
+          schedule,
+        })
+      : store.settings.open;
+  }, [store.settings]);
 
   // Bloquear scroll del fondo + cerrar con Escape
   useEffect(() => {
@@ -126,19 +139,19 @@ export function AdminPanel({ store, auth, onClose, onLogout, onReLogin, notify }
         <button
           type="button"
           onClick={() => {
-            const next = !store.settings.open;
-            store.updateSettings({ open: next });
+            const next = !actualOpen;
+            store.updateSettings({ open: next, scheduleMode: "manual" });
             notify(next ? "Negocio abierto · pedidos habilitados" : "Negocio cerrado · menú solo consulta");
           }}
           className={cn(
             "hidden items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-bold transition active:scale-95 sm:inline-flex",
-            store.settings.open
+            actualOpen
               ? "bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30"
               : "bg-red-500/20 text-red-300 hover:bg-red-500/30",
           )}
         >
-          <span className={cn("h-2 w-2 rounded-full", store.settings.open ? "bg-emerald-400" : "animate-pulse bg-red-400")} />
-          {store.settings.open ? "Abierto" : "Cerrado"}
+          <span className={cn("h-2 w-2 rounded-full", actualOpen ? "bg-emerald-400" : "animate-pulse bg-red-400")} />
+          {actualOpen ? "Abierto" : "Cerrado"}
         </button>
 
         <button
@@ -184,25 +197,25 @@ export function AdminPanel({ store, auth, onClose, onLogout, onReLogin, notify }
 
       {/* Estado abierto / cerrado — versión móvil */}
       <div className="flex items-center gap-3 border-b border-ink/10 bg-white px-4 py-2 sm:hidden">
-        <span className={cn("h-2 w-2 shrink-0 rounded-full", store.settings.open ? "bg-emerald-500" : "animate-pulse bg-red-500")} />
+        <span className={cn("h-2 w-2 shrink-0 rounded-full", actualOpen ? "bg-emerald-500" : "animate-pulse bg-red-500")} />
         <p className="flex-1 text-xs text-ink/70">
-          <span className="font-bold text-ink">{store.settings.open ? "Abierto" : "Cerrado"}</span>
+          <span className="font-bold text-ink">{actualOpen ? "Abierto" : "Cerrado"}</span>
           {" · "}
-          {store.settings.open ? "pedidos habilitados" : "solo consulta"}
+          {actualOpen ? "pedidos habilitados" : "solo consulta"}
         </p>
         <button
           type="button"
           onClick={() => {
-            const next = !store.settings.open;
-            store.updateSettings({ open: next });
+            const next = !actualOpen;
+            store.updateSettings({ open: next, scheduleMode: "manual" });
             notify(next ? "Negocio abierto" : "Negocio cerrado");
           }}
           className={cn(
             "rounded-full px-3 py-1 text-[0.68rem] font-bold transition active:scale-95",
-            store.settings.open ? "bg-red-100 text-red-700" : "bg-emerald-100 text-emerald-700",
+            actualOpen ? "bg-red-100 text-red-700" : "bg-emerald-100 text-emerald-700",
           )}
         >
-          {store.settings.open ? "Cerrar" : "Abrir"}
+          {actualOpen ? "Cerrar" : "Abrir"}
         </button>
       </div>
 

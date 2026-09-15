@@ -77,6 +77,26 @@ export interface Theme {
   secondary: string;
 }
 
+export type BusinessScheduleMode = "manual" | "automatic";
+
+export interface BusinessDaySchedule {
+  enabled: boolean;
+  ranges: Array<{
+    open: string;
+    close: string;
+  }>;
+}
+
+export interface BusinessSchedule {
+  monday: BusinessDaySchedule;
+  tuesday: BusinessDaySchedule;
+  wednesday: BusinessDaySchedule;
+  thursday: BusinessDaySchedule;
+  friday: BusinessDaySchedule;
+  saturday: BusinessDaySchedule;
+  sunday: BusinessDaySchedule;
+}
+
 export interface Settings {
   name: string;
   tagline: string;
@@ -102,6 +122,10 @@ export interface Settings {
   theme: Theme;
   /** Negocio abierto / cerrado (controla la portada y el acceso al menú) */
   open: boolean;
+  /** Modo del horario: manual o automático según el calendario */
+  scheduleMode: BusinessScheduleMode;
+  /** Horario por día con rangos de apertura y cierre */
+  schedule: BusinessSchedule;
   /** Aviso que se muestra en la portada cuando está cerrado */
   closedNote: string;
   /** Imagen del logo (data URL o URL); sin valor, se usa el sombrero por defecto */

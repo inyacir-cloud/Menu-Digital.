@@ -9,6 +9,7 @@ import type {
   Settings,
   Theme,
 } from "../types";
+import { DEFAULT_BUSINESS_SCHEDULE } from "../utils/businessSchedule";
 import tacoImg from "../assets/taco.jpg";
 import burritoImg from "../assets/burrito.jpg";
 import sincronizadaImg from "../assets/sincronizada.jpg";
@@ -88,6 +89,8 @@ export const DEFAULT_SETTINGS: Settings = {
   theme: DEFAULT_THEME,
   templateV2: true,
   open: true,
+  scheduleMode: "automatic",
+  schedule: DEFAULT_BUSINESS_SCHEDULE,
   closedNote: "Hoy estamos cerrados. Mientras tanto, puedes consultar nuestro menú. 🌮",
 };
 
