@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import type { BusinessDayName, BusinessSchedule, PaymentId, PaymentMethod, Settings } from "../../types";
 import type { MenuStore } from "../../hooks/useMenuStore";
 import { DEFAULT_BUSINESS_SCHEDULE } from "../../utils/businessSchedule";
+import { cn } from "../../utils/cn";
 import { PaymentIcon } from "../PaymentBadges";
 import { Button, Card, Field, SaveBar, SectionTitle, TextArea, TextInput, Toggle, Segmented } from "./ui";
 
@@ -33,6 +34,7 @@ export function BusinessEditor({ store, notify }: Props) {
     ...store.settings,
     schedule: { ...DEFAULT_BUSINESS_SCHEDULE, ...(store.settings.schedule ?? {}) },
   }));
+  const [scheduleExpanded, setScheduleExpanded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const dirty = JSON.stringify(form) !== JSON.stringify(store.settings);
 
@@ -162,89 +164,118 @@ export function BusinessEditor({ store, notify }: Props) {
         </Field>
       </Card>
 
-      <Card className="space-y-5">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h4 className="font-bold">Horarios del negocio</h4>
-            <p className="text-xs text-ink/55">Controla cuándo la página está abierta o cerrada.</p>
-          </div>
-          <Segmented
-            value={form.scheduleMode}
-            onChange={(value) => set({ scheduleMode: value })}
-            options={[
-              { value: "automatic", label: "Automático" },
-              { value: "manual", label: "Manual" },
-            ]}
-          />
-        </div>
+      <Card className="overflow-hidden p-0">
+        <button
+          type="button"
+          onClick={() => setScheduleExpanded((expanded) => !expanded)}
+          aria-expanded={scheduleExpanded}
+          className="flex w-full items-center justify-between gap-4 p-4 text-left transition hover:bg-paper/45"
+        >
+          <span className="min-w-0">
+            <span className="block font-bold">Horarios del negocio</span>
+            <span className="mt-0.5 block text-xs text-ink/55">
+              {form.scheduleMode === "automatic" ? "Apertura automática por día" : form.open ? "Abierta manualmente" : "Cerrada manualmente"}
+            </span>
+          </span>
+          <span
+            className={cn(
+              "grid h-8 w-8 shrink-0 place-items-center rounded-full bg-ink/5 text-ink/60 transition-transform",
+              scheduleExpanded && "rotate-180",
+            )}
+            aria-hidden="true"
+          >
+            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="m6 9 6 6 6-6" />
+            </svg>
+          </span>
+        </button>
 
-        {form.scheduleMode === "manual" ? (
-          <div className="rounded-2xl border border-ink/10 bg-ink/5 p-3">
-            <Toggle
-              checked={form.open}
-              onChange={(next) => set({ open: next })}
-              label={form.open ? "La página está abierta manualmente" : "La página está cerrada manualmente"}
-              description="Esto anula el horario automático cuando se usa el modo manual."
-            />
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {scheduleEntries.map(([day, label]) => {
-              const daySchedule = form.schedule[day] ?? DEFAULT_BUSINESS_SCHEDULE[day];
-              return (
-                <div key={day} className="rounded-2xl border border-ink/10 bg-paper/60 p-3">
-                  <div className="mb-3 flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm font-bold text-ink">{label}</span>
-                      <Toggle
-                        checked={daySchedule.enabled}
-                        onChange={(next) => setDay(day, { enabled: next })}
-                        label={daySchedule.enabled ? "Activo" : "Inactivo"}
-                      />
-                    </div>
-                    {daySchedule.enabled && (
-                      <Button size="sm" variant="ghost" onClick={() => addRange(day)}>
-                        + Rango
-                      </Button>
-                    )}
-                  </div>
+        {scheduleExpanded && (
+          <div className="space-y-5 border-t border-ink/10 p-4">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="font-semibold">Control de disponibilidad</p>
+                <p className="text-xs text-ink/55">Define cuándo la página acepta pedidos.</p>
+              </div>
+              <Segmented
+                value={form.scheduleMode}
+                onChange={(value) => set({ scheduleMode: value })}
+                options={[
+                  { value: "automatic", label: "Automático" },
+                  { value: "manual", label: "Manual" },
+                ]}
+              />
+            </div>
 
-                  {daySchedule.enabled ? (
-                    <div className="space-y-2">
-                      {(daySchedule.ranges ?? DEFAULT_BUSINESS_SCHEDULE[day].ranges).map((range, idx) => (
-                        <div key={`${day}-${idx}`} className="grid gap-2 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
-                          <Field label="Apertura" plain>
-                            <TextInput
-                              type="time"
-                              value={range.open}
-                              onChange={(e) => setRange(day, idx, { open: e.target.value })}
-                            />
-                          </Field>
-                          <Field label="Cierre" plain>
-                            <TextInput
-                              type="time"
-                              value={range.close}
-                              onChange={(e) => setRange(day, idx, { close: e.target.value })}
-                            />
-                          </Field>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-[42px]"
-                            onClick={() => removeRange(day, idx)}
-                            disabled={(daySchedule.ranges ?? DEFAULT_BUSINESS_SCHEDULE[day].ranges).length <= 1}
-                          >
-                            Quitar
-                          </Button>
+            {form.scheduleMode === "manual" ? (
+              <div className="rounded-2xl border border-ink/10 bg-ink/5 p-3">
+                <Toggle
+                  checked={form.open}
+                  onChange={(next) => set({ open: next })}
+                  label={form.open ? "La página está abierta manualmente" : "La página está cerrada manualmente"}
+                  description="Esto anula el horario automático cuando se usa el modo manual."
+                />
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {scheduleEntries.map(([day, label]) => {
+                  const daySchedule = form.schedule[day] ?? DEFAULT_BUSINESS_SCHEDULE[day];
+                  return (
+                    <div key={day} className="rounded-2xl border border-ink/10 bg-paper/60 p-3">
+                      <div className="mb-3 flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <span className="text-sm font-bold text-ink">{label}</span>
+                          <Toggle
+                            checked={daySchedule.enabled}
+                            onChange={(next) => setDay(day, { enabled: next })}
+                            label={daySchedule.enabled ? "Activo" : "Inactivo"}
+                          />
                         </div>
-                      ))}
+                        {daySchedule.enabled && (
+                          <Button size="sm" variant="ghost" onClick={() => addRange(day)}>
+                            + Rango
+                          </Button>
+                        )}
+                      </div>
+
+                      {daySchedule.enabled ? (
+                        <div className="space-y-2">
+                          {(daySchedule.ranges ?? DEFAULT_BUSINESS_SCHEDULE[day].ranges).map((range, idx) => (
+                            <div key={`${day}-${idx}`} className="grid gap-2 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+                              <Field label="Apertura" plain>
+                                <TextInput
+                                  type="time"
+                                  value={range.open}
+                                  onChange={(e) => setRange(day, idx, { open: e.target.value })}
+                                />
+                              </Field>
+                              <Field label="Cierre" plain>
+                                <TextInput
+                                  type="time"
+                                  value={range.close}
+                                  onChange={(e) => setRange(day, idx, { close: e.target.value })}
+                                />
+                              </Field>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-[42px]"
+                                onClick={() => removeRange(day, idx)}
+                                disabled={(daySchedule.ranges ?? DEFAULT_BUSINESS_SCHEDULE[day].ranges).length <= 1}
+                              >
+                                Quitar
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-ink/55">Este día queda cerrado automáticamente.</p>
+                      )}
                     </div>
-                  ) : (
-                    <p className="text-xs text-ink/55">Este día queda cerrado automáticamente.</p>
-                  )}
-                </div>
-              );
-            })}
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
       </Card>
