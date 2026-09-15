@@ -1,4 +1,5 @@
 import type { Settings } from "../types";
+import { getNextOpeningInfo } from "../utils/businessSchedule";
 import { buildWhatsAppUrl } from "../utils/whatsapp";
 import { Blob } from "./Blob";
 import { BrandLogo } from "./SombreroLogo";
@@ -20,6 +21,7 @@ interface Props {
  */
 export function SplashScreen({ settings, isOpen, authed, isLoading, onEnter, onAdminEnter, onSecret }: Props) {
   const href = buildWhatsAppUrl(settings.contactMessage, settings.whatsappNumber);
+  const nextOpening = getNextOpeningInfo(settings.schedule);
 
   return (
     <div className="relative flex min-h-[100dvh] flex-col overflow-hidden bg-paper">
@@ -65,6 +67,16 @@ export function SplashScreen({ settings, isOpen, authed, isLoading, onEnter, onA
             </span>
             {settings.closedNote && (
               <p className="mt-2.5 text-sm leading-relaxed text-ink/70">{settings.closedNote}</p>
+            )}
+            {nextOpening && (
+              <div className="mt-3 rounded-xl bg-white/70 px-3 py-2 text-sm text-ink/75 ring-1 ring-red-200/70">
+                <p className="font-bold text-ink">
+                  Abrimos {nextOpening.isToday ? "hoy" : `el ${nextOpening.day}`} a las {nextOpening.open}
+                </p>
+                <p className="mt-0.5 text-xs text-ink/60">
+                  Horario: {nextOpening.open} a {nextOpening.close}
+                </p>
+              </div>
             )}
             <a
               href={href}

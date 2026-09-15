@@ -58,6 +58,16 @@ export const DEFAULT_BUSINESS_SCHEDULE: BusinessSchedule = {
   sunday: { enabled: true, ranges: [{ open: "11:30", close: "21:00" }] },
 };
 
+const DAY_LABELS: Record<BusinessDayName, string> = {
+  monday: "lunes",
+  tuesday: "martes",
+  wednesday: "miércoles",
+  thursday: "jueves",
+  friday: "viernes",
+  saturday: "sábado",
+  sunday: "domingo",
+};
+
 export function normalizeBusinessSchedule(raw?: Partial<BusinessSchedule> | BusinessSchedule | null): BusinessSchedule {
   return WEEK_DAYS.reduce((acc, day) => {
     const entry = raw?.[day] ?? DEFAULT_BUSINESS_SCHEDULE[day];
@@ -88,4 +98,34 @@ export function isBusinessOpenNow(settings: BusinessScheduleState, now = new Dat
 
 export function getEffectiveOpen(settings: BusinessScheduleState, now = new Date()): boolean {
   return settings.scheduleMode === "manual" ? settings.open : isBusinessOpenNow(settings, now);
+}
+
+export function getNextOpeningInfo(
+  scheduleInput?: Partial<BusinessSchedule> | BusinessSchedule | null,
+  now = new Date(),
+): { day: string; open: string; close: string; isToday: boolean } | null {
+  const schedule = normalizeBusinessSchedule(scheduleInput ?? DEFAULT_BUSINESS_SCHEDULE);
+  const currentDayIndex = (now.getDay() + 6) % 7;
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+
+  for (let offset = 0; offset < WEEK_DAYS.length; offset += 1) {
+    const dayIndex = (currentDayIndex + offset) % WEEK_DAYS.length;
+    const day = WEEK_DAYS[dayIndex];
+    const daySchedule = schedule[day];
+    if (!daySchedule.enabled) continue;
+
+    const nextRange = [...daySchedule.ranges]
+      .sort((a, b) => timeToMinutes(a.open) - timeToMinutes(b.open))
+      .find((range) => offset > 0 || timeToMinutes(range.open) > nowMinutes);
+    if (nextRange) {
+      return {
+        day: offset === 0 ? "hoy" : DAY_LABELS[day],
+        open: nextRange.open,
+        close: nextRange.close,
+        isToday: offset === 0,
+      };
+    }
+  }
+
+  return null;
 }
