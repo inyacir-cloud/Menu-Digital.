@@ -53,6 +53,9 @@ create table if not exists public.settings (
 
   -- Estado de la tienda
   is_open             boolean not null default true,
+  schedule_mode       text    not null default 'automatic'
+                        check (schedule_mode in ('automatic','manual')),
+  schedule            jsonb,
   closed_note         text    not null default 'Volvemos en un ratito. Mientras tanto, escríbenos por WhatsApp y con gusto te apartamos tu antojo. 🌮',
 
   -- Mensaje de WhatsApp (plantilla con marcadores)
@@ -517,6 +520,8 @@ as $$
       'address',         s.address,
       'facebook',        s.facebook,
       'open',            s.is_open,
+      'scheduleMode',   s.schedule_mode,
+      'schedule',        s.schedule,
       'closedNote',      s.closed_note,
       'messageTemplate', s.message_template,
       'templateV2',      true,

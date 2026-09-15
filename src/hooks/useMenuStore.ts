@@ -187,9 +187,11 @@ function normalizeSettings(raw: unknown): Settings {
     };
   });
   const d = DEFAULT_SETTINGS;
-  const scheduleMode = (r.scheduleMode === "manual" ? "manual" : "automatic") as Settings["scheduleMode"];
+  const scheduleMode = (r.scheduleMode ?? r.schedule_mode) === "manual" ? "manual" : "automatic";
   const schedule = normalizeBusinessSchedule(
-    (r.schedule && typeof r.schedule === "object") ? (r.schedule as Record<string, unknown>) : DEFAULT_BUSINESS_SCHEDULE,
+    (r.schedule ?? r.business_schedule) && typeof (r.schedule ?? r.business_schedule) === "object"
+      ? (r.schedule ?? r.business_schedule) as Record<string, unknown>
+      : DEFAULT_BUSINESS_SCHEDULE,
   );
   return {
     name: str(r.name).trim() || d.name,

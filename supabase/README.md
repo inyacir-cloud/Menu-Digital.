@@ -107,6 +107,12 @@ La app ya está preparada para leer el menú con `get_menu()` y sincronizar los
 cambios del panel de administración con Supabase. Si Supabase no responde,
 conserva una copia local como respaldo.
 
+### Horarios automáticos
+
+Para guardar los horarios por día y el modo manual/automático en un proyecto
+Supabase ya creado, ejecuta en el SQL Editor la migración
+[`migrations/20260914_business_schedule.sql`](./migrations/20260914_business_schedule.sql).
+
 Instala el cliente:
 
 ```bash

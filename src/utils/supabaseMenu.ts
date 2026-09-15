@@ -93,6 +93,8 @@ export function buildMenuSyncPayload(data: MenuData): MenuSyncPayload {
 			address: data.settings.address,
 			facebook: data.settings.facebook,
 			is_open: data.settings.open,
+			schedule_mode: data.settings.scheduleMode,
+			schedule: data.settings.schedule,
 			closed_note: data.settings.closedNote,
 			message_template: data.settings.messageTemplate,
 			payments: data.settings.payments,
