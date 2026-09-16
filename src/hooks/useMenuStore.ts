@@ -33,6 +33,13 @@ import { serializeMenuForSupabase } from "../utils/supabaseMenu";
 const STORAGE_KEY = "egf-menu-data-v3";
 /** Versiones anteriores: se migran automáticamente al cargar */
 const LEGACY_KEYS = ["egf-menu-data-v2", "egf-menu-data-v1"];
+const LOCAL_MENU_CACHE_KEYS = [STORAGE_KEY, ...LEGACY_KEYS, "egf-menu-supabase-id-map-v1", "egf-menu-coupon-v1"];
+
+function clearLocalMenuCache() {
+  for (const key of LOCAL_MENU_CACHE_KEYS) {
+    localStorage.removeItem(key);
+  }
+}
 
 /**
  * Productos que dejaron de existir como línea del menú (el "Con Queso +" y
@@ -214,7 +221,7 @@ function normalizeSettings(raw: unknown): Settings {
     open: r.open !== false,
     scheduleMode,
     schedule,
-    closedNote: str(r.closedNote).trim() || d.closedNote,
+    closedNote: "closedNote" in r ? str(r.closedNote, d.closedNote) : d.closedNote,
     logo: str(r.logo) || undefined,
   };
 }
@@ -408,7 +415,10 @@ function reconcileWithDefaults(data: MenuData): MenuData {
 }
 
 function loadInitial(): MenuData {
-  if (isSupabaseConfigured) return DEFAULT_MENU;
+  if (isSupabaseConfigured) {
+    clearLocalMenuCache();
+    return DEFAULT_MENU;
+  }
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) return normalizeMenuData(JSON.parse(raw));
@@ -446,6 +456,7 @@ export function useMenuStore() {
 
   useEffect(() => {
     if (!isSupabaseConfigured) return;
+    clearLocalMenuCache();
     const { data } = supabase.auth.onAuthStateChange((event, session) => {
       if ((event === "INITIAL_SESSION" || event === "SIGNED_IN") && session) {
         setAuthVersion((version) => version + 1);
@@ -464,8 +475,7 @@ export function useMenuStore() {
         try {
           const remoteMenu = { ...remote, combos: Array.isArray(remote.combos) ? remote.combos : [] };
           setData(normalizeMenuData(remoteMenu));
-          localStorage.removeItem(STORAGE_KEY);
-          for (const key of LEGACY_KEYS) localStorage.removeItem(key);
+          clearLocalMenuCache();
         } catch {
           setStorageError("Supabase devolvió un menú con formato inválido; se conserva la copia local.");
         }
@@ -488,8 +498,7 @@ export function useMenuStore() {
   useEffect(() => {
     try {
       if (isSupabaseConfigured) {
-        localStorage.removeItem(STORAGE_KEY);
-        for (const key of LEGACY_KEYS) localStorage.removeItem(key);
+        clearLocalMenuCache();
       } else {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
       }
