@@ -1,9 +1,11 @@
+import { useState } from "react";
 import type { Settings } from "../types";
 import { getNextOpeningInfo } from "../utils/businessSchedule";
 import { buildWhatsAppUrl } from "../utils/whatsapp";
 import { Blob } from "./Blob";
 import { BrandLogo } from "./SombreroLogo";
-import { BagIcon, EyeIcon, LockIcon, WhatsAppIcon } from "./icons";
+import { BagIcon, CloseIcon, CopyIcon, EyeIcon, LockIcon, WhatsAppIcon } from "./icons";
+import { PaymentIcon } from "./PaymentBadges";
 
 interface Props {
   settings: Settings;
@@ -22,6 +24,20 @@ interface Props {
 export function SplashScreen({ settings, isOpen, authed, isLoading, onEnter, onAdminEnter, onSecret }: Props) {
   const href = buildWhatsAppUrl(settings.contactMessage, settings.whatsappNumber);
   const nextOpening = getNextOpeningInfo(settings.schedule);
+  const [showPaymentOptions, setShowPaymentOptions] = useState(false);
+  const [clabeCopyFeedback, setClabeCopyFeedback] = useState<"copied" | "error" | null>(null);
+  const paymentMethods = settings.payments.filter(
+    (payment) => payment.enabled && payment.id !== "efectivo",
+  );
+  const copyClabe = async (clabe: string) => {
+    try {
+      await navigator.clipboard.writeText(clabe);
+      setClabeCopyFeedback("copied");
+      window.setTimeout(() => setClabeCopyFeedback(null), 2000);
+    } catch {
+      setClabeCopyFeedback("error");
+    }
+  };
 
   return (
     <div className="relative flex min-h-[100dvh] flex-col overflow-hidden bg-paper">
@@ -52,11 +68,20 @@ export function SplashScreen({ settings, isOpen, authed, isLoading, onEnter, onA
             <button
               type="button"
               onClick={onEnter}
-              className="mt-6 inline-flex items-center gap-2.5 rounded-full bg-ink px-8 py-3.5 text-base font-bold text-paper shadow-lg transition hover:opacity-90 active:scale-[0.98]"
+              className="mt-3 inline-flex items-center gap-2 rounded-full border border-ink/20 bg-surface px-6 py-3 text-sm font-bold text-ink transition hover:border-ink/50 hover:bg-paper/60 active:scale-[0.98]"
             >
               <BagIcon className="h-5 w-5" />
               Ver el menú
             </button>
+            {paymentMethods.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setShowPaymentOptions(true)}
+                className="mt-2 inline-flex items-center rounded-full px-4 py-2 text-xs font-semibold text-ink/55 underline underline-offset-4 transition hover:text-ink"
+              >
+                Realizar un pago
+              </button>
+            )}
           </>
         ) : (
           <>
@@ -97,6 +122,96 @@ export function SplashScreen({ settings, isOpen, authed, isLoading, onEnter, onA
             Ver el menú (solo consulta)
           </button>
           </>
+        )}
+
+        {showPaymentOptions && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-ink/60 p-4"
+            onClick={(event) => {
+              if (event.target === event.currentTarget) setShowPaymentOptions(false);
+            }}
+          >
+            <section
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="payment-options-title"
+              className="w-full max-w-md rounded-2xl bg-surface p-5 text-left shadow-2xl sm:p-6"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-ink/50">Opciones de pago</p>
+                  <h2 id="payment-options-title" className="mt-1 text-xl font-black text-ink">Realizar un pago</h2>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowPaymentOptions(false)}
+                  aria-label="Cerrar opciones de pago"
+                  className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-ink/5 text-ink/60 transition hover:bg-ink/10"
+                >
+                  <CloseIcon className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="mt-5 space-y-3">
+                {paymentMethods.map((payment) => {
+                  const mercadoPagoLink = payment.id === "mercadopago"
+                    ? payment.details.match(/https?:\/\/[^\s]+/i)?.[0]?.replace(/[),.;]+$/, "")
+                    : null;
+                  const transferLines = payment.details.split(/\r?\n/);
+                  const clabeLines = transferLines.filter((line) => /\bclabe\b/i.test(line));
+                  const clabe = [...clabeLines, ...transferLines.filter((line) => !clabeLines.includes(line))]
+                    .flatMap((line) => line.match(/(?:\d[\d\s-]?){17}\d/g) ?? [])
+                    .map((value) => value.replace(/\D/g, ""))
+                    .find((value) => value.length === 18);
+
+                  return (
+                    <article key={payment.id} className="rounded-xl border border-ink/10 bg-white p-4">
+                      <div className="flex items-center gap-3">
+                        <PaymentIcon id={payment.id} className="h-9 w-9" />
+                        <h3 className="font-bold text-ink">{payment.label}</h3>
+                      </div>
+                      {payment.details.trim() ? (
+                        <p className="mt-3 whitespace-pre-line break-words text-sm leading-relaxed text-ink/75">
+                          {payment.details}
+                        </p>
+                      ) : (
+                        <p className="mt-3 text-sm text-ink/60">
+                          Solicita los datos de pago directamente al negocio.
+                        </p>
+                      )}
+                      {payment.id === "transferencia" && clabe && (
+                        <div className="mt-3">
+                          <button
+                            type="button"
+                            onClick={() => void copyClabe(clabe)}
+                            className="inline-flex items-center gap-2 rounded-full border border-ink/15 bg-surface px-3.5 py-2 text-sm font-bold text-ink transition hover:border-ink/40"
+                          >
+                            <CopyIcon className="h-4 w-4" />
+                            {clabeCopyFeedback === "copied" ? "CLABE copiada" : "Copiar CLABE"}
+                          </button>
+                          {clabeCopyFeedback === "error" && (
+                            <p role="alert" className="mt-2 text-xs font-semibold text-red-700">
+                              No se pudo copiar. Selecciona y copia la CLABE manualmente.
+                            </p>
+                          )}
+                        </div>
+                      )}
+                      {mercadoPagoLink && (
+                        <a
+                          href={mercadoPagoLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-3 inline-flex rounded-full bg-ink px-4 py-2 text-sm font-bold text-white transition hover:opacity-90"
+                        >
+                          Abrir Mercado Pago
+                        </a>
+                      )}
+                    </article>
+                  );
+                })}
+              </div>
+            </section>
+          </div>
         )}
 
         {authed && (
