@@ -1,10 +1,9 @@
 import { useState } from "react";
 import type { Settings } from "../types";
 import { getNextOpeningInfo } from "../utils/businessSchedule";
-import { buildWhatsAppUrl } from "../utils/whatsapp";
 import { Blob } from "./Blob";
 import { BrandLogo } from "./SombreroLogo";
-import { BagIcon, CloseIcon, CopyIcon, EyeIcon, LockIcon, WhatsAppIcon } from "./icons";
+import { BagIcon, ChevronDownIcon, CloseIcon, CopyIcon, EyeIcon, LockIcon } from "./icons";
 import { PaymentIcon } from "./PaymentBadges";
 
 interface Props {
@@ -22,7 +21,6 @@ interface Props {
  * abierto/cerrado y el acceso oculto a administración abajo.
  */
 export function SplashScreen({ settings, isOpen, authed, isLoading, onEnter, onAdminEnter, onSecret }: Props) {
-  const href = buildWhatsAppUrl(settings.contactMessage, settings.whatsappNumber);
   const nextOpening = getNextOpeningInfo(settings.schedule);
   const [showPaymentOptions, setShowPaymentOptions] = useState(false);
   const [clabeCopyFeedback, setClabeCopyFeedback] = useState<"copied" | "error" | null>(null);
@@ -86,32 +84,30 @@ export function SplashScreen({ settings, isOpen, authed, isLoading, onEnter, onA
         ) : (
           <>
           <div className="mt-6 w-full max-w-sm rounded-2xl border border-dashed border-red-300 bg-red-50/70 p-4">
-            <span className="inline-flex items-center gap-2 rounded-full bg-red-100 px-4 py-1.5 text-sm font-bold text-red-700">
-              <span className="h-2 w-2 rounded-full bg-red-500" aria-hidden="true" />
-              Cerrado por ahora
-            </span>
+            <details>
+              <summary className="mx-auto inline-flex cursor-pointer list-none items-center gap-2 rounded-full bg-red-100 px-4 py-1.5 text-sm font-bold text-red-700 [&::-webkit-details-marker]:hidden">
+                <span className="h-2 w-2 rounded-full bg-red-500" aria-hidden="true" />
+                Cerrado por ahora
+                <ChevronDownIcon className="h-4 w-4 transition-transform [[open]_&]:rotate-180" />
+              </summary>
+              <div className="mt-3 rounded-xl bg-white/70 px-3 py-2 text-sm text-ink/75 ring-1 ring-red-200/70">
+                {nextOpening ? (
+                  <>
+                    <p className="font-bold text-ink">
+                      Abrimos {nextOpening.isToday ? "hoy" : `el ${nextOpening.day}`} a las {nextOpening.open}
+                    </p>
+                    <p className="mt-0.5 text-xs text-ink/60">
+                      Horario: {nextOpening.open} a {nextOpening.close}
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-xs text-ink/60">No hay horarios disponibles.</p>
+                )}
+              </div>
+            </details>
             {settings.closedNote && (
               <p className="mt-2.5 text-sm leading-relaxed text-ink/70">{settings.closedNote}</p>
             )}
-            {nextOpening && (
-              <div className="mt-3 rounded-xl bg-white/70 px-3 py-2 text-sm text-ink/75 ring-1 ring-red-200/70">
-                <p className="font-bold text-ink">
-                  Abrimos {nextOpening.isToday ? "hoy" : `el ${nextOpening.day}`} a las {nextOpening.open}
-                </p>
-                <p className="mt-0.5 text-xs text-ink/60">
-                  Horario: {nextOpening.open} a {nextOpening.close}
-                </p>
-              </div>
-            )}
-            <a
-              href={href}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-3 inline-flex items-center gap-2 rounded-full border border-ink/15 bg-surface px-4 py-2 text-sm font-semibold text-ink transition hover:border-wa"
-            >
-              <WhatsAppIcon className="h-4 w-4 text-wa" />
-              Escríbenos por WhatsApp
-            </a>
           </div>
           <button
             type="button"
@@ -121,6 +117,15 @@ export function SplashScreen({ settings, isOpen, authed, isLoading, onEnter, onA
             <EyeIcon className="h-4 w-4" />
             Ver el menú (solo consulta)
           </button>
+          {paymentMethods.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setShowPaymentOptions(true)}
+              className="mt-2 inline-flex items-center rounded-full px-4 py-2 text-xs font-semibold text-ink/55 underline underline-offset-4 transition hover:text-ink"
+            >
+              Realizar un pago
+            </button>
+          )}
           </>
         )}
 
@@ -214,15 +219,6 @@ export function SplashScreen({ settings, isOpen, authed, isLoading, onEnter, onA
           </div>
         )}
 
-        {authed && (
-          <button
-            type="button"
-            onClick={onAdminEnter}
-            className="mt-5 text-xs font-semibold text-ink/50 underline underline-offset-4 transition hover:text-ink"
-          >
-            Entrar en modo administrador
-          </button>
-        )}
       </main>
 
       {/* Acceso oculto a administración (abajo, esquina izquierda) */}
