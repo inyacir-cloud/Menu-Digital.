@@ -327,7 +327,7 @@ export function BusinessEditor({ store, notify }: Props) {
         {form.payments.map((p) => (
           <div key={p.id} className="rounded-xl bg-paper/50 p-3 ring-1 ring-ink/8">
             <div className="flex items-center gap-3">
-              <PaymentIcon id={p.id} className="h-8 w-8" />
+              <PaymentIcon id={p.id} className={p.id === "mercadopago" ? "w-8" : "h-8 w-8"} />
               <div className="flex-1">
                 <Toggle
                   checked={p.enabled}

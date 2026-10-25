@@ -335,10 +335,8 @@ export default function App() {
         <SplashScreen
           settings={store.settings}
           isOpen={effectiveOpen}
-          authed={auth.authed}
           isLoading={store.isLoading}
           onEnter={enterMenu}
-          onAdminEnter={() => setAdminOpen(true)}
           onSecret={openSecret}
         />
       ) : (

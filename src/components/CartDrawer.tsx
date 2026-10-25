@@ -27,19 +27,136 @@ import { LocationPicker } from "./LocationPicker";
 const inputCls =
   "mt-1 w-full rounded-xl border bg-paper/40 px-3 py-2.5 text-sm text-ink outline-none transition placeholder:text-ink/40 focus:border-ink focus:bg-surface focus:ring-2 focus:ring-mustard/40";
 
-function transferAccountNumber(details: string): string | null {
+function transferClabe(details: string): string | null {
   const lines = details.split(/\r?\n/);
-  const labeled = lines.filter((line) => /\b(clabe|cuenta|n[uú]mero de cuenta)\b/i.test(line));
+  const labeled = lines.filter((line) => /\bclabe\b/i.test(line));
   const candidates = [...labeled, ...lines.filter((line) => !labeled.includes(line))]
-    .flatMap((line) => line.match(/(?:\d[\d\s-]?){9,}\d/g) ?? [])
+    .flatMap((line) => line.match(/(?:\d[\d\s-]?){17}\d/g) ?? [])
     .map((value) => value.replace(/\D/g, ""))
-    .filter((value) => value.length >= 10 && value.length <= 18);
+    .filter((value) => value.length === 18);
 
-  return candidates.sort((a, b) => (b.length === 18 ? 1 : 0) - (a.length === 18 ? 1 : 0))[0] ?? null;
+  return candidates[0] ?? null;
+}
+
+function formatClabe(clabe: string): string {
+  return clabe.replace(/\D/g, "").replace(/(\d{3})(?=\d)/g, "$1 ");
+}
+
+interface TransferData {
+  bank: string | null;
+  holder: string | null;
+  account: string | null;
+  clabe: string | null;
+  other: string[];
+}
+
+function parseTransferData(details: string): TransferData {
+  const result: TransferData = { bank: null, holder: null, account: null, clabe: null, other: [] };
+
+  for (const line of details.split(/\r?\n/)) {
+    const cleaned = line.replace(/^[^\p{L}\p{N}]+/u, "").trim();
+    if (!cleaned) continue;
+
+    const labeledValue = cleaned.match(/^(banco|titular|beneficiario|clabe(?:\s+interbancaria)?|cuenta|n[uú]mero de cuenta)\s*[:\-]\s*(.*)$/i);
+    if (labeledValue) {
+      const [, label, value] = labeledValue;
+      if (/^banco$/i.test(label)) result.bank = value || null;
+      else if (/^(titular|beneficiario)$/i.test(label)) result.holder = value || null;
+      else if (/^clabe/i.test(label)) result.clabe = transferClabe(value) ?? (value.trim() || null);
+      else result.account = value || null;
+      continue;
+    }
+
+    const clabe = transferClabe(cleaned);
+    if (clabe && !result.clabe) {
+      result.clabe = clabe;
+      continue;
+    }
+
+    result.other.push(cleaned);
+  }
+
+  return result;
 }
 
 function mercadoPagoLink(details: string): string | null {
   return details.match(/https?:\/\/[^\s]+/i)?.[0]?.replace(/[),.;]+$/, "") ?? null;
+}
+
+function TransferDetails({
+  details,
+  copiedField,
+  copyErrorField,
+  onCopy,
+}: {
+  details: string;
+  copiedField: string | null;
+  copyErrorField: string | null;
+  onCopy: (value: string, field: string) => void;
+}) {
+  const data = parseTransferData(details);
+  const rows = [
+    { id: "bank", label: "Banco", value: data.bank },
+    { id: "holder", label: "Titular", value: data.holder },
+    { id: "account", label: "Cuenta", value: data.account },
+    { id: "clabe", label: "CLABE", value: data.clabe },
+  ].filter((row): row is { id: string; label: string; value: string } => Boolean(row.value));
+
+  if (rows.length === 0) {
+    return (
+      <div className="mt-3 rounded-xl border border-ink/10 bg-white p-3">
+        <p className="whitespace-pre-line break-words text-sm text-ink/75">{details}</p>
+        <button
+          type="button"
+          onClick={() => onCopy(details, "details")}
+          className="mt-2 inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-semibold text-ink/70 transition hover:bg-ink/5 hover:text-ink"
+        >
+          <CopyIcon className="h-3.5 w-3.5" />
+          {copiedField === "details" ? "Copiado" : "Copiar datos"}
+        </button>
+        {copyErrorField === "details" && (
+          <p role="alert" className="mt-1 text-xs text-red-700">No se pudo copiar. Selecciona los datos y cópialos manualmente.</p>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-3 space-y-2 rounded-xl border border-ink/10 bg-white p-3">
+      {rows.map((row) => (
+        <div key={row.id} className="grid grid-cols-[4.5rem_minmax(0,1fr)_auto] items-center gap-2">
+          <span className="text-xs text-ink/60">{row.label}</span>
+          <span className={cn("min-w-0 break-words rounded-lg bg-paper/70 px-3 py-2 text-sm text-ink", row.id === "clabe" && "font-mono font-bold tracking-wide")}>
+            {row.id === "clabe" && row.value.length === 18 ? formatClabe(row.value) : row.value}
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              const value = row.id === "clabe"
+                ? row.value.replace(/\D/g, "")
+                : row.id === "account"
+                  ? row.value.replace(/\s/g, "")
+                  : row.value;
+              onCopy(value, row.id);
+            }}
+            aria-label={`Copiar ${row.label.toLowerCase()}`}
+            className="inline-flex items-center gap-1 rounded-lg bg-ink/[0.04] px-2 py-2 text-xs font-semibold text-ink/70 transition hover:bg-ink/10 hover:text-ink"
+          >
+            <CopyIcon className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">{copiedField === row.id ? "Copiado" : "Copiar"}</span>
+          </button>
+          {copyErrorField === row.id && (
+            <p role="alert" className="col-span-3 text-xs text-red-700">
+              No se pudo copiar. Selecciona el dato y cópialo manualmente.
+            </p>
+          )}
+        </div>
+      ))}
+      {data.other.length > 0 && (
+        <p className="border-t border-ink/8 pt-2 text-xs leading-relaxed text-ink/65">{data.other.join(" · ")}</p>
+      )}
+    </div>
+  );
 }
 
 interface Props {
@@ -102,7 +219,8 @@ export function CartDrawer({
   const [sent, setSent] = useState(false);
   const [sentPayment, setSentPayment] = useState<PaymentMethod | null>(null);
   const [sentTotal, setSentTotal] = useState(0);
-  const [copied, setCopied] = useState(false);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [copyErrorField, setCopyErrorField] = useState<string | null>(null);
   const [mapOpen, setMapOpen] = useState(false);
   const [codeInput, setCodeInput] = useState("");
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
@@ -297,18 +415,16 @@ export function CartDrawer({
     onSent?.();
   };
 
-  const copyDetails = async () => {
-    if (!selectedPayment?.details) return;
-    const copyValue =
-      selectedPayment.id === "transferencia"
-        ? transferAccountNumber(selectedPayment.details) ?? selectedPayment.details
-        : selectedPayment.details;
+  const copyPaymentValue = async (value: string, field: string) => {
+    if (!value) return;
+    setCopyErrorField(null);
     try {
-      await navigator.clipboard.writeText(copyValue);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1500);
+      await navigator.clipboard.writeText(value);
+      setCopiedField(field);
+      window.setTimeout(() => setCopiedField((current) => current === field ? null : current), 1800);
     } catch {
-      /* portapapeles no disponible */
+      setCopiedField(null);
+      setCopyErrorField(field);
     }
   };
 
@@ -422,17 +538,10 @@ export function CartDrawer({
                     <ChevronDownIcon className="h-3.5 w-3.5 shrink-0 transition-transform [[open]_&]:rotate-180" />
                   </summary>
                   <div className="border-t border-ink/10 px-3 pb-3 pt-2.5 text-[0.7rem] leading-relaxed text-ink/75">
-                    <p className="mb-2 text-ink/60">
-                      Si ya hiciste tu pago, puedes cerrar esta ventana. Si aún no, aquí tienes los datos una vez más.
-                    </p>
                     {sentPaymentDetails.id === "mercadopago" ? (
                       <>
-                        <p className="font-semibold text-ink">Paga con Mercado Pago</p>
-                        <ol className="mt-1 list-decimal space-y-0.5 pl-4">
-                          <li>Abre el enlace de Mercado Pago.</li>
-                          <li>Coloca el total de tu compra: <strong>{formatPrice(sentTotal)}</strong>.</li>
-                          <li>Confirma el pago y envía la captura en WhatsApp.</li>
-                        </ol>
+                        <p className="font-semibold text-ink">Completa tu pago en Mercado Pago</p>
+                        <p className="mt-1">Abre el enlace y paga <strong>{formatPrice(sentTotal)}</strong>.</p>
                         {mercadoPagoLink(sentPaymentDetails.details) ? (
                           <button
                             type="button"
@@ -450,25 +559,20 @@ export function CartDrawer({
                       </>
                     ) : sentPaymentDetails.details ? (
                       <>
-                        <p className="font-semibold text-ink">Datos para transferencia</p>
-                        <p className="mt-0.5 whitespace-pre-line font-mono">{sentPaymentDetails.details}</p>
-                        <button
-                          type="button"
-                          onClick={copyDetails}
-                          className="mt-1.5 inline-flex items-center gap-1 font-semibold underline underline-offset-2"
-                        >
-                          <CopyIcon className="h-3.5 w-3.5" />
-                          {copied ? "¡Copiado!" : "Copiar CLABE / cuenta"}
-                        </button>
+                        <p className="font-semibold text-ink">Datos de transferencia</p>
+                        <TransferDetails
+                          details={sentPaymentDetails.details}
+                          copiedField={copiedField}
+                          copyErrorField={copyErrorField}
+                          onCopy={copyPaymentValue}
+                        />
                       </>
                     ) : (
                       <p>Te enviaremos los datos para tu pago por WhatsApp.</p>
                     )}
-                    {sentPaymentDetails.id !== "efectivo" && (
-                      <p className="mt-2 border-t border-ink/10 pt-2 text-ink/60">
-                        📸 Envía la captura de tu pago en WhatsApp para confirmar tu pedido.
-                      </p>
-                    )}
+                    <p className="mt-2 border-t border-ink/10 pt-2 text-ink/60">
+                      Después de pagar, envíanos el comprobante por WhatsApp para confirmar el pedido.
+                    </p>
                   </div>
                 </details>
               )}
@@ -824,10 +928,11 @@ export function CartDrawer({
                   <div className="space-y-3.5 rounded-2xl bg-surface p-4 shadow-sm ring-1 ring-ink/5">
                     {enabledPayments.length > 0 && (
                       <fieldset ref={paymentRef}>
-                        <legend className="text-xs font-semibold text-ink/70">¿Cómo vas a pagar? *</legend>
+                        <legend className="text-base font-bold text-ink">¿Cómo vas a pagar?</legend>
+                        <p className="mt-0.5 text-xs text-ink/55">Elige el método que prefieras.</p>
                         <div
                           className={cn(
-                            "mt-1.5 grid gap-2",
+                            "mt-3 grid gap-2",
                             enabledPayments.length >= 3 ? "grid-cols-3" : "grid-cols-2",
                           )}
                         >
@@ -838,15 +943,30 @@ export function CartDrawer({
                               onClick={() => update({ payment: p.id })}
                               aria-pressed={customer.payment === p.id}
                               className={cn(
-                                "flex flex-col items-center gap-1.5 rounded-xl border px-1 py-2.5 text-[0.7rem] font-semibold leading-tight transition sm:text-xs",
+                                "flex min-h-28 flex-col items-center justify-center gap-2 rounded-2xl border px-1.5 py-3 text-center text-xs font-bold leading-tight transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500",
                                 customer.payment === p.id
-                                  ? "border-ink bg-ink text-paper"
-                                  : "border-ink/15 bg-paper/40 text-ink hover:border-ink/40",
+                                  ? "border-sky-500 bg-sky-50 text-ink shadow-sm"
+                                  : "border-ink/10 bg-white text-ink hover:border-ink/30",
                                 attempted && errors.payment && "border-red-400",
                               )}
                             >
-                              <PaymentIcon id={p.id} className="h-7 w-7" />
-                              {p.label}
+                              {p.id === "mercadopago" ? (
+                                <PaymentIcon id={p.id} className="w-20" />
+                              ) : (
+                                <span className={cn(
+                                  "grid h-12 w-12 place-items-center rounded-full",
+                                  p.id === "efectivo" ? "bg-emerald-50" : "bg-sky-100",
+                                )}>
+                                  <PaymentIcon id={p.id} className="h-9 w-9" />
+                                </span>
+                              )}
+                              {p.id !== "mercadopago" && <span>{p.label}</span>}
+                              <span className={cn(
+                                "grid h-4 w-4 place-items-center rounded-full border",
+                                customer.payment === p.id ? "border-sky-600" : "border-ink/25",
+                              )}>
+                                {customer.payment === p.id && <span className="h-2 w-2 rounded-full bg-sky-600" />}
+                              </span>
                             </button>
                           ))}
                         </div>
@@ -875,15 +995,20 @@ export function CartDrawer({
                         )}
 
                         {selectedPayment && selectedPayment.id !== "efectivo" && (
-                          <div className="mt-3 animate-fade rounded-xl bg-mustard/15 p-3 text-xs text-ink/80">
+                          <div className={cn(
+                            "mt-3 animate-fade rounded-2xl p-4 text-xs text-ink/80",
+                            selectedPayment.id === "transferencia" ? "bg-sky-50 ring-1 ring-sky-100" : "bg-mustard/15",
+                          )}>
                             {selectedPayment.id === "mercadopago" ? (
                               <>
-                                <p className="font-bold">Paga con Mercado Pago</p>
-                                <ol className="mt-1 list-decimal space-y-0.5 pl-4 leading-relaxed">
-                                  <li>Abre el enlace de Mercado Pago.</li>
-                                  <li>Coloca el total de tu compra: <strong>{formatPrice(grandTotal)}</strong>.</li>
-                                  <li>Confirma el pago en la aplicación.</li>
-                                </ol>
+                                <div className="flex items-center gap-3">
+                                  <PaymentIcon id="mercadopago" className="w-16" />
+                                  <div>
+                                    <p className="text-xs text-ink/60">Total a pagar</p>
+                                    <p className="text-sm font-bold text-ink">{formatPrice(grandTotal)}</p>
+                                  </div>
+                                </div>
+                                <p className="mt-3">Al terminar, envíanos el comprobante por WhatsApp para confirmar el pedido.</p>
                                 {mercadoPagoLink(selectedPayment.details) ? (
                                   <button
                                     type="button"
@@ -893,31 +1018,36 @@ export function CartDrawer({
                                     Abrir Mercado Pago
                                   </button>
                                 ) : (
-                                  <p className="mt-1 text-red-700">El enlace de Mercado Pago aún no está configurado.</p>
+                                  <p role="alert" className="mt-2 text-red-700">El enlace de Mercado Pago aún no está configurado.</p>
                                 )}
                               </>
-                            ) : selectedPayment.details ? (
-                              <>
-                                <p className="font-bold">Datos para {selectedPayment.label}</p>
-                                <p className="mt-0.5 whitespace-pre-line font-mono">{selectedPayment.details}</p>
-                                <button
-                                  type="button"
-                                  onClick={copyDetails}
-                                  className="mt-1.5 inline-flex items-center gap-1 font-semibold underline underline-offset-2"
-                                >
-                                  <CopyIcon className="h-3.5 w-3.5" />
-                                  {copied
-                                    ? "¡Copiado!"
-                                    : selectedPayment.id === "transferencia"
-                                      ? "Copiar CLABE / cuenta"
-                                      : "Copiar datos"}
-                                </button>
-                              </>
                             ) : (
-                              <p>
-                                Te enviaremos los datos para tu pago con{" "}
-                                <span className="font-bold">{selectedPayment.label}</span> por WhatsApp.
-                              </p>
+                              <>
+                                <div className="flex items-center gap-3">
+                                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-sky-100 text-sky-700">
+                                    <PaymentIcon id="transferencia" className="h-8 w-8" />
+                                  </span>
+                                  <div>
+                                    <p className="text-sm font-bold text-ink">Datos de transferencia</p>
+                                    <p className="mt-0.5 text-xs text-ink/60">Realiza la transferencia y envíanos el comprobante.</p>
+                                  </div>
+                                </div>
+                                {selectedPayment.details ? (
+                                  <TransferDetails
+                                    details={selectedPayment.details}
+                                    copiedField={copiedField}
+                                    copyErrorField={copyErrorField}
+                                    onCopy={copyPaymentValue}
+                                  />
+                                ) : (
+                                  <p className="mt-3 rounded-xl border border-sky-100 bg-white p-3 text-sm text-ink/65">
+                                    Los datos de transferencia aún no están configurados.
+                                  </p>
+                                )}
+                                <p className="mt-3 rounded-xl bg-sky-100/70 px-3 py-2 text-xs leading-relaxed text-sky-900">
+                                  Después de pagar, envíanos el comprobante por WhatsApp para confirmar tu pedido.
+                                </p>
+                              </>
                             )}
                           </div>
                         )}
@@ -925,13 +1055,6 @@ export function CartDrawer({
                     )}
                   </div>
 
-                  {needsCapture && (
-                    <div className="animate-fade rounded-2xl border border-dashed border-wa/50 bg-wa/10 p-3.5 text-xs leading-relaxed text-ink/80">
-                      📸 <span className="font-bold">Para confirmar tu pedido:</span> esperamos la captura de
-                      pantalla de tu pago en el chat de WhatsApp. En cuanto la recibamos, tu pedido entra a
-                      cocina. ¡Gracias por tu confianza!
-                    </div>
-                  )}
                 </div>
               )}
 

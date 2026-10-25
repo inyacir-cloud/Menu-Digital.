@@ -9,10 +9,8 @@ import { PaymentIcon } from "./PaymentBadges";
 interface Props {
   settings: Settings;
   isOpen: boolean;
-  authed: boolean;
   isLoading: boolean;
   onEnter: () => void;
-  onAdminEnter: () => void;
   onSecret: () => void;
 }
 
@@ -20,7 +18,7 @@ interface Props {
  * Portada: solo el logo sobre el fondo del menú, con el estado
  * abierto/cerrado y el acceso oculto a administración abajo.
  */
-export function SplashScreen({ settings, isOpen, authed, isLoading, onEnter, onAdminEnter, onSecret }: Props) {
+export function SplashScreen({ settings, isOpen, isLoading, onEnter, onSecret }: Props) {
   const nextOpening = getNextOpeningInfo(settings.schedule);
   const [showPaymentOptions, setShowPaymentOptions] = useState(false);
   const [clabeCopyFeedback, setClabeCopyFeedback] = useState<"copied" | "error" | null>(null);
@@ -172,7 +170,10 @@ export function SplashScreen({ settings, isOpen, authed, isLoading, onEnter, onA
                   return (
                     <article key={payment.id} className="rounded-xl border border-ink/10 bg-white p-4">
                       <div className="flex items-center gap-3">
-                        <PaymentIcon id={payment.id} className="h-9 w-9" />
+                        <PaymentIcon
+                          id={payment.id}
+                          className={payment.id === "mercadopago" ? "w-9" : "h-9 w-9"}
+                        />
                         <h3 className="font-bold text-ink">{payment.label}</h3>
                       </div>
                       {payment.details.trim() ? (

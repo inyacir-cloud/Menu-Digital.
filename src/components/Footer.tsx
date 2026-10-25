@@ -93,7 +93,12 @@ export function Footer({ settings }: Props) {
 
               {enabledPayments.length > 0 && (
                 <InfoLine
-                  icon={<PaymentIcon id={enabledPayments[0].id} className="h-7 w-7" />}
+                  icon={
+                    <PaymentIcon
+                      id={enabledPayments[0].id}
+                      className={enabledPayments[0].id === "mercadopago" ? "w-7" : "h-7 w-7"}
+                    />
+                  }
                   label="Formas de pago"
                 >
                   <span className="flex flex-wrap gap-x-2 gap-y-1">

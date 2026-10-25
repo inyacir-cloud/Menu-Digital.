@@ -1,6 +1,7 @@
 import type { PaymentId, PaymentMethod } from "../types";
 import { cn } from "../utils/cn";
-import { BankIcon, CashIcon, MercadoPagoIcon } from "./icons";
+import mercadoPagoLogo from "../../MP1.png";
+import { BankIcon, CashIcon } from "./icons";
 
 export function PaymentIcon({ id, className }: { id: PaymentId; className?: string }) {
   if (id === "efectivo") {
@@ -17,7 +18,20 @@ export function PaymentIcon({ id, className }: { id: PaymentId; className?: stri
       </span>
     );
   }
-  return <MercadoPagoIcon className={cn("shrink-0 rounded-full", className)} />;
+  return (
+    <span
+      className={cn("inline-block shrink-0", className)}
+      role="img"
+      aria-label="Logo de Mercado Pago"
+    >
+      <img
+        src={mercadoPagoLogo}
+        alt=""
+        aria-hidden="true"
+        className="block h-auto w-full"
+      />
+    </span>
+  );
 }
 
 interface Props {
@@ -40,7 +54,7 @@ export function PaymentBadges({ payments, className }: Props) {
           key={p.id}
           className="inline-flex items-center gap-1.5 rounded-full border border-ink/15 bg-surface/60 py-1 pl-1 pr-3 text-sm font-semibold text-ink"
         >
-          <PaymentIcon id={p.id} className="h-6 w-6" />
+          <PaymentIcon id={p.id} className={p.id === "mercadopago" ? "w-6" : "h-6 w-6"} />
           {p.label}
         </span>
       ))}
