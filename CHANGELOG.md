@@ -6,6 +6,13 @@ de los cambios realizados.
 
 ## Versiones
 
+### V 1.020 — 26 de octubre de 2026
+
+- Se agregó una vista previa del ticket digital en el resumen del pedido.
+- Se puede compartir el ticket como PNG o PDF desde la hoja nativa del teléfono cuando el navegador lo admite, y descargar ambos formatos.
+- Se quitó la descarga automática al compartir desde un navegador local HTTP; se muestra una indicación de que la hoja de compartir requiere HTTPS.
+- Se quitó el desplegable de información de pago posterior al envío del pedido.
+
 ### V 1.011 — 26 de octubre de 2026
 
 - Al cerrar la ficha de una bebida abierta sobre el carrito, se mantiene visible el pedido.

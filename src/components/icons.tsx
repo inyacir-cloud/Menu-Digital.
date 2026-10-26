@@ -152,6 +152,17 @@ export function DownloadIcon(props: IconProps) {
   );
 }
 
+export function ShareIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" {...base} strokeWidth={2} {...props}>
+      <circle cx="18" cy="5" r="3" />
+      <circle cx="6" cy="12" r="3" />
+      <circle cx="18" cy="19" r="3" />
+      <path d="m8.7 10.7 6.6-4.4M8.7 13.3l6.6 4.4" />
+    </svg>
+  );
+}
+
 export function LogoutIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" {...base} strokeWidth={2} {...props}>
