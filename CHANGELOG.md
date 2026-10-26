@@ -6,6 +6,16 @@ de los cambios realizados.
 
 ## Versiones
 
+### V 1.012 — 26 de octubre de 2026
+
+- El resumen del paso 4 ahora agrupa los artículos por categoría.
+
+### V 1.020 — prueba revertida — 26 de octubre de 2026
+
+- Se probó una vista previa del ticket digital del pedido, con opciones para compartirlo o descargarlo en PNG y PDF.
+- La prueba se revirtió porque el flujo web no puede adjuntar el archivo directamente a WhatsApp sin abrir el selector del sistema y pedir confirmación. En el entorno local HTTP no está disponible la función nativa para compartir archivos, por lo que no cumplía el envío directo esperado.
+- Se regresó el contenido de `main` a `v1.011`; las etiquetas Git `v1.020` y `v1.011` se conservan como referencia.
+
 ### V 1.011 — 26 de octubre de 2026
 
 - Al cerrar la ficha de una bebida abierta sobre el carrito, se mantiene visible el pedido.

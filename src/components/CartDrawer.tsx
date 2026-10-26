@@ -1248,26 +1248,33 @@ export function CartDrawer({
                           <PencilIcon className="h-4 w-4" />
                         </button>
                       </div>
-                      <ul className="space-y-2.5">
-                        {cart.lines.map((l) => (
-                          <li key={l.key} className="flex min-w-0 items-center gap-2.5">
-                            {resolveImage(l.categoryImage) && (
-                              <img
-                                src={resolveImage(l.categoryImage)}
-                                alt={`Imagen de ${l.categoryTitle}`}
-                                className="h-11 w-11 shrink-0 rounded-lg bg-paper object-cover"
-                              />
-                            )}
-                            <div className="min-w-0 flex-1 text-xs">
-                              <p className="font-semibold text-ink">
-                                {l.qty} × {l.name}{l.size && ` (${shortSizeName(l.size.name)})`}
-                              </p>
-                              {l.extras.length > 0 && <p className="mt-0.5 text-ink/60">{l.extras.map((extra) => extra.name).join(" · ")}</p>}
-                              {(l.comboSelections?.length ?? 0) > 0 && (
-                                <p className="mt-0.5 text-ink/60">{l.comboSelections?.map((selection) => selection.label).join(" · ")}</p>
-                              )}
-                            </div>
-                            <span className="shrink-0 text-xs font-bold tabular-nums">{formatPrice(lineTotal(l))}</span>
+                      <ul className="space-y-3">
+                        {groups.map((group) => (
+                          <li key={group.title}>
+                            <h5 className="mb-1 text-[0.65rem] font-bold uppercase text-ink/55">{group.title}</h5>
+                            <ul className="space-y-2.5">
+                              {group.lines.map((l) => (
+                                <li key={l.key} className="flex min-w-0 items-center gap-2.5">
+                                  {resolveImage(l.categoryImage) && (
+                                    <img
+                                      src={resolveImage(l.categoryImage)}
+                                      alt={`Imagen de ${l.categoryTitle}`}
+                                      className="h-11 w-11 shrink-0 rounded-lg bg-paper object-cover"
+                                    />
+                                  )}
+                                  <div className="min-w-0 flex-1 text-xs">
+                                    <p className="font-semibold text-ink">
+                                      {l.qty} × {l.name}{l.size && ` (${shortSizeName(l.size.name)})`}
+                                    </p>
+                                    {l.extras.length > 0 && <p className="mt-0.5 text-ink/60">{l.extras.map((extra) => extra.name).join(" · ")}</p>}
+                                    {(l.comboSelections?.length ?? 0) > 0 && (
+                                      <p className="mt-0.5 text-ink/60">{l.comboSelections?.map((selection) => selection.label).join(" · ")}</p>
+                                    )}
+                                  </div>
+                                  <span className="shrink-0 text-xs font-bold tabular-nums">{formatPrice(lineTotal(l))}</span>
+                                </li>
+                              ))}
+                            </ul>
                           </li>
                         ))}
                       </ul>
