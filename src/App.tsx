@@ -128,6 +128,7 @@ export default function App() {
   const sheetHistoryRef = useRef(false);
   const closingSheetRef = useRef(false);
   const browsingFromCartRef = useRef(false);
+  const reopenCartAfterBrowseRef = useRef(false);
 
   const waterItems = useMemo(
     () =>
@@ -194,6 +195,10 @@ export default function App() {
     const onPopState = () => {
       if (browsingFromCartRef.current) {
         browsingFromCartRef.current = false;
+        if (reopenCartAfterBrowseRef.current) {
+          reopenCartAfterBrowseRef.current = false;
+          setCartOpen(true);
+        }
         return;
       }
       if (sheet) {
@@ -307,8 +312,12 @@ export default function App() {
 
   const closeCart = useCallback(() => setCartOpen(false), []);
   const openCart = useCallback(() => {
-    browsingFromCartRef.current = false;
     setExitNoticeOpen(false);
+    if (browsingFromCartRef.current) {
+      reopenCartAfterBrowseRef.current = true;
+      return;
+    }
+    reopenCartAfterBrowseRef.current = false;
     setCartOpen(true);
   }, []);
   const browseFromCart = useCallback(() => {
