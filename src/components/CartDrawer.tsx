@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import type { CartApi } from "../hooks/useCart";
-import type { CartLine, CustomerInfo, DeliveryMode, MenuItem, Settings } from "../types";
+import type { CartLine, CustomerInfo, DeliveryMode, MenuItem, PaymentMethod, Settings } from "../types";
 import type { AppliedCoupon } from "../utils/coupon";
 import { resolveImage } from "../data/menu";
 import { couponLabel } from "../utils/coupon";
@@ -229,6 +229,8 @@ export function CartDrawer({
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [attempted, setAttempted] = useState(false);
   const [sent, setSent] = useState(false);
+  const [sentPayment, setSentPayment] = useState<PaymentMethod | null>(null);
+  const [sentTotal, setSentTotal] = useState(0);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [copyErrorField, setCopyErrorField] = useState<string | null>(null);
   const [mapOpen, setMapOpen] = useState(false);
@@ -334,6 +336,8 @@ export function CartDrawer({
   useEffect(() => {
     if (cart.lines.length > 0) {
       setSent(false);
+      setSentPayment(null);
+      setSentTotal(0);
     } else {
       returnToSummaryRef.current = false;
       setStep(1);
@@ -344,6 +348,8 @@ export function CartDrawer({
   useEffect(() => {
     if (!open) {
       setSent(false);
+      setSentPayment(null);
+      setSentTotal(0);
       setAttempted(false);
       setStep(1);
     }
@@ -455,7 +461,9 @@ export function CartDrawer({
     }
     if (couponOk && appliedCoupon?.coupon) onRedeemCoupon(appliedCoupon.coupon.id);
     returnToSummaryRef.current = false;
+    setSentTotal(grandTotal);
     cart.clear();
+    setSentPayment(selectedPayment);
     setAttempted(false);
     setSent(true);
     onSent?.();
@@ -479,6 +487,7 @@ export function CartDrawer({
     if (link) window.open(link, "_blank", "noopener,noreferrer");
   };
 
+  const sentPaymentDetails = sentPayment ?? selectedPayment;
   const couponPanel = (
     <div className="rounded-xl bg-surface shadow-sm ring-1 ring-ink/8">
       <button
@@ -681,6 +690,52 @@ export function CartDrawer({
                 <CheckIcon className="h-10 w-10" />
               </span>
               <p className="mt-4 text-base font-bold">¡Pedido enviado!</p>
+              {sentPaymentDetails && (sentPaymentDetails.id === "transferencia" || sentPaymentDetails.id === "mercadopago") && (
+                <details className="mt-4 w-full max-w-[34ch] rounded-xl border border-ink/10 bg-ink/[0.03] text-left">
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 text-xs font-semibold text-ink/75 [&::-webkit-details-marker]:hidden">
+                    <span>Información de pago</span>
+                    <ChevronDownIcon className="h-3.5 w-3.5 shrink-0 transition-transform [[open]_&]:rotate-180" />
+                  </summary>
+                  <div className="border-t border-ink/10 px-3 pb-3 pt-2.5 text-[0.7rem] leading-relaxed text-ink/75">
+                    {sentPaymentDetails.id === "mercadopago" ? (
+                      <>
+                        <p className="font-semibold text-ink">Completa tu pago en Mercado Pago</p>
+                        <p className="mt-1">Abre el enlace y paga <strong>{formatPrice(sentTotal)}</strong>.</p>
+                        {mercadoPagoLink(sentPaymentDetails.details) ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const link = mercadoPagoLink(sentPaymentDetails.details);
+                              if (link) window.open(link, "_blank", "noopener,noreferrer");
+                            }}
+                            className="mt-2 inline-flex items-center rounded-full bg-sky-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-sky-700"
+                          >
+                            Abrir Mercado Pago
+                          </button>
+                        ) : (
+                          <p className="mt-1 text-red-700">El enlace de Mercado Pago aún no está configurado.</p>
+                        )}
+                      </>
+                    ) : sentPaymentDetails.details ? (
+                      <>
+                        <p className="font-semibold text-ink">Datos de transferencia</p>
+                        <TransferDetails
+                          details={sentPaymentDetails.details}
+                          copiedField={copiedField}
+                          copyErrorField={copyErrorField}
+                          onCopy={copyPaymentValue}
+                        />
+                      </>
+                    ) : (
+                      <p>Te enviaremos los datos para tu pago por WhatsApp.</p>
+                    )}
+                    <p className="mt-2 border-t border-ink/10 pt-2 text-ink/60">
+                      Después de pagar, envíanos el comprobante por WhatsApp para confirmar el pedido.
+                    </p>
+                  </div>
+                </details>
+              )}
+
               <button
                 type="button"
                 onClick={requestClose}
