@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from "react";
+import packageJson from "../../package.json";
 import type { Settings } from "../types";
 import { buildWhatsAppUrl } from "../utils/whatsapp";
 import { cn } from "../utils/cn";
@@ -127,6 +128,7 @@ export function Footer({ settings }: Props) {
           </div>
         )}
       </div>
+      <p className="py-2 text-center text-[0.65rem] text-ink/45">Versión {packageJson.version}</p>
     </footer>
   );
 }

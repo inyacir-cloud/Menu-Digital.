@@ -6,6 +6,12 @@ de los cambios realizados.
 
 ## Versiones
 
+### V 1.1.4 — 26 de octubre de 2026
+
+- Se eliminó la sección desplegable «Información de pago» después de enviar el pedido.
+- Se muestra el número de versión actual en la portada y en el pie del menú, actualizado automáticamente desde `package.json`.
+- El resumen del paso 4 agrupa los artículos por categoría.
+
 ### V 1.012 — 26 de octubre de 2026
 
 - El resumen del paso 4 ahora agrupa los artículos por categoría.

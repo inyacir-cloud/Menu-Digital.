@@ -1,4 +1,5 @@
 import { useState } from "react";
+import packageJson from "../../package.json";
 import type { Settings } from "../types";
 import { getNextOpeningInfo } from "../utils/businessSchedule";
 import { Blob } from "./Blob";
@@ -221,6 +222,10 @@ export function SplashScreen({ settings, isOpen, isLoading, onEnter, onSecret }:
         )}
 
       </main>
+
+      <p className="relative z-10 pb-3 text-center text-[0.65rem] text-ink/45">
+        Versión {packageJson.version}
+      </p>
 
       {/* Acceso oculto a administración (abajo, esquina izquierda) */}
       <button
