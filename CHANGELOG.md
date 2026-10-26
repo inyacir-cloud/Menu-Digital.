@@ -11,6 +11,7 @@ de los cambios realizados.
 - Al cerrar la ficha de una bebida abierta sobre el carrito, se mantiene visible el pedido.
 - Al editar desde el resumen y volver al menú para agregar productos, el pedido reabre en el paso 1 y permite volver directamente al resumen sin repetir entrega ni pago.
 - Se sincronizó la reapertura del carrito con el historial para evitar perder el primer toque en «Ver pedido» en móvil.
+- Se quitó el desplegable de información de pago de la pantalla de confirmación del pedido.
 
 ### V 1.010 — 26 de octubre de 2026
 
