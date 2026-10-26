@@ -62,6 +62,7 @@ export function useCart() {
             itemId: item.id,
             categoryId: category.id,
             categoryTitle: category.title,
+            categoryImage: category.image,
             name: item.cartName ?? item.name,
             price: item.price,
             size,
@@ -144,6 +145,7 @@ export function useCart() {
             price: found.item.price,
             categoryId: found.category.id,
             categoryTitle: found.category.title,
+            categoryImage: found.category.image,
             comboSelections: l.comboSelections,
           };
           const existing = merged.get(key);

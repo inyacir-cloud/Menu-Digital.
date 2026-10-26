@@ -15,6 +15,7 @@ const PAYMENT_HINTS: Record<PaymentId, string> = {
   efectivo: "Opcional. Ej. “Procura traer cambio” o “Aceptamos billetes de $500”.",
   transferencia: "Banco, CLABE y nombre del titular. El cliente los verá al elegir este método.",
   mercadopago: "Pega únicamente el link de cobro de Mercado Pago; el cliente lo abrirá para pagar el total.",
+  terminal: "Indica si aceptas tarjeta en el local o al entregar el pedido.",
 };
 
 const DAY_LABELS: Record<BusinessDayName, string> = {

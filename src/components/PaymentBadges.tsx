@@ -1,7 +1,7 @@
 import type { PaymentId, PaymentMethod } from "../types";
 import { cn } from "../utils/cn";
 import mercadoPagoLogo from "../../MP1.png";
-import { BankIcon, CashIcon } from "./icons";
+import { BankIcon, CashIcon, TerminalIcon } from "./icons";
 
 export function PaymentIcon({ id, className }: { id: PaymentId; className?: string }) {
   if (id === "efectivo") {
@@ -15,6 +15,13 @@ export function PaymentIcon({ id, className }: { id: PaymentId; className?: stri
     return (
       <span className={cn("grid shrink-0 place-items-center rounded-full bg-ink text-paper", className)}>
         <BankIcon className="h-[60%] w-[60%]" />
+      </span>
+    );
+  }
+  if (id === "terminal") {
+    return (
+      <span className={cn("grid shrink-0 place-items-center rounded-full bg-sky-100 text-sky-700", className)}>
+        <TerminalIcon className="h-[60%] w-[60%]" />
       </span>
     );
   }

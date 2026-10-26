@@ -48,27 +48,27 @@ export const DEFAULT_THEME: Theme = {
 };
 
 export const DEFAULT_MESSAGE_TEMPLATE = [
-  "🌮 *Nuevo pedido · {negocio}*",
+  "*Nuevo pedido · {negocio}*",
   "",
   "{pedido}",
   "",
-  "🎟️ *Cupón:* {cupon}",
-  "💰 *Total: {total}*",
+  "*Cupón:* {cupon}",
+  "*Total: {total}*",
   "",
-  "👤 *Nombre:* {nombre}",
-  "🛵 *Entrega:* {entrega}",
-  "📍 *Dirección:* {direccion}",
-  "🗺️ *Ubicación:* {mapa}",
-  "💳 *Pago:* {pago}",
-  "📝 *Notas:* {notas}",
+  "*Nombre:* {nombre}",
+  "*Entrega:* {entrega}",
+  "*Dirección:* {direccion}",
+  "*Ubicación:* {mapa}",
+  "*Pago:* {pago}",
+  "*Notas:* {notas}",
   "",
   "{propina}",
   "{confirmacion}",
   "",
-  "¡Gracias por tu pedido! 🙌",
+  "Gracias por tu pedido.",
 ].join("\n");
 
-export const DEFAULT_CONTACT_MESSAGE = "Hola, quiero hacer un pedido 🌮";
+export const DEFAULT_CONTACT_MESSAGE = "Hola, quiero hacer un pedido.";
 
 export const DEFAULT_BUSINESS_SCHEDULE_CONFIG: BusinessSchedule = DEFAULT_BUSINESS_SCHEDULE;
 
@@ -86,6 +86,7 @@ export const DEFAULT_SETTINGS: Settings = {
     { id: "efectivo", label: "Efectivo", enabled: true, details: "" },
     { id: "transferencia", label: "Transferencia", enabled: true, details: "" },
     { id: "mercadopago", label: "Mercado Pago", enabled: true, details: "" },
+    { id: "terminal", label: "Terminal", enabled: true, details: "Paga con tarjeta al recibir o recoger tu pedido." },
   ],
   messageTemplate: DEFAULT_MESSAGE_TEMPLATE,
   contactMessage: DEFAULT_CONTACT_MESSAGE,

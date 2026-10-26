@@ -19,12 +19,12 @@ function buildOrderBlock(lines: CartLine[]): string {
     out.push(`*${category}*`);
     for (const l of items) {
       const sizeLabel = l.size ? ` (${l.size.name})` : "";
-      out.push(`▪️ ${l.qty} × ${l.name}${sizeLabel} — ${formatPrice(lineTotal(l))}`);
+      out.push(`- ${l.qty} × ${l.name}${sizeLabel} — ${formatPrice(lineTotal(l))}`);
       for (const e of l.extras) {
         out.push(e.price > 0 ? `     ↳ ${e.name} (+${formatPrice(e.price)} c/u)` : `     ↳ ${e.name}`);
       }
       for (const selection of l.comboSelections ?? []) out.push(`     ↳ ${selection.groupTitle}: ${selection.label}`);
-      if (l.note) out.push(`     📝 ${l.note}`);
+      if (l.note) out.push(`     Nota: ${l.note}`);
     }
     out.push("");
   }
@@ -77,11 +77,11 @@ export function buildOrderVars(
     cupon: coupon ? `${coupon.code} (−${formatPrice(coupon.discount)})` : "",
     propina:
       customer.mode === "envio"
-        ? "🛵💛 Con gusto dejo propina para el repartidor. ¡Gracias por llevar mi pedido calientito hasta mi puerta!"
+        ? "Con gusto dejo propina para el repartidor. Gracias por llevar mi pedido hasta mi puerta."
         : "",
     confirmacion:
-      payment && payment.id !== "efectivo"
-        ? "📸 Enseguida les mando la captura de pantalla de mi pago para la confirmación del pedido."
+      payment && (payment.id === "transferencia" || payment.id === "mercadopago")
+        ? "Enseguida les mando la captura de pantalla de mi pago para confirmar el pedido."
         : "",
     fecha: now.toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" }),
     hora: now.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" }),
@@ -95,7 +95,14 @@ export function buildOrderMessage(
   coupon: OrderCoupon | null = null,
 ): string {
   const template = settings.messageTemplate.trim() ? settings.messageTemplate : DEFAULT_MESSAGE_TEMPLATE;
-  return renderTemplate(template, buildOrderVars(lines, customer, settings, coupon));
+  const rendered = renderTemplate(template, buildOrderVars(lines, customer, settings, coupon));
+  return rendered
+    .replace(/[\p{Extended_Pictographic}\p{Regional_Indicator}\p{Emoji_Modifier}\uFE0F\u200D\u20E3]/gu, "")
+    .split(/\r?\n/)
+    .map((line) => line.replace(/[\t ]+/g, " ").trim())
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 }
 
 export function buildWhatsAppUrl(message: string, phone: string): string {

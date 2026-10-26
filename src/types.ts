@@ -55,7 +55,7 @@ export interface MenuCategory {
   layout?: CategoryLayout;
 }
 
-export type PaymentId = "efectivo" | "transferencia" | "mercadopago";
+export type PaymentId = "efectivo" | "transferencia" | "mercadopago" | "terminal";
 
 export interface PaymentMethod {
   id: PaymentId;
@@ -232,6 +232,7 @@ export interface CartLine {
   itemId: string;
   categoryId: string;
   categoryTitle: string;
+  categoryImage?: string;
   name: string;
   /** Precio base unitario (sin extras ni tamaño) */
   price: number;

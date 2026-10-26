@@ -127,6 +127,7 @@ export default function App() {
   const [toast, setToast] = useState<ToastData | null>(null);
   const sheetHistoryRef = useRef(false);
   const closingSheetRef = useRef(false);
+  const browsingFromCartRef = useRef(false);
 
   const waterItems = useMemo(
     () =>
@@ -191,6 +192,10 @@ export default function App() {
   useEffect(() => {
     if (view !== "menu" || cartOpen) return;
     const onPopState = () => {
+      if (browsingFromCartRef.current) {
+        browsingFromCartRef.current = false;
+        return;
+      }
       if (sheet) {
         if (closingSheetRef.current) {
           closingSheetRef.current = false;
@@ -300,6 +305,11 @@ export default function App() {
   }, [auth]);
 
   const closeCart = useCallback(() => setCartOpen(false), []);
+  const browseFromCart = useCallback(() => {
+    browsingFromCartRef.current = true;
+    setExitNoticeOpen(false);
+    setCartOpen(false);
+  }, []);
   const closeSheet = useCallback(() => {
     if (sheetHistoryRef.current) {
       closingSheetRef.current = true;
@@ -490,6 +500,7 @@ export default function App() {
       <CartDrawer
         open={cartOpen}
         onClose={closeCart}
+        onBrowseMenu={browseFromCart}
         cart={cart}
         customer={customer}
         onCustomerChange={setCustomer}

@@ -1,8 +1,8 @@
 import { useMemo, useRef, useState } from "react";
 import type { MenuStore } from "../../hooks/useMenuStore";
 import { DEFAULT_CONTACT_MESSAGE, DEFAULT_MESSAGE_TEMPLATE } from "../../data/menu";
-import { PLACEHOLDERS, renderTemplate, unknownPlaceholders } from "../../utils/template";
-import { SAMPLE_CUSTOMER, SAMPLE_LINES, buildOrderVars, buildWhatsAppUrl } from "../../utils/whatsapp";
+import { PLACEHOLDERS, unknownPlaceholders } from "../../utils/template";
+import { SAMPLE_CUSTOMER, SAMPLE_LINES, buildOrderMessage, buildWhatsAppUrl } from "../../utils/whatsapp";
 import { WhatsAppIcon } from "../icons";
 import { Button, Card, Field, SaveBar, SectionTitle, TextArea, TextInput } from "./ui";
 
@@ -20,7 +20,7 @@ export function MessageEditor({ store, notify }: Props) {
   const dirty = template !== store.settings.messageTemplate || contact !== store.settings.contactMessage;
 
   const preview = useMemo(
-    () => renderTemplate(template, buildOrderVars(SAMPLE_LINES, SAMPLE_CUSTOMER, store.settings)),
+    () => buildOrderMessage(SAMPLE_LINES, SAMPLE_CUSTOMER, { ...store.settings, messageTemplate: template }),
     [template, store.settings],
   );
 
@@ -101,7 +101,7 @@ export function MessageEditor({ store, notify }: Props) {
 
             <Field
               label="Plantilla del mensaje"
-              hint="Usa *asteriscos* para negritas. Las líneas cuyo dato quede vacío (p. ej. la dirección cuando pasan a recoger) se omiten solas."
+              hint="Usa *asteriscos* para negritas. Los emojis se quitan del mensaje enviado por compatibilidad. Las líneas cuyo dato quede vacío se omiten solas."
             >
               <TextArea
                 ref={textareaRef}

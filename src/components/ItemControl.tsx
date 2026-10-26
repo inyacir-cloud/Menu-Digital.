@@ -31,12 +31,12 @@ export function ItemControl({ name, qty, unavailable, closed, onAdd, onDecrement
 
   if (qty > 0) {
     return (
-      <div className={cn("flex animate-pop items-center gap-0.5 rounded-full bg-ink p-0.5 text-paper shadow-md", className)}>
+      <div className={cn("flex animate-pop items-center gap-0.5 rounded-full text-ink", className)}>
         <button
           type="button"
           onClick={onDecrement}
           aria-label={`Quitar uno de ${name}`}
-          className="grid h-7 w-7 place-items-center rounded-full transition hover:bg-paper/20 active:scale-90 sm:h-8 sm:w-8"
+          className="grid h-7 w-7 place-items-center rounded-full bg-ink/5 transition hover:bg-ink/10 active:scale-90 sm:h-8 sm:w-8"
         >
           <MinusIcon className="h-3.5 w-3.5" />
         </button>

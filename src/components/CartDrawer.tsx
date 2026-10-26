@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } fr
 import type { CartApi } from "../hooks/useCart";
 import type { CartLine, CustomerInfo, DeliveryMode, MenuItem, PaymentMethod, Settings } from "../types";
 import type { AppliedCoupon } from "../utils/coupon";
+import { resolveImage } from "../data/menu";
 import { couponLabel } from "../utils/coupon";
 import { formatPrice } from "../utils/format";
 import { lineTotal, lineUnitPrice, shortSizeName } from "../utils/menu";
@@ -13,8 +14,10 @@ import {
   ChevronDownIcon,
   CloseIcon,
   CopyIcon,
+  GlassIceIcon,
   MinusIcon,
   PinIcon,
+  PencilIcon,
   PlusIcon,
   TicketIcon,
   LockIcon,
@@ -124,11 +127,16 @@ function TransferDetails({
   return (
     <div className="mt-3 space-y-2 rounded-xl border border-ink/10 bg-white p-3">
       {rows.map((row) => (
-        <div key={row.id} className="grid grid-cols-[4.5rem_minmax(0,1fr)_auto] items-center gap-2">
-          <span className="text-xs text-ink/60">{row.label}</span>
-          <span className={cn("min-w-0 break-words rounded-lg bg-paper/70 px-3 py-2 text-sm text-ink", row.id === "clabe" && "font-mono font-bold tracking-wide")}>
-            {row.id === "clabe" && row.value.length === 18 ? formatClabe(row.value) : row.value}
-          </span>
+        <div key={row.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-1.5">
+          <div className="min-w-0">
+            <span className="block text-[0.65rem] font-medium text-ink/55">{row.label}</span>
+            <span className={cn(
+              "mt-0.5 block min-w-0 break-words rounded-lg bg-paper/70 px-2.5 py-2 text-sm text-ink",
+              row.id === "clabe" && "font-mono text-xs font-bold tracking-wide",
+            )}>
+              {row.id === "clabe" && row.value.length === 18 ? formatClabe(row.value) : row.value}
+            </span>
+          </div>
           <button
             type="button"
             onClick={() => {
@@ -139,14 +147,14 @@ function TransferDetails({
                   : row.value;
               onCopy(value, row.id);
             }}
-            aria-label={`Copiar ${row.label.toLowerCase()}`}
-            className="inline-flex items-center gap-1 rounded-lg bg-ink/[0.04] px-2 py-2 text-xs font-semibold text-ink/70 transition hover:bg-ink/10 hover:text-ink"
+            aria-label={copiedField === row.id ? `Copiado ${row.label.toLowerCase()}` : `Copiar ${row.label.toLowerCase()}`}
+            title={copiedField === row.id ? "Copiado" : `Copiar ${row.label.toLowerCase()}`}
+            className="grid h-9 w-9 place-items-center rounded-lg bg-ink/[0.04] text-ink/65 transition hover:bg-ink/10 hover:text-ink"
           >
-            <CopyIcon className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">{copiedField === row.id ? "Copiado" : "Copiar"}</span>
+            {copiedField === row.id ? <CheckIcon className="h-4 w-4 text-wa-deep" /> : <CopyIcon className="h-3.5 w-3.5" />}
           </button>
           {copyErrorField === row.id && (
-            <p role="alert" className="col-span-3 text-xs text-red-700">
+            <p role="alert" className="col-span-2 text-xs text-red-700">
               No se pudo copiar. Selecciona el dato y cópialo manualmente.
             </p>
           )}
@@ -162,6 +170,7 @@ function TransferDetails({
 interface Props {
   open: boolean;
   onClose: () => void;
+  onBrowseMenu: () => void;
   cart: CartApi;
   customer: CustomerInfo;
   onCustomerChange: (next: CustomerInfo) => void;
@@ -197,6 +206,7 @@ function groupByCategory(lines: CartLine[]): Group[] {
 export function CartDrawer({
   open,
   onClose,
+  onBrowseMenu,
   cart,
   customer,
   onCustomerChange,
@@ -223,11 +233,21 @@ export function CartDrawer({
   const [copyErrorField, setCopyErrorField] = useState<string | null>(null);
   const [mapOpen, setMapOpen] = useState(false);
   const [codeInput, setCodeInput] = useState("");
+  const [couponOpen, setCouponOpen] = useState(false);
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
 
   const couponOk = !!appliedCoupon?.coupon && !appliedCoupon.error;
   const discount = couponOk ? appliedCoupon.discount : 0;
   const grandTotal = Math.max(0, cart.total - discount);
+  const enteredCashAmount = customer.cashAmount.trim() ? Number(customer.cashAmount) : null;
+  const cashChange =
+    enteredCashAmount !== null && Number.isFinite(enteredCashAmount) && enteredCashAmount >= grandTotal
+      ? enteredCashAmount - grandTotal
+      : null;
+  const cashShortfall =
+    enteredCashAmount !== null && Number.isFinite(enteredCashAmount) && enteredCashAmount < grandTotal
+      ? grandTotal - enteredCashAmount
+      : null;
 
   const nameRef = useRef<HTMLInputElement>(null);
   const addressRef = useRef<HTMLTextAreaElement>(null);
@@ -372,6 +392,7 @@ export function CartDrawer({
       return;
     }
     setAttempted(false);
+    update({ payment: "" });
     setStep(3);
   };
 
@@ -434,6 +455,92 @@ export function CartDrawer({
   };
 
   const sentPaymentDetails = sentPayment ?? selectedPayment;
+  const couponPanel = (
+    <div className="rounded-xl bg-surface shadow-sm ring-1 ring-ink/8">
+      <button
+        type="button"
+        aria-expanded={couponOpen}
+        onClick={() => setCouponOpen((current) => !current)}
+        className="flex w-full items-center gap-2.5 px-3 py-3 text-left"
+      >
+        <TicketIcon className="h-4 w-4 shrink-0 text-terracotta" />
+        <span className="min-w-0 flex-1">
+          <span className="block text-xs font-bold text-ink/75">
+            {appliedCoupon ? "Cupón aplicado" : "¿Tienes un cupón de descuento?"}
+          </span>
+          {couponOk && appliedCoupon && (
+            <span className="mt-0.5 block truncate text-xs font-semibold text-wa-deep">
+              {appliedCoupon.code} · −{formatPrice(discount)}
+            </span>
+          )}
+          {appliedCoupon && !couponOk && (
+            <span className="mt-0.5 block truncate text-xs font-medium text-red-600">{appliedCoupon.error}</span>
+          )}
+        </span>
+        <ChevronDownIcon className={cn("h-4 w-4 shrink-0 text-ink/55 transition-transform", couponOpen && "rotate-180")} />
+      </button>
+
+      {couponOpen && (
+        <div className="animate-fade border-t border-ink/8 px-3 pb-3 pt-2.5">
+          {appliedCoupon ? (
+            <div
+              className={cn(
+                "flex items-center gap-2.5 rounded-xl px-3 py-2 ring-1",
+                couponOk ? "bg-wa/10 ring-wa/30" : "bg-red-50 ring-red-200",
+              )}
+            >
+              <TicketIcon className={cn("h-5 w-5 shrink-0", couponOk ? "text-wa-deep" : "text-red-500")} />
+              <div className="min-w-0 flex-1">
+                <p className="font-mono text-sm font-extrabold tracking-wide">{appliedCoupon.code}</p>
+                <p className={cn("text-xs font-medium", couponOk ? "text-wa-deep" : "text-red-600")}>
+                  {couponOk && appliedCoupon.coupon
+                    ? `${couponLabel(appliedCoupon.coupon)} · −${formatPrice(discount)}`
+                    : appliedCoupon.error}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  onApplyCode(null);
+                  setCodeInput("");
+                }}
+                aria-label="Quitar cupón"
+                className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-ink/50 transition hover:bg-ink/10 hover:text-red-600"
+              >
+                <CloseIcon className="h-4 w-4" />
+              </button>
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <input
+                type="text"
+                autoCapitalize="characters"
+                autoCorrect="off"
+                autoComplete="off"
+                spellCheck={false}
+                value={codeInput}
+                onChange={(e) => setCodeInput(e.target.value.toUpperCase())}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && codeInput.trim()) onApplyCode(codeInput.trim());
+                }}
+                placeholder="Escribe tu código"
+                aria-label="Código de cupón"
+                className={cn(inputCls, "mt-0 flex-1 border-ink/15 bg-paper/20 font-mono uppercase tracking-wider")}
+              />
+              <button
+                type="button"
+                disabled={!codeInput.trim()}
+                onClick={() => onApplyCode(codeInput.trim())}
+                className="shrink-0 rounded-xl bg-ink px-4 py-2.5 text-sm font-bold text-paper transition hover:opacity-90 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Aplicar
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
 
   if (!open) return null;
 
@@ -451,19 +558,19 @@ export function CartDrawer({
         role="dialog"
         aria-modal="true"
         aria-labelledby="cart-title"
-        className="absolute inset-0 flex animate-fade flex-col bg-paper-light text-ink shadow-2xl"
+        className="absolute inset-0 flex animate-fade flex-col bg-paper-light text-ink shadow-2xl md:inset-y-4 md:left-1/2 md:right-auto md:w-[calc(100%-2rem)] md:max-w-lg md:-translate-x-1/2 md:rounded-2xl md:overflow-hidden"
       >
         {/* Encabezado */}
-        <header className="border-b border-ink/10 px-5 py-4">
+        <header className="border-b border-ink/10 bg-mustard px-5 py-4">
           <div className="flex items-center gap-3">
-            <span className="grid h-10 w-10 place-items-center rounded-full bg-mustard text-on-mustard">
+            <span className="grid h-10 w-10 place-items-center rounded-full bg-ink text-mustard">
               <BagIcon className="h-5 w-5" />
             </span>
             <div className="flex-1">
               <h2 id="cart-title" className="text-lg font-bold leading-tight">
                 Tu pedido
               </h2>
-              <p className="text-xs text-ink/60">
+              <p className="text-xs text-ink/70">
                 {cart.count === 0
                   ? "Aún no agregas nada"
                   : `${cart.count} ${cart.count === 1 ? "artículo" : "artículos"} · ${settings.name}`}
@@ -483,11 +590,30 @@ export function CartDrawer({
           {/* Barra de progreso por pasos (4 PASOS) */}
           {!sent && cart.lines.length > 0 && (
             <div className="mt-4">
-              <div className="grid grid-cols-4 gap-1 text-[0.62rem] font-bold uppercase tracking-wider text-center">
-                <span className={cn(step === 1 ? "text-terracotta" : "text-ink/40")}>1. Pedido</span>
-                <span className={cn(step === 2 ? "text-terracotta" : "text-ink/40")}>2. Entrega</span>
-                <span className={cn(step === 3 ? "text-terracotta" : "text-ink/40")}>3. Pago</span>
-                <span className={cn(step === 4 ? "text-terracotta" : "text-ink/40")}>4. Enviar</span>
+              <div className="grid grid-cols-4 gap-1 text-center text-[0.62rem] font-bold uppercase">
+                {(["Pedido", "Entrega", "Pago", "Enviar"] as const).map((label, index) => {
+                  const stepNumber = (index + 1) as 1 | 2 | 3 | 4;
+                  return (
+                    <button
+                      key={label}
+                      type="button"
+                      onClick={() => stepNumber < step && setStep(stepNumber)}
+                      aria-current={step === stepNumber ? "step" : undefined}
+                      className={cn(
+                        "flex min-h-8 flex-col items-center justify-center gap-0.5 transition",
+                        step === stepNumber ? "text-terracotta" : stepNumber < step ? "text-ink/70" : "text-ink/40",
+                      )}
+                    >
+                      <span className={cn(
+                        "grid h-5 w-5 place-items-center rounded-full border text-[0.6rem]",
+                        step === stepNumber ? "border-terracotta bg-terracotta text-white" : "border-current",
+                      )}>
+                        {stepNumber < step ? <CheckIcon className="h-3 w-3" /> : stepNumber}
+                      </span>
+                      {label}
+                    </button>
+                  );
+                })}
               </div>
               <div className="mt-1.5 flex h-1.5 gap-1 overflow-hidden rounded-full bg-ink/10">
                 <div
@@ -524,14 +650,14 @@ export function CartDrawer({
         </header>
 
         {/* Contenido */}
-        <div className="flex-1 overflow-y-auto overscroll-contain px-5 py-4">
+        <div className="flex-1 overflow-y-auto overscroll-contain px-5 py-5">
           {sent ? (
             <div className="flex h-full flex-col items-center justify-center py-16 text-center">
               <span className="grid h-20 w-20 animate-pop place-items-center rounded-full bg-wa text-white shadow-lg shadow-wa/35">
                 <CheckIcon className="h-10 w-10" />
               </span>
               <p className="mt-4 text-base font-bold">¡Pedido enviado!</p>
-              {sentPaymentDetails && sentPaymentDetails.id !== "efectivo" && (
+              {sentPaymentDetails && (sentPaymentDetails.id === "transferencia" || sentPaymentDetails.id === "mercadopago") && (
                 <details className="mt-4 w-full max-w-[34ch] rounded-xl border border-ink/10 bg-ink/[0.03] text-left">
                   <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 text-xs font-semibold text-ink/75 [&::-webkit-details-marker]:hidden">
                     <span>Información de pago</span>
@@ -605,14 +731,21 @@ export function CartDrawer({
                   <div className="space-y-4">
                     {groups.map((g) => (
                       <div key={g.title}>
-                        <h3 className="mb-1.5 text-[0.7rem] font-bold uppercase tracking-[0.2em] text-ink/50">
-                          {g.title}
+                        <h3 className="mb-1.5 text-[0.7rem] font-bold uppercase tracking-[0.2em] text-ink/55">
+                            {g.title}
                         </h3>
                         <ul className="divide-y divide-ink/8 overflow-hidden rounded-2xl bg-surface shadow-sm ring-1 ring-ink/5">
                           {g.lines.map((l) => (
-                            <li key={l.key} className="flex items-center gap-2 px-3 py-2.5 sm:gap-3">
+                            <li key={l.key} className="flex items-center gap-1 px-2.5 py-2.5 sm:gap-3 sm:px-3">
+                              {resolveImage(l.categoryImage) && (
+                                <img
+                                  src={resolveImage(l.categoryImage)}
+                                  alt={`Imagen de ${l.categoryTitle}`}
+                                  className="h-12 w-12 shrink-0 rounded-lg bg-paper object-cover"
+                                />
+                              )}
                               <div className="min-w-0 flex-1">
-                                <p className="truncate font-semibold leading-tight">{l.name}</p>
+                                <p className="break-words font-semibold leading-tight">{l.name}</p>
                                 {l.size && <p className="text-xs font-semibold text-ink/70">{l.size.name}</p>}
                                 {l.extras.length > 0 && (
                                   <p className="text-xs font-medium text-mustard-ink">
@@ -628,12 +761,12 @@ export function CartDrawer({
                                 <p className="text-xs text-ink/55">{formatPrice(lineUnitPrice(l))} c/u</p>
                               </div>
 
-                              <div className="flex items-center gap-0.5 rounded-full bg-ink p-0.5 text-paper">
+                              <div className="flex items-center gap-0.5 rounded-full text-ink">
                                 <button
                                   type="button"
                                   onClick={() => cart.decrementLine(l.key)}
                                   aria-label={`Quitar uno de ${l.name}`}
-                                  className="grid h-7 w-7 place-items-center rounded-full transition hover:bg-paper/20"
+                                  className="grid h-7 w-7 place-items-center rounded-full bg-ink/5 transition hover:bg-ink/10"
                                 >
                                   <MinusIcon className="h-3 w-3" />
                                 </button>
@@ -650,7 +783,7 @@ export function CartDrawer({
                                 </button>
                               </div>
 
-                              <span className="w-14 text-right text-sm font-bold tabular-nums sm:w-16 sm:text-base">
+                              <span className="w-10 text-right text-sm font-bold tabular-nums sm:w-16 sm:text-base">
                                 {formatPrice(lineTotal(l))}
                               </span>
 
@@ -658,7 +791,7 @@ export function CartDrawer({
                                 type="button"
                                 onClick={() => cart.removeLine(l.key)}
                                 aria-label={`Eliminar ${l.name}`}
-                                className="grid h-8 w-8 place-items-center rounded-full text-ink/40 transition hover:bg-red-50 hover:text-red-600"
+                                className="grid h-7 w-7 place-items-center rounded-full text-ink/40 transition hover:bg-red-50 hover:text-red-600"
                               >
                                 <TrashIcon className="h-4 w-4" />
                               </button>
@@ -668,6 +801,17 @@ export function CartDrawer({
                       </div>
                     ))}
                   </div>
+
+                  <button
+                    type="button"
+                    onClick={onBrowseMenu}
+                    className="flex w-full items-center gap-3 rounded-xl bg-mustard/15 px-3 py-2.5 text-left transition hover:bg-mustard/25"
+                  >
+                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-mustard text-on-mustard">
+                      <PlusIcon className="h-4 w-4" />
+                    </span>
+                    <span className="text-sm font-bold">Agregar más productos</span>
+                  </button>
 
                   {/* Sugerencia: bebidas del día (Upsell) */}
                   {suggestions.length > 0 && (
@@ -679,7 +823,10 @@ export function CartDrawer({
                         className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left"
                       >
                         <span className="text-[0.7rem] font-bold uppercase tracking-[0.2em] text-ink/60">
-                          ¿Agregas una bebida?
+                          <span className="flex items-center gap-2">
+                            <GlassIceIcon className="h-5 w-5 text-terracotta" />
+                            ¿Agregas una bebida?
+                          </span>
                         </span>
                         <ChevronDownIcon className={cn("h-4 w-4 text-ink/55 transition-transform", suggestionsOpen && "rotate-180")} />
                       </button>
@@ -734,8 +881,58 @@ export function CartDrawer({
               {/* ------------------------------------------------------------- */}
               {step === 2 && (
                 <div className="space-y-4 animate-fade">
-                  <h3 className="text-sm font-bold uppercase tracking-wider text-ink/50">Entrega</h3>
-                  <div className="space-y-3.5 rounded-2xl bg-surface p-4 shadow-sm ring-1 ring-ink/5">
+                  <div>
+                    <h3 className="text-lg font-extrabold">Entrega</h3>
+                    <p className="mt-0.5 text-xs text-ink/55">Cuéntanos cómo recibirás tu pedido.</p>
+                  </div>
+                  <div className="space-y-3.5 rounded-xl bg-surface p-4 shadow-sm ring-1 ring-ink/8">
+                    {/* Envío o Recoger */}
+                    <fieldset>
+                      <legend className="text-sm font-bold text-ink">¿Cómo prefieres recibir tu pedido?</legend>
+                      <div className="mt-2 grid grid-cols-2 gap-2.5">
+                        {(
+                          [
+                            { value: "envio", label: "Envío a domicilio", emoji: "🛵" },
+                            { value: "recoger", label: "Paso a recoger", emoji: "🏪" },
+                          ] as { value: DeliveryMode; label: string; emoji: string }[]
+                        ).map((opt) => (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => update({ mode: opt.value })}
+                            aria-pressed={customer.mode === opt.value}
+                            className={cn(
+                              "relative flex min-h-24 flex-col items-center justify-center gap-2 rounded-xl border px-3 py-3 text-xs font-semibold transition sm:text-sm",
+                              customer.mode === opt.value
+                                ? "border-mustard bg-mustard/10 text-ink ring-1 ring-mustard"
+                                : "border-ink/15 bg-white text-ink hover:border-mustard/70",
+                            )}
+                          >
+                            <span className="text-2xl leading-none" aria-hidden="true">{opt.emoji}</span>
+                            <span className="text-center">{opt.label}</span>
+                            {customer.mode === opt.value && (
+                              <span className="absolute right-2 top-2 grid h-5 w-5 place-items-center rounded-full bg-mustard text-on-mustard">
+                                <CheckIcon className="h-3.5 w-3.5" />
+                              </span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                      {customer.mode === "envio" && (
+                        <p className="mt-2 rounded-lg bg-mustard/10 px-3 py-2 text-[0.7rem] text-ink/65">
+                          Los envíos son <span className="font-bold text-ink/80">solo por propina</span> 🙌
+                        </p>
+                      )}
+                    </fieldset>
+
+                    {isDelivery && (
+                      <div className="animate-fade rounded-2xl border border-dashed border-mustard/60 bg-mustard/10 p-3.5 text-xs leading-relaxed text-ink/80">
+                        🛵💛 <span className="font-bold">Gracias por pedir a domicilio.</span> El envío no tiene
+                        costo: la propina que quieras dar va íntegra para el repartidor que lleva tu comida
+                        calientita y a tiempo. ¡Él te lo agradecerá con una sonrisa!
+                      </div>
+                    )}
+
                     {/* Nombre */}
                     <label className="block">
                       <span className="text-xs font-semibold text-ink/70">Tu nombre completo *</span>
@@ -752,48 +949,6 @@ export function CartDrawer({
                         <span className="mt-1 block text-xs font-medium text-red-600">{errors.name}</span>
                       )}
                     </label>
-
-                    {/* Envío o Recoger */}
-                    <fieldset>
-                      <legend className="text-xs font-semibold text-ink/70">¿Cómo prefieres recibir tu pedido?</legend>
-                      <div className="mt-1.5 grid grid-cols-2 gap-2">
-                        {(
-                          [
-                            { value: "envio", label: "Envío a domicilio", emoji: "🛵" },
-                            { value: "recoger", label: "Paso a recoger", emoji: "🏪" },
-                          ] as { value: DeliveryMode; label: string; emoji: string }[]
-                        ).map((opt) => (
-                          <button
-                            key={opt.value}
-                            type="button"
-                            onClick={() => update({ mode: opt.value })}
-                            aria-pressed={customer.mode === opt.value}
-                            className={cn(
-                              "flex items-center justify-center gap-1.5 rounded-xl border px-2 py-2.5 text-xs font-semibold transition sm:text-sm",
-                              customer.mode === opt.value
-                                ? "border-ink bg-ink text-paper"
-                                : "border-ink/15 bg-paper/40 text-ink hover:border-ink/40",
-                            )}
-                          >
-                            <span aria-hidden="true">{opt.emoji}</span>
-                            {opt.label}
-                          </button>
-                        ))}
-                      </div>
-                      {customer.mode === "envio" && (
-                        <p className="mt-1.5 text-[0.7rem] text-ink/55">
-                          Los envíos son <span className="font-bold text-ink/80">solo por propina</span> 🙌
-                        </p>
-                      )}
-                    </fieldset>
-
-                    {isDelivery && (
-                      <div className="animate-fade rounded-2xl border border-dashed border-mustard/60 bg-mustard/10 p-3.5 text-xs leading-relaxed text-ink/80">
-                        🛵💛 <span className="font-bold">Gracias por pedir a domicilio.</span> El envío no tiene
-                        costo: la propina que quieras dar va íntegra para el repartidor que lleva tu comida
-                        calientita y a tiempo. ¡Él te lo agradecerá con una sonrisa!
-                      </div>
-                    )}
 
                     {/* Dirección con pin en mapa */}
                     {customer.mode === "envio" && (
@@ -856,204 +1011,188 @@ export function CartDrawer({
               {/* ------------------------------------------------------------- */}
               {step === 3 && (
                 <div className="space-y-4 animate-fade">
-                  <h3 className="text-sm font-bold uppercase tracking-wider text-ink/50">Pago y Beneficios</h3>
-
-                  {/* Cupón (movido aquí) */}
-                  <div className="rounded-2xl bg-surface p-4 shadow-sm ring-1 ring-ink/5 space-y-2">
-                    <div className="flex items-center gap-2">
-                      <TicketIcon className="h-4 w-4 shrink-0 text-terracotta" />
-                      <h4 className="text-xs font-bold uppercase tracking-[0.1em] text-ink/70">
-                        ¿Tienes un cupón de descuento?
-                      </h4>
-                    </div>
-
-                    {appliedCoupon ? (
-                      <div
-                        className={cn(
-                          "flex items-center gap-2.5 rounded-xl px-3 py-2 ring-1",
-                          couponOk ? "bg-wa/10 ring-wa/30" : "bg-red-50 ring-red-200",
-                        )}
-                      >
-                        <TicketIcon className={cn("h-5 w-5 shrink-0", couponOk ? "text-wa-deep" : "text-red-500")} />
-                        <div className="min-w-0 flex-1">
-                          <p className="font-mono text-sm font-extrabold tracking-wide">{appliedCoupon.code}</p>
-                          <p className={cn("text-xs font-medium", couponOk ? "text-wa-deep" : "text-red-600")}>
-                            {couponOk && appliedCoupon.coupon
-                              ? `${couponLabel(appliedCoupon.coupon)} · −${formatPrice(discount)}`
-                              : appliedCoupon.error}
-                          </p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            onApplyCode(null);
-                            setCodeInput("");
-                          }}
-                          aria-label="Quitar cupón"
-                          className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-ink/50 transition hover:bg-ink/10 hover:text-red-600"
-                        >
-                          <CloseIcon className="h-4 w-4" />
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          autoCapitalize="characters"
-                          autoCorrect="off"
-                          autoComplete="off"
-                          spellCheck={false}
-                          value={codeInput}
-                          onChange={(e) => setCodeInput(e.target.value.toUpperCase())}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" && codeInput.trim()) onApplyCode(codeInput.trim());
-                          }}
-                          placeholder="Escribe tu código"
-                          aria-label="Código de cupón"
-                          className={cn(inputCls, "mt-0 flex-1 border-ink/15 font-mono uppercase tracking-wider bg-paper/20")}
-                        />
-                        <button
-                          type="button"
-                          disabled={!codeInput.trim()}
-                          onClick={() => onApplyCode(codeInput.trim())}
-                          className="shrink-0 rounded-xl bg-ink px-4 py-2.5 text-sm font-bold text-paper transition hover:opacity-90 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
-                        >
-                          Aplicar
-                        </button>
-                      </div>
-                    )}
+                  <div>
+                    <h3 className="text-lg font-extrabold">Forma de pago</h3>
+                    <p className="mt-0.5 text-xs text-ink/55">Elige el método que prefieras.</p>
                   </div>
 
                   {/* Forma de pago */}
                   <div className="space-y-3.5 rounded-2xl bg-surface p-4 shadow-sm ring-1 ring-ink/5">
                     {enabledPayments.length > 0 && (
                       <fieldset ref={paymentRef}>
-                        <legend className="text-base font-bold text-ink">¿Cómo vas a pagar?</legend>
-                        <p className="mt-0.5 text-xs text-ink/55">Elige el método que prefieras.</p>
-                        <div
-                          className={cn(
-                            "mt-3 grid gap-2",
-                            enabledPayments.length >= 3 ? "grid-cols-3" : "grid-cols-2",
-                          )}
-                        >
+                        <legend className="sr-only">¿Cómo vas a pagar?</legend>
+                        <div className="mt-3">
                           {enabledPayments.map((p) => (
-                            <button
+                            <div
                               key={p.id}
-                              type="button"
-                              onClick={() => update({ payment: p.id })}
-                              aria-pressed={customer.payment === p.id}
+                              aria-hidden={Boolean(customer.payment && customer.payment !== p.id)}
+                              inert={Boolean(customer.payment && customer.payment !== p.id)}
                               className={cn(
-                                "flex min-h-28 flex-col items-center justify-center gap-2 rounded-2xl border px-1.5 py-3 text-center text-xs font-bold leading-tight transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500",
-                                customer.payment === p.id
-                                  ? "border-sky-500 bg-sky-50 text-ink shadow-sm"
-                                  : "border-ink/10 bg-white text-ink hover:border-ink/30",
-                                attempted && errors.payment && "border-red-400",
+                                "overflow-hidden transition-[max-height,opacity,transform,padding] duration-300 ease-in-out",
+                                customer.payment && customer.payment !== p.id
+                                  ? "pointer-events-none max-h-0 -translate-y-2 opacity-0"
+                                  : "mb-2 max-h-[40rem] translate-y-0 pb-2 opacity-100",
                               )}
                             >
-                              {p.id === "mercadopago" ? (
-                                <PaymentIcon id={p.id} className="w-20" />
-                              ) : (
-                                <span className={cn(
-                                  "grid h-12 w-12 place-items-center rounded-full",
-                                  p.id === "efectivo" ? "bg-emerald-50" : "bg-sky-100",
-                                )}>
-                                  <PaymentIcon id={p.id} className="h-9 w-9" />
+                              <div className="space-y-2">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  update({ payment: customer.payment === p.id ? "" : p.id });
+                                  setAttempted(false);
+                                }}
+                                aria-pressed={customer.payment === p.id}
+                                aria-expanded={customer.payment === p.id}
+                                aria-controls={customer.payment === p.id ? `payment-details-${p.id}` : undefined}
+                                className={cn(
+                                  "flex min-h-16 w-full flex-row justify-start gap-3 rounded-xl border px-3 py-2.5 text-left text-xs font-bold leading-tight transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500",
+                                  customer.payment === p.id
+                                    ? "border-mustard bg-mustard/10 text-ink shadow-sm ring-1 ring-mustard/70"
+                                    : "border-ink/10 bg-white text-ink hover:border-ink/30",
+                                  attempted && errors.payment && "border-red-400",
+                                )}
+                              >
+                                {p.id === "mercadopago" ? (
+                                  <PaymentIcon id={p.id} className="w-20" />
+                                ) : (
+                                  <span className={cn(
+                                    "grid h-10 w-10 shrink-0 place-items-center rounded-full",
+                                    p.id === "efectivo" ? "bg-emerald-50" : "bg-sky-100",
+                                  )}>
+                                    <PaymentIcon id={p.id} className="h-8 w-8" />
+                                  </span>
+                                )}
+                                <span className="min-w-0 flex-1">
+                                  <span className="block">{p.label}</span>
+                                  <span className="mt-1 block text-[0.68rem] font-normal text-ink/55">
+                                    {p.id === "efectivo" && "Paga cuando recibas tu pedido o al recoger."}
+                                    {p.id === "transferencia" && "Realiza tu pago y envíanos el comprobante."}
+                                    {p.id === "mercadopago" && "Paga en línea con tarjeta o Mercado Pago."}
+                                    {p.id === "terminal" && "Paga con tarjeta en una terminal bancaria."}
+                                  </span>
                                 </span>
+                                <span className={cn(
+                                  "grid h-5 w-5 shrink-0 place-items-center rounded-full border",
+                                  customer.payment === p.id ? "border-terracotta bg-terracotta text-white" : "border-ink/25",
+                                )}>
+                                  {customer.payment === p.id && <CheckIcon className="h-3 w-3" />}
+                                </span>
+                              </button>
+
+                              {customer.payment === p.id && (
+                                <div
+                                  id={`payment-details-${p.id}`}
+                                  className={cn(
+                                    "animate-fade rounded-xl p-3 text-xs text-ink/80",
+                                    p.id === "transferencia" ? "bg-sky-50 ring-1 ring-sky-100" : "bg-mustard/10 ring-1 ring-ink/5",
+                                  )}
+                                >
+                                  {p.id === "efectivo" && (
+                                    <label className="block">
+                                      <span className="text-xs font-semibold text-ink/70">¿Con cuánto vas a pagar? (opcional)</span>
+                                      <input
+                                        type="text"
+                                        inputMode="decimal"
+                                        autoComplete="off"
+                                        autoCorrect="off"
+                                        spellCheck={false}
+                                        value={customer.cashAmount}
+                                        onChange={(e) => update({ cashAmount: e.target.value.replace(/[^\d.]/g, "") })}
+                                        placeholder="Ej. 200"
+                                        className={cn(inputCls, "border-ink/15 bg-white font-mono")}
+                                      />
+                                      {p.details && <span className="mt-1 block text-[0.7rem] text-ink/55">{p.details}</span>}
+                                      {customer.cashAmount.trim() && (
+                                        <p className={cn(
+                                          "mt-2 rounded-lg px-3 py-2 text-xs font-semibold",
+                                          cashChange !== null
+                                            ? "bg-wa/10 text-wa-deep"
+                                            : cashShortfall !== null
+                                              ? "bg-amber-100 text-amber-900"
+                                              : "bg-red-50 text-red-700",
+                                        )}>
+                                          {cashChange !== null
+                                            ? `Tu cambio estimado: ${formatPrice(cashChange)}`
+                                            : cashShortfall !== null
+                                              ? `El pago no cubre el total. Faltan ${formatPrice(cashShortfall)}`
+                                              : "Escribe una cantidad válida para calcular tu cambio."}
+                                        </p>
+                                      )}
+                                    </label>
+                                  )}
+
+                                  {p.id === "terminal" && (
+                                    <p className="text-xs leading-relaxed text-ink/75">
+                                      {p.details.trim() || "Paga con tarjeta al recibir o recoger tu pedido."}
+                                    </p>
+                                  )}
+
+                                  {p.id === "mercadopago" && (
+                                    <>
+                                      <div className="flex items-center gap-3">
+                                        <PaymentIcon id="mercadopago" className="w-16" />
+                                        <div>
+                                          <p className="text-xs text-ink/60">Total a pagar</p>
+                                          <p className="text-sm font-bold text-ink">{formatPrice(grandTotal)}</p>
+                                        </div>
+                                      </div>
+                                      <p className="mt-3">Al terminar, envíanos el comprobante por WhatsApp para confirmar el pedido.</p>
+                                      {mercadoPagoLink(p.details) ? (
+                                        <button
+                                          type="button"
+                                          onClick={openMercadoPago}
+                                          className="mt-2 inline-flex items-center rounded-full bg-sky-600 px-4 py-2 font-bold text-white transition hover:bg-sky-700"
+                                        >
+                                          Abrir Mercado Pago
+                                        </button>
+                                      ) : (
+                                        <p role="alert" className="mt-2 text-red-700">El enlace de Mercado Pago aún no está configurado.</p>
+                                      )}
+                                    </>
+                                  )}
+
+                                  {p.id === "transferencia" && (
+                                    <>
+                                      <div className="flex items-center gap-3">
+                                        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-sky-100 text-sky-700">
+                                          <PaymentIcon id="transferencia" className="h-8 w-8" />
+                                        </span>
+                                        <div>
+                                          <p className="text-sm font-bold text-ink">Datos de transferencia</p>
+                                          <p className="mt-0.5 text-xs text-ink/60">Realiza la transferencia y envíanos el comprobante.</p>
+                                        </div>
+                                      </div>
+                                      {p.details ? (
+                                        <TransferDetails
+                                          details={p.details}
+                                          copiedField={copiedField}
+                                          copyErrorField={copyErrorField}
+                                          onCopy={copyPaymentValue}
+                                        />
+                                      ) : (
+                                        <p className="mt-3 rounded-xl border border-sky-100 bg-white p-3 text-sm text-ink/65">
+                                          Los datos de transferencia aún no están configurados.
+                                        </p>
+                                      )}
+                                      <p className="mt-3 rounded-lg bg-sky-100/70 px-3 py-2 text-xs leading-relaxed text-sky-900">
+                                        Después de pagar, envíanos el comprobante por WhatsApp para confirmar tu pedido.
+                                      </p>
+                                    </>
+                                  )}
+                                </div>
                               )}
-                              {p.id !== "mercadopago" && <span>{p.label}</span>}
-                              <span className={cn(
-                                "grid h-4 w-4 place-items-center rounded-full border",
-                                customer.payment === p.id ? "border-sky-600" : "border-ink/25",
-                              )}>
-                                {customer.payment === p.id && <span className="h-2 w-2 rounded-full bg-sky-600" />}
-                              </span>
-                            </button>
+                            </div>
+                            </div>
                           ))}
                         </div>
                         {attempted && errors.payment && (
                           <span className="mt-1.5 block text-xs font-medium text-red-600">{errors.payment}</span>
                         )}
-
-                        {selectedPayment?.id === "efectivo" && (
-                          <label className="mt-3 block animate-fade">
-                            <span className="text-xs font-semibold text-ink/70">¿Con cuánto vas a pagar? (opcional)</span>
-                            <input
-                              type="text"
-                              inputMode="decimal"
-                              autoComplete="off"
-                              autoCorrect="off"
-                              spellCheck={false}
-                              value={customer.cashAmount}
-                              onChange={(e) => update({ cashAmount: e.target.value.replace(/[^\d.]/g, "") })}
-                              placeholder="Ej. 200"
-                              className={cn(inputCls, "border-ink/15 font-mono bg-paper/20")}
-                            />
-                            {selectedPayment.details && (
-                              <span className="mt-1 block text-[0.7rem] text-ink/55">{selectedPayment.details}</span>
-                            )}
-                          </label>
-                        )}
-
-                        {selectedPayment && selectedPayment.id !== "efectivo" && (
-                          <div className={cn(
-                            "mt-3 animate-fade rounded-2xl p-4 text-xs text-ink/80",
-                            selectedPayment.id === "transferencia" ? "bg-sky-50 ring-1 ring-sky-100" : "bg-mustard/15",
-                          )}>
-                            {selectedPayment.id === "mercadopago" ? (
-                              <>
-                                <div className="flex items-center gap-3">
-                                  <PaymentIcon id="mercadopago" className="w-16" />
-                                  <div>
-                                    <p className="text-xs text-ink/60">Total a pagar</p>
-                                    <p className="text-sm font-bold text-ink">{formatPrice(grandTotal)}</p>
-                                  </div>
-                                </div>
-                                <p className="mt-3">Al terminar, envíanos el comprobante por WhatsApp para confirmar el pedido.</p>
-                                {mercadoPagoLink(selectedPayment.details) ? (
-                                  <button
-                                    type="button"
-                                    onClick={openMercadoPago}
-                                    className="mt-2 inline-flex items-center rounded-full bg-sky-600 px-4 py-2 font-bold text-white transition hover:bg-sky-700"
-                                  >
-                                    Abrir Mercado Pago
-                                  </button>
-                                ) : (
-                                  <p role="alert" className="mt-2 text-red-700">El enlace de Mercado Pago aún no está configurado.</p>
-                                )}
-                              </>
-                            ) : (
-                              <>
-                                <div className="flex items-center gap-3">
-                                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-sky-100 text-sky-700">
-                                    <PaymentIcon id="transferencia" className="h-8 w-8" />
-                                  </span>
-                                  <div>
-                                    <p className="text-sm font-bold text-ink">Datos de transferencia</p>
-                                    <p className="mt-0.5 text-xs text-ink/60">Realiza la transferencia y envíanos el comprobante.</p>
-                                  </div>
-                                </div>
-                                {selectedPayment.details ? (
-                                  <TransferDetails
-                                    details={selectedPayment.details}
-                                    copiedField={copiedField}
-                                    copyErrorField={copyErrorField}
-                                    onCopy={copyPaymentValue}
-                                  />
-                                ) : (
-                                  <p className="mt-3 rounded-xl border border-sky-100 bg-white p-3 text-sm text-ink/65">
-                                    Los datos de transferencia aún no están configurados.
-                                  </p>
-                                )}
-                                <p className="mt-3 rounded-xl bg-sky-100/70 px-3 py-2 text-xs leading-relaxed text-sky-900">
-                                  Después de pagar, envíanos el comprobante por WhatsApp para confirmar tu pedido.
-                                </p>
-                              </>
-                            )}
-                          </div>
-                        )}
                       </fieldset>
                     )}
                   </div>
+
+                  {couponPanel}
 
                 </div>
               )}
@@ -1063,75 +1202,123 @@ export function CartDrawer({
               {/* ------------------------------------------------------------- */}
               {step === 4 && (
                 <div className="space-y-4 animate-fade">
-                  <h3 className="text-sm font-bold uppercase tracking-wider text-ink/50">Resumen y Confirmar</h3>
+                  <div>
+                    <h3 className="text-lg font-extrabold">Resumen de tu pedido</h3>
+                    <p className="mt-0.5 text-xs text-ink/55">Confirma que todo esté correcto.</p>
+                  </div>
 
-                  <div className="space-y-4 rounded-2xl bg-surface p-4 shadow-sm ring-1 ring-ink/5">
-                    {/* Productos */}
-                    <div className="border-b border-ink/8 pb-3">
-                      <p className="text-xs font-bold uppercase tracking-wider text-ink/55 mb-2">Artículos:</p>
-                      <ul className="space-y-1 text-xs">
+                  <div className="divide-y divide-ink/10 rounded-xl bg-surface px-4 shadow-sm ring-1 ring-ink/8">
+                    <section className="py-3 first:pt-4">
+                      <div className="mb-2 flex items-center justify-between gap-3">
+                        <h4 className="text-xs font-bold text-ink">Artículos ({cart.count})</h4>
+                        <button type="button" onClick={() => setStep(1)} aria-label="Editar artículos" title="Editar artículos" className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-terracotta transition hover:bg-terracotta/10">
+                          <PencilIcon className="h-4 w-4" />
+                        </button>
+                      </div>
+                      <ul className="space-y-2.5">
                         {cart.lines.map((l) => (
-                          <li key={l.key} className="flex justify-between items-start">
-                            <span className="truncate max-w-[70%]">
-                              {l.qty} × {l.name}{l.size && ` (${shortSizeName(l.size.name)})`}
-                            </span>
-                            <span className="font-semibold tabular-nums">{formatPrice(lineTotal(l))}</span>
+                          <li key={l.key} className="flex min-w-0 items-center gap-2.5">
+                            {resolveImage(l.categoryImage) && (
+                              <img
+                                src={resolveImage(l.categoryImage)}
+                                alt={`Imagen de ${l.categoryTitle}`}
+                                className="h-11 w-11 shrink-0 rounded-lg bg-paper object-cover"
+                              />
+                            )}
+                            <div className="min-w-0 flex-1 text-xs">
+                              <p className="font-semibold text-ink">
+                                {l.qty} × {l.name}{l.size && ` (${shortSizeName(l.size.name)})`}
+                              </p>
+                              {l.extras.length > 0 && <p className="mt-0.5 text-ink/60">{l.extras.map((extra) => extra.name).join(" · ")}</p>}
+                              {(l.comboSelections?.length ?? 0) > 0 && (
+                                <p className="mt-0.5 text-ink/60">{l.comboSelections?.map((selection) => selection.label).join(" · ")}</p>
+                              )}
+                            </div>
+                            <span className="shrink-0 text-xs font-bold tabular-nums">{formatPrice(lineTotal(l))}</span>
                           </li>
                         ))}
                       </ul>
-                    </div>
+                    </section>
 
-                    {/* Datos personales */}
-                    <div className="space-y-2.5 text-xs text-ink/85">
-                      <p>
-                        <span className="font-bold text-ink">Cliente:</span> {customer.name}
-                      </p>
-                      <p>
-                        <span className="font-bold text-ink">Entrega:</span>{" "}
-                        {customer.mode === "envio"
-                          ? `A domicilio: ${customer.address}`
-                          : "Paso a recoger en local"}
-                      </p>
-                      {customer.mode === "envio" && customer.location && (
-                        <p className="text-wa-deep font-bold flex items-center gap-1">
-                          <PinIcon className="h-3.5 w-3.5" /> Punto marcado en el mapa
+                    <section className="flex items-start justify-between gap-3 py-3">
+                      <div className="min-w-0 text-xs">
+                        <h4 className="font-bold text-ink">Cliente</h4>
+                        <p className="mt-1 break-words text-ink/75">{customer.name}</p>
+                      </div>
+                      <button type="button" onClick={() => setStep(2)} aria-label="Editar cliente" title="Editar cliente" className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-terracotta transition hover:bg-terracotta/10">
+                        <PencilIcon className="h-4 w-4" />
+                      </button>
+                    </section>
+
+                    <section className="flex items-start justify-between gap-3 py-3">
+                      <div className="min-w-0 text-xs">
+                        <h4 className="font-bold text-ink">Entrega</h4>
+                        <p className="mt-1 break-words text-ink/75">
+                          {customer.mode === "envio" ? `Envío a domicilio · ${customer.address}` : "Paso a recoger en local"}
                         </p>
-                      )}
-                      <p>
-                        <span className="font-bold text-ink">Forma de pago:</span>{" "}
-                        {selectedPayment?.label ?? "Por definir"}
-                        {selectedPayment?.id === "efectivo" && customer.cashAmount && (
-                          <span className="text-ink/60 font-mono"> (pago con {formatPrice(Number(customer.cashAmount))})</span>
+                        {customer.mode === "envio" && customer.location && (
+                          <p className="mt-1 flex items-center gap-1 font-semibold text-wa-deep">
+                            <PinIcon className="h-3.5 w-3.5" /> Ubicación marcada en el mapa
+                          </p>
                         )}
-                      </p>
-                      {customer.notes && (
-                        <p className="italic">
-                          <span className="font-bold text-ink">Notas:</span> “{customer.notes}”
+                        {isDelivery && <p className="mt-1 text-ink/60">Envío: solo propina</p>}
+                      </div>
+                      <button type="button" onClick={() => setStep(2)} aria-label="Editar entrega" title="Editar entrega" className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-terracotta transition hover:bg-terracotta/10">
+                        <PencilIcon className="h-4 w-4" />
+                      </button>
+                    </section>
+
+                    <section className="flex items-start justify-between gap-3 py-3">
+                      <div className="min-w-0 text-xs">
+                        <h4 className="font-bold text-ink">Pago</h4>
+                        <p className="mt-1 break-words text-ink/75">
+                          {selectedPayment?.label ?? "Por definir"}
+                          {selectedPayment?.id === "efectivo" && customer.cashAmount && (
+                            <span className="font-mono text-ink/60"> · Pago con {formatPrice(Number(customer.cashAmount))}</span>
+                          )}
                         </p>
-                      )}
-                      {couponOk && appliedCoupon && (
-                        <p className="text-wa-deep font-bold">
-                          <span className="text-ink">Cupón:</span> {appliedCoupon.code} ({couponLabel(appliedCoupon.coupon!)})
-                        </p>
-                      )}
-                      {isDelivery && (
-                        <p className="text-ink/75">
-                          💛 <span className="font-bold text-ink">Propina:</span> lo que decidas dar va íntegro
-                          para tu repartidor. ¡Gracias por tu apoyo!
-                        </p>
-                      )}
-                      {needsCapture && (
-                        <p className="text-ink/75">
-                          📸 <span className="font-bold text-ink">Recuerda:</span> enviar la captura de tu pago
-                          en WhatsApp para confirmar el pedido.
-                        </p>
-                      )}
-                    </div>
+                        {selectedPayment?.id === "efectivo" && cashChange !== null && (
+                          <p className="mt-1 font-semibold text-wa-deep">Cambio para ti: {formatPrice(cashChange)}</p>
+                        )}
+                        {selectedPayment?.id === "efectivo" && cashShortfall !== null && (
+                          <p className="mt-1 font-semibold text-amber-800">Faltan {formatPrice(cashShortfall)} para cubrir el total.</p>
+                        )}
+                        {needsCapture && <p className="mt-1 text-ink/60">Recuerda enviar el comprobante por WhatsApp.</p>}
+                      </div>
+                      <button type="button" onClick={() => setStep(3)} aria-label="Editar pago" title="Editar pago" className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-terracotta transition hover:bg-terracotta/10">
+                        <PencilIcon className="h-4 w-4" />
+                      </button>
+                    </section>
+
+                    {customer.notes && (
+                      <section className="flex items-start justify-between gap-3 py-3">
+                        <div className="min-w-0 text-xs">
+                          <h4 className="font-bold text-ink">Notas</h4>
+                          <p className="mt-1 break-words italic text-ink/75">“{customer.notes}”</p>
+                        </div>
+                        <button type="button" onClick={() => setStep(1)} aria-label="Editar notas" title="Editar notas" className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-terracotta transition hover:bg-terracotta/10">
+                          <PencilIcon className="h-4 w-4" />
+                        </button>
+                      </section>
+                    )}
+
+                    {couponOk && appliedCoupon && (
+                      <section className="flex items-start justify-between gap-3 py-3">
+                        <div className="min-w-0 text-xs">
+                          <h4 className="font-bold text-ink">Cupón</h4>
+                          <p className="mt-1 break-words font-semibold text-wa-deep">
+                            {appliedCoupon.code} · {couponLabel(appliedCoupon.coupon!)} · −{formatPrice(discount)}
+                          </p>
+                        </div>
+                        <button type="button" onClick={() => setStep(3)} aria-label="Editar cupón" title="Editar cupón" className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-terracotta transition hover:bg-terracotta/10">
+                          <PencilIcon className="h-4 w-4" />
+                        </button>
+                      </section>
+                    )}
                   </div>
 
                   <div className="rounded-xl bg-mustard/15 px-3 py-2.5 text-center text-xs text-ink/80">
-                    💡 ¡Todo listo! Al presionar el botón inferior se abrirá tu WhatsApp con el mensaje
-                    confeccionado. Presiona enviar allá para confirmar tu pedido.
+                    Al confirmar, se abrirá WhatsApp con tu pedido. Revísalo y presiona enviar para terminar.
                   </div>
                 </div>
               )}
@@ -1146,7 +1333,7 @@ export function CartDrawer({
             <div className="flex items-end justify-between gap-3 mb-4">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-widest text-ink/50">Total</p>
-                <p className="text-[0.7rem] text-ink/50 leading-tight">
+                <p className="text-[0.7rem] text-ink/60 leading-tight">
                   {customer.mode === "envio" ? "Envío: solo propina" : "Recoger en local"}
                   {selectedPayment ? ` · ${selectedPayment.label}` : ""}
                 </p>
@@ -1161,7 +1348,7 @@ export function CartDrawer({
                 {discount > 0 && (
                   <p className="text-sm tabular-nums text-ink/45 line-through">{formatPrice(cart.total)}</p>
                 )}
-                <p className="text-3xl font-extrabold tabular-nums tracking-tight">{formatPrice(grandTotal)}</p>
+                <p className="text-3xl font-extrabold tabular-nums">{formatPrice(grandTotal)}</p>
               </div>
             </div>
 
