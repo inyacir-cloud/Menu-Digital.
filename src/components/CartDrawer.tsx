@@ -171,6 +171,7 @@ interface Props {
   open: boolean;
   onClose: () => void;
   onBrowseMenu: () => void;
+  childOverlayOpen?: boolean;
   cart: CartApi;
   customer: CustomerInfo;
   onCustomerChange: (next: CustomerInfo) => void;
@@ -207,6 +208,7 @@ export function CartDrawer({
   open,
   onClose,
   onBrowseMenu,
+  childOverlayOpen = false,
   cart,
   customer,
   onCustomerChange,
@@ -256,6 +258,8 @@ export function CartDrawer({
   const stepRef = useRef(step);
   const historyEntryRef = useRef(false);
   const restoringHistoryRef = useRef(false);
+  const childOverlayOpenRef = useRef(childOverlayOpen);
+  const returnToSummaryRef = useRef(false);
   const hasItemsRef = useRef(cart.lines.length > 0);
   const sentRef = useRef(sent);
 
@@ -265,8 +269,13 @@ export function CartDrawer({
     sentRef.current = sent;
   }, [step, cart.lines.length, sent]);
 
+  useEffect(() => {
+    childOverlayOpenRef.current = childOverlayOpen;
+  }, [childOverlayOpen]);
+
   const requestClose = useCallback(() => {
     if (sentRef.current || !hasItemsRef.current || window.confirm("¿Seguro que quieres salir sin hacer tu pedido?")) {
+      returnToSummaryRef.current = false;
       onClose();
     }
   }, [onClose]);
@@ -282,6 +291,7 @@ export function CartDrawer({
 
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && requestClose();
     const onPopState = () => {
+      if (childOverlayOpenRef.current) return;
       if (restoringHistoryRef.current) {
         restoringHistoryRef.current = false;
         return;
@@ -297,6 +307,7 @@ export function CartDrawer({
       }
 
       historyEntryRef.current = false;
+      returnToSummaryRef.current = false;
       onClose();
     };
     const onBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -328,6 +339,7 @@ export function CartDrawer({
       setSentPayment(null);
       setSentTotal(0);
     } else {
+      returnToSummaryRef.current = false;
       setStep(1);
     }
   }, [cart.lines]);
@@ -378,9 +390,24 @@ export function CartDrawer({
   );
 
   const update = (patch: Partial<CustomerInfo>) => onCustomerChange({ ...customer, ...patch });
+  const editFromSummary = (targetStep: 1 | 2 | 3) => {
+    returnToSummaryRef.current = true;
+    setAttempted(false);
+    setStep(targetStep);
+  };
+
+  const browseMoreProducts = () => {
+    returnToSummaryRef.current = false;
+    onBrowseMenu();
+  };
 
   const handleNextToStep2 = () => {
     if (cart.lines.length === 0) return;
+    if (returnToSummaryRef.current) {
+      returnToSummaryRef.current = false;
+      setStep(4);
+      return;
+    }
     setStep(2);
   };
 
@@ -392,6 +419,11 @@ export function CartDrawer({
       return;
     }
     setAttempted(false);
+    if (returnToSummaryRef.current) {
+      returnToSummaryRef.current = false;
+      setStep(4);
+      return;
+    }
     update({ payment: "" });
     setStep(3);
   };
@@ -403,6 +435,7 @@ export function CartDrawer({
       return;
     }
     setAttempted(false);
+    returnToSummaryRef.current = false;
     setStep(4);
   };
 
@@ -428,6 +461,7 @@ export function CartDrawer({
       return;
     }
     if (couponOk && appliedCoupon?.coupon) onRedeemCoupon(appliedCoupon.coupon.id);
+    returnToSummaryRef.current = false;
     setSentTotal(grandTotal);
     cart.clear();
     setSentPayment(selectedPayment);
@@ -804,7 +838,7 @@ export function CartDrawer({
 
                   <button
                     type="button"
-                    onClick={onBrowseMenu}
+                    onClick={browseMoreProducts}
                     className="flex w-full items-center gap-3 rounded-xl bg-mustard/15 px-3 py-2.5 text-left transition hover:bg-mustard/25"
                   >
                     <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-mustard text-on-mustard">
@@ -1211,7 +1245,7 @@ export function CartDrawer({
                     <section className="py-3 first:pt-4">
                       <div className="mb-2 flex items-center justify-between gap-3">
                         <h4 className="text-xs font-bold text-ink">Artículos ({cart.count})</h4>
-                        <button type="button" onClick={() => setStep(1)} aria-label="Editar artículos" title="Editar artículos" className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-terracotta transition hover:bg-terracotta/10">
+                        <button type="button" onClick={() => editFromSummary(1)} aria-label="Editar artículos" title="Editar artículos" className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-terracotta transition hover:bg-terracotta/10">
                           <PencilIcon className="h-4 w-4" />
                         </button>
                       </div>
@@ -1245,7 +1279,7 @@ export function CartDrawer({
                         <h4 className="font-bold text-ink">Cliente</h4>
                         <p className="mt-1 break-words text-ink/75">{customer.name}</p>
                       </div>
-                      <button type="button" onClick={() => setStep(2)} aria-label="Editar cliente" title="Editar cliente" className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-terracotta transition hover:bg-terracotta/10">
+                      <button type="button" onClick={() => editFromSummary(2)} aria-label="Editar cliente" title="Editar cliente" className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-terracotta transition hover:bg-terracotta/10">
                         <PencilIcon className="h-4 w-4" />
                       </button>
                     </section>
@@ -1263,7 +1297,7 @@ export function CartDrawer({
                         )}
                         {isDelivery && <p className="mt-1 text-ink/60">Envío: solo propina</p>}
                       </div>
-                      <button type="button" onClick={() => setStep(2)} aria-label="Editar entrega" title="Editar entrega" className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-terracotta transition hover:bg-terracotta/10">
+                      <button type="button" onClick={() => editFromSummary(2)} aria-label="Editar entrega" title="Editar entrega" className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-terracotta transition hover:bg-terracotta/10">
                         <PencilIcon className="h-4 w-4" />
                       </button>
                     </section>
@@ -1285,7 +1319,7 @@ export function CartDrawer({
                         )}
                         {needsCapture && <p className="mt-1 text-ink/60">Recuerda enviar el comprobante por WhatsApp.</p>}
                       </div>
-                      <button type="button" onClick={() => setStep(3)} aria-label="Editar pago" title="Editar pago" className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-terracotta transition hover:bg-terracotta/10">
+                      <button type="button" onClick={() => editFromSummary(3)} aria-label="Editar pago" title="Editar pago" className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-terracotta transition hover:bg-terracotta/10">
                         <PencilIcon className="h-4 w-4" />
                       </button>
                     </section>
@@ -1296,7 +1330,7 @@ export function CartDrawer({
                           <h4 className="font-bold text-ink">Notas</h4>
                           <p className="mt-1 break-words italic text-ink/75">“{customer.notes}”</p>
                         </div>
-                        <button type="button" onClick={() => setStep(1)} aria-label="Editar notas" title="Editar notas" className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-terracotta transition hover:bg-terracotta/10">
+                        <button type="button" onClick={() => editFromSummary(1)} aria-label="Editar notas" title="Editar notas" className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-terracotta transition hover:bg-terracotta/10">
                           <PencilIcon className="h-4 w-4" />
                         </button>
                       </section>
@@ -1310,7 +1344,7 @@ export function CartDrawer({
                             {appliedCoupon.code} · {couponLabel(appliedCoupon.coupon!)} · −{formatPrice(discount)}
                           </p>
                         </div>
-                        <button type="button" onClick={() => setStep(3)} aria-label="Editar cupón" title="Editar cupón" className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-terracotta transition hover:bg-terracotta/10">
+                        <button type="button" onClick={() => editFromSummary(3)} aria-label="Editar cupón" title="Editar cupón" className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-terracotta transition hover:bg-terracotta/10">
                           <PencilIcon className="h-4 w-4" />
                         </button>
                       </section>

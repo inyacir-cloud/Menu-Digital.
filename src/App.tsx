@@ -190,7 +190,7 @@ export default function App() {
   }, [closed]);
 
   useEffect(() => {
-    if (view !== "menu" || cartOpen) return;
+    if (view !== "menu") return;
     const onPopState = () => {
       if (browsingFromCartRef.current) {
         browsingFromCartRef.current = false;
@@ -204,6 +204,7 @@ export default function App() {
         setSheet(null);
         return;
       }
+      if (cartOpen) return;
       if (comboSheet) {
         window.history.pushState({ ...(window.history.state ?? {}), egfMenu: true }, "", window.location.href);
         setComboSheet(null);
@@ -305,6 +306,11 @@ export default function App() {
   }, [auth]);
 
   const closeCart = useCallback(() => setCartOpen(false), []);
+  const openCart = useCallback(() => {
+    browsingFromCartRef.current = false;
+    setExitNoticeOpen(false);
+    setCartOpen(true);
+  }, []);
   const browseFromCart = useCallback(() => {
     browsingFromCartRef.current = true;
     setExitNoticeOpen(false);
@@ -438,7 +444,7 @@ export default function App() {
         <CartButton
           count={cart.count}
           total={Math.max(0, cart.total - (appliedCoupon?.discount ?? 0))}
-          onOpen={() => setCartOpen(true)}
+          onOpen={openCart}
         />
       )}
       <Toast toast={toast} />
@@ -501,6 +507,7 @@ export default function App() {
         open={cartOpen}
         onClose={closeCart}
         onBrowseMenu={browseFromCart}
+        childOverlayOpen={sheet !== null}
         cart={cart}
         customer={customer}
         onCustomerChange={setCustomer}
