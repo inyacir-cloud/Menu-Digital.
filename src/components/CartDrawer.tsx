@@ -397,7 +397,6 @@ export function CartDrawer({
   };
 
   const browseMoreProducts = () => {
-    returnToSummaryRef.current = false;
     onBrowseMenu();
   };
 
