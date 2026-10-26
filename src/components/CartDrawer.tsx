@@ -1,6 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
-import { toBlob, toPng } from "html-to-image";
-import { jsPDF } from "jspdf";
 import type { CartApi } from "../hooks/useCart";
 import type { CartLine, CustomerInfo, DeliveryMode, MenuItem, Settings } from "../types";
 import type { AppliedCoupon } from "../utils/coupon";
@@ -16,13 +14,11 @@ import {
   ChevronDownIcon,
   CloseIcon,
   CopyIcon,
-  DownloadIcon,
   GlassIceIcon,
   MinusIcon,
   PinIcon,
   PencilIcon,
   PlusIcon,
-  ShareIcon,
   TicketIcon,
   LockIcon,
   TrashIcon,
@@ -30,7 +26,6 @@ import {
 } from "./icons";
 import { PaymentIcon } from "./PaymentBadges";
 import { LocationPicker } from "./LocationPicker";
-import { OrderTicket } from "./OrderTicket";
 
 const inputCls =
   "mt-1 w-full rounded-xl border bg-paper/40 px-3 py-2.5 text-sm text-ink outline-none transition placeholder:text-ink/40 focus:border-ink focus:bg-surface focus:ring-2 focus:ring-mustard/40";
@@ -240,8 +235,6 @@ export function CartDrawer({
   const [codeInput, setCodeInput] = useState("");
   const [couponOpen, setCouponOpen] = useState(false);
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
-  const [ticketBusy, setTicketBusy] = useState<"share-png" | "share-pdf" | "png" | "pdf" | null>(null);
-  const [ticketMessage, setTicketMessage] = useState("");
 
   const couponOk = !!appliedCoupon?.coupon && !appliedCoupon.error;
   const discount = couponOk ? appliedCoupon.discount : 0;
@@ -260,7 +253,6 @@ export function CartDrawer({
   const addressRef = useRef<HTMLTextAreaElement>(null);
   const paymentRef = useRef<HTMLFieldSetElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
-  const ticketRef = useRef<HTMLDivElement>(null);
   const stepRef = useRef(step);
   const historyEntryRef = useRef(false);
   const restoringHistoryRef = useRef(false);
@@ -485,93 +477,6 @@ export function CartDrawer({
   const openMercadoPago = () => {
     const link = selectedPayment?.id === "mercadopago" ? mercadoPagoLink(selectedPayment.details) : null;
     if (link) window.open(link, "_blank", "noopener,noreferrer");
-  };
-
-  const ticketBaseName = `pedido-${new Date().toISOString().slice(0, 10)}`;
-  const getTicketBlob = async () => {
-    if (!ticketRef.current) throw new Error("No se encontró la vista del ticket");
-    const blob = await toBlob(ticketRef.current, {
-      backgroundColor: "#ffffff",
-      cacheBust: true,
-      pixelRatio: 2,
-      skipFonts: true,
-    });
-    if (!blob) throw new Error("No se pudo crear la imagen del ticket");
-    return blob;
-  };
-
-  const saveTicketBlob = (blob: Blob, filename: string) => {
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = filename;
-    link.click();
-    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-  };
-
-  const downloadTicketPng = async () => {
-    setTicketBusy("png");
-    setTicketMessage("");
-    try {
-      saveTicketBlob(await getTicketBlob(), `${ticketBaseName}.png`);
-      setTicketMessage("Ticket PNG descargado.");
-    } catch {
-      setTicketMessage("No se pudo generar el PNG. Intenta de nuevo.");
-    } finally {
-      setTicketBusy(null);
-    }
-  };
-
-  const downloadTicketPdf = async () => {
-    setTicketBusy("pdf");
-    setTicketMessage("");
-    try {
-      saveTicketBlob(await getTicketPdfBlob(), `${ticketBaseName}.pdf`);
-      setTicketMessage("Ticket PDF descargado.");
-    } catch {
-      setTicketMessage("No se pudo generar el PDF. Intenta de nuevo.");
-    } finally {
-      setTicketBusy(null);
-    }
-  };
-
-  const getTicketPdfBlob = async () => {
-    if (!ticketRef.current) throw new Error("No se encontró la vista del ticket");
-    const image = await toPng(ticketRef.current, {
-      backgroundColor: "#ffffff",
-      cacheBust: true,
-      pixelRatio: 2,
-      skipFonts: true,
-    });
-    const dimensions = ticketRef.current.getBoundingClientRect();
-    const pageWidth = 80;
-    const margin = 5;
-    const imageWidth = pageWidth - margin * 2;
-    const imageHeight = imageWidth * dimensions.height / dimensions.width;
-    const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: [pageWidth, imageHeight + margin * 2] });
-    pdf.addImage(image, "PNG", margin, margin, imageWidth, imageHeight);
-    return pdf.output("blob");
-  };
-
-  const shareTicket = async (format: "png" | "pdf") => {
-    setTicketBusy(format === "png" ? "share-png" : "share-pdf");
-    setTicketMessage("");
-    try {
-      const file = format === "png"
-        ? new File([await getTicketBlob()], `${ticketBaseName}.png`, { type: "image/png" })
-        : new File([await getTicketPdfBlob()], `${ticketBaseName}.pdf`, { type: "application/pdf" });
-      if (typeof navigator.share === "function" && navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title: `Pedido · ${settings.name}`, text: `Ticket del pedido de ${settings.name}` });
-        setTicketMessage("Ticket compartido.");
-      } else {
-        setTicketMessage("Compartir archivos requiere HTTPS y un navegador compatible. En producción, vuelve a tocar para elegir WhatsApp.");
-      }
-    } catch (error) {
-      if (error instanceof DOMException && error.name === "AbortError") return;
-      setTicketMessage("No se pudo compartir el ticket. Descárgalo como PNG o PDF.");
-    } finally {
-      setTicketBusy(null);
-    }
   };
 
   const couponPanel = (
@@ -1389,64 +1294,6 @@ export function CartDrawer({
                       </section>
                     )}
                   </div>
-
-                  <section className="space-y-3" aria-labelledby="ticket-section-title">
-                    <div className="flex items-center justify-between gap-2">
-                      <h4 id="ticket-section-title" className="text-sm font-bold">Ticket digital</h4>
-                      <span className="text-xs text-ink/50">Vista previa</span>
-                    </div>
-                    <OrderTicket
-                      ticketRef={ticketRef}
-                      businessName={settings.name}
-                      lines={cart.lines}
-                      customer={customer}
-                      paymentLabel={selectedPayment?.label ?? "Por definir"}
-                      subtotal={cart.total}
-                      discount={discount}
-                      total={grandTotal}
-                      cashChange={cashChange}
-                      couponCode={couponOk ? appliedCoupon?.code : undefined}
-                    />
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => shareTicket("png")}
-                        disabled={ticketBusy !== null}
-                        className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-lg bg-ink px-2 py-2 text-xs font-bold text-white transition hover:bg-ink/85 disabled:opacity-50"
-                      >
-                        <ShareIcon className="h-4 w-4" />
-                        {ticketBusy === "share-png" ? "Preparando..." : "Compartir PNG"}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => shareTicket("pdf")}
-                        disabled={ticketBusy !== null}
-                        className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-lg bg-ink px-2 py-2 text-xs font-bold text-white transition hover:bg-ink/85 disabled:opacity-50"
-                      >
-                        <ShareIcon className="h-4 w-4" />
-                        {ticketBusy === "share-pdf" ? "Preparando..." : "Compartir PDF"}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={downloadTicketPng}
-                        disabled={ticketBusy !== null}
-                        className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-lg border border-ink/15 bg-white px-2 py-2 text-xs font-semibold text-ink transition hover:bg-paper/60 disabled:opacity-50"
-                      >
-                        <DownloadIcon className="h-3.5 w-3.5" />
-                        {ticketBusy === "png" ? "Preparando..." : "Descargar PNG"}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={downloadTicketPdf}
-                        disabled={ticketBusy !== null}
-                        className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-lg border border-ink/15 bg-white px-2 py-2 text-xs font-semibold text-ink transition hover:bg-paper/60 disabled:opacity-50"
-                      >
-                        <DownloadIcon className="h-3.5 w-3.5" />
-                        {ticketBusy === "pdf" ? "Preparando..." : "Descargar PDF"}
-                      </button>
-                    </div>
-                    {ticketMessage && <p role="status" className="text-center text-xs text-ink/60">{ticketMessage}</p>}
-                  </section>
 
                   <div className="rounded-xl bg-mustard/15 px-3 py-2.5 text-center text-xs text-ink/80">
                     Al confirmar, se abrirá WhatsApp con tu pedido. Revísalo y presiona enviar para terminar.
