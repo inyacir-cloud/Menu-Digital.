@@ -6,6 +6,14 @@ de los cambios realizados.
 
 ## Versiones
 
+### V 1.1.5 — 27 de octubre de 2026
+
+- Se rediseñó el modal **Realizar un pago** con opciones desplegables para Mercado Pago y transferencia bancaria, conservando los datos configurados.
+- Se agregó una confirmación para vaciar el carrito; al confirmarla, el panel regresa al menú y limpia los datos asociados al pedido.
+- Al cerrar el carrito después de completar un pedido, se vuelve directamente al menú.
+- Se mejoró la barra de categorías para móviles, con desplazamiento horizontal y la campana integrada al fijarse la barra.
+- La campana cambia suavemente entre su posición flotante y la barra de categorías.
+
 ### V 1.1.4 — 26 de octubre de 2026
 
 - Se eliminó la sección desplegable «Información de pago» después de enviar el pedido.

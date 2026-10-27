@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 import type { Coupon } from "../types";
 import { couponConditions, isExpired } from "../utils/coupon";
 import { BellIcon, CloseIcon, GlassIceIcon, TacoIcon, TicketIcon } from "./icons";
@@ -16,15 +16,58 @@ interface Props {
   onUseCoupon: (code: string) => void;
   onGoToCombos: () => void;
   onGoToWater: () => void;
+  docked?: boolean;
+  dockTargetRef?: RefObject<HTMLDivElement | null>;
 }
 
-export function NotificationCenter({ notifications, onUseCoupon, onGoToCombos, onGoToWater }: Props) {
+export function NotificationCenter({
+  notifications,
+  onUseCoupon,
+  onGoToCombos,
+  onGoToWater,
+  docked = false,
+  dockTargetRef,
+}: Props) {
   const [open, setOpen] = useState(false);
   const [hasUnread, setHasUnread] = useState(true);
+  const containerRef = useRef<HTMLDivElement>(null);
   const visible = notifications;
 
+  useEffect(() => {
+    const container = containerRef.current;
+    const target = dockTargetRef?.current;
+    if (!container || !target) return;
+
+    const updateDockPosition = () => {
+      if (!docked) {
+        container.style.setProperty("--dock-x", "0px");
+        container.style.setProperty("--dock-y", "0px");
+        return;
+      }
+
+      const targetRect = target.getBoundingClientRect();
+      const baseLeft = window.innerWidth - 8 - container.offsetWidth;
+      const baseTop = Number.parseFloat(getComputedStyle(container).top);
+      container.style.setProperty("--dock-x", `${targetRect.left - baseLeft}px`);
+      container.style.setProperty("--dock-y", `${targetRect.top - baseTop}px`);
+    };
+
+    updateDockPosition();
+    const resizeObserver = new ResizeObserver(updateDockPosition);
+    resizeObserver.observe(target);
+    window.addEventListener("resize", updateDockPosition);
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener("resize", updateDockPosition);
+    };
+  }, [docked, dockTargetRef]);
+
   return (
-    <div className="fixed right-4 top-4 z-40 sm:right-6 sm:top-6">
+    <div
+      ref={containerRef}
+      className="fixed right-2 top-[calc(env(safe-area-inset-top)+1rem)] z-[60] flex h-12 w-[60px] justify-center transition-transform duration-300 ease-in-out motion-reduce:duration-0 [transform:translate3d(var(--dock-x,0px),var(--dock-y,0px),0)]"
+      data-docked={docked}
+    >
       <button
         type="button"
         onClick={() => {
@@ -33,7 +76,7 @@ export function NotificationCenter({ notifications, onUseCoupon, onGoToCombos, o
         }}
         aria-label={`Notificaciones${hasUnread && visible.length ? `, ${visible.length} nuevas` : ""}`}
         aria-expanded={open}
-        className="relative grid h-12 w-12 place-items-center rounded-full border-2 border-ink/15 bg-paper/95 text-ink shadow-lg backdrop-blur transition hover:scale-105"
+        className="relative grid h-12 w-12 place-items-center rounded-full border-2 border-ink/15 bg-white text-ink shadow-lg transition hover:scale-105"
       >
         <BellIcon className="h-5 w-5 animate-bell-vibration" />
         {hasUnread && visible.length > 0 && (
@@ -44,7 +87,7 @@ export function NotificationCenter({ notifications, onUseCoupon, onGoToCombos, o
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-3 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-ink/10 bg-surface shadow-2xl animate-slide-left">
+        <div className="absolute right-0 top-full z-[70] mt-3 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-ink/10 bg-surface shadow-2xl animate-slide-left">
           <div className="flex items-center justify-between border-b border-ink/10 px-4 py-3">
             <div>
               <h2 className="font-display text-lg text-ink">Novedades</h2>

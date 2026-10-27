@@ -2,9 +2,10 @@ import { useState } from "react";
 import packageJson from "../../package.json";
 import type { Settings } from "../types";
 import { getNextOpeningInfo } from "../utils/businessSchedule";
+import { formatClabe, mercadoPagoLink, parseTransferData } from "../utils/payment";
 import { Blob } from "./Blob";
 import { BrandLogo } from "./SombreroLogo";
-import { BagIcon, ChevronDownIcon, CloseIcon, CopyIcon, EyeIcon, LockIcon } from "./icons";
+import { BankIcon, BagIcon, ChevronDownIcon, CloseIcon, CopyIcon, EyeIcon, LockIcon } from "./icons";
 import { PaymentIcon } from "./PaymentBadges";
 
 interface Props {
@@ -22,17 +23,32 @@ interface Props {
 export function SplashScreen({ settings, isOpen, isLoading, onEnter, onSecret }: Props) {
   const nextOpening = getNextOpeningInfo(settings.schedule);
   const [showPaymentOptions, setShowPaymentOptions] = useState(false);
-  const [clabeCopyFeedback, setClabeCopyFeedback] = useState<"copied" | "error" | null>(null);
+  const [expandedPayment, setExpandedPayment] = useState<"mercadopago" | "transferencia" | null>(null);
+  const [copiedPaymentField, setCopiedPaymentField] = useState<string | null>(null);
+  const [paymentCopyError, setPaymentCopyError] = useState<string | null>(null);
   const paymentMethods = settings.payments.filter(
-    (payment) => payment.enabled && payment.id !== "efectivo",
-  );
-  const copyClabe = async (clabe: string) => {
+    (payment) => payment.enabled && (payment.id === "mercadopago" || payment.id === "transferencia"),
+  ).sort((a, b) => a.id === "mercadopago" ? -1 : 1);
+  const openPaymentOptions = () => {
+    setExpandedPayment(null);
+    setCopiedPaymentField(null);
+    setPaymentCopyError(null);
+    setShowPaymentOptions(true);
+  };
+  const closePaymentOptions = () => {
+    setShowPaymentOptions(false);
+    setExpandedPayment(null);
+  };
+  const copyPaymentValue = async (value: string, field: string) => {
+    if (!value) return;
+    setPaymentCopyError(null);
     try {
-      await navigator.clipboard.writeText(clabe);
-      setClabeCopyFeedback("copied");
-      window.setTimeout(() => setClabeCopyFeedback(null), 2000);
+      await navigator.clipboard.writeText(value);
+      setCopiedPaymentField(field);
+      window.setTimeout(() => setCopiedPaymentField((current) => current === field ? null : current), 1800);
     } catch {
-      setClabeCopyFeedback("error");
+      setCopiedPaymentField(null);
+      setPaymentCopyError(field);
     }
   };
 
@@ -73,7 +89,7 @@ export function SplashScreen({ settings, isOpen, isLoading, onEnter, onSecret }:
             {paymentMethods.length > 0 && (
               <button
                 type="button"
-                onClick={() => setShowPaymentOptions(true)}
+                onClick={openPaymentOptions}
                 className="mt-2 inline-flex items-center rounded-full px-4 py-2 text-xs font-semibold text-ink/55 underline underline-offset-4 transition hover:text-ink"
               >
                 Realizar un pago
@@ -119,7 +135,7 @@ export function SplashScreen({ settings, isOpen, isLoading, onEnter, onSecret }:
           {paymentMethods.length > 0 && (
             <button
               type="button"
-              onClick={() => setShowPaymentOptions(true)}
+              onClick={openPaymentOptions}
               className="mt-2 inline-flex items-center rounded-full px-4 py-2 text-xs font-semibold text-ink/55 underline underline-offset-4 transition hover:text-ink"
             >
               Realizar un pago
@@ -130,27 +146,27 @@ export function SplashScreen({ settings, isOpen, isLoading, onEnter, onSecret }:
 
         {showPaymentOptions && (
           <div
-            className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-ink/60 p-4"
+            className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-ink/60 p-3 sm:p-5"
             onClick={(event) => {
-              if (event.target === event.currentTarget) setShowPaymentOptions(false);
+              if (event.target === event.currentTarget) closePaymentOptions();
             }}
           >
             <section
               role="dialog"
               aria-modal="true"
               aria-labelledby="payment-options-title"
-              className="w-full max-w-md rounded-2xl bg-surface p-5 text-left shadow-2xl sm:p-6"
+              className="max-h-[calc(100dvh-1.5rem)] w-full max-w-lg overflow-y-auto rounded-3xl bg-surface p-4 text-left shadow-2xl shadow-black/25 sm:max-h-[calc(100dvh-2.5rem)] sm:p-6"
             >
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-ink/50">Opciones de pago</p>
-                  <h2 id="payment-options-title" className="mt-1 text-xl font-black text-ink">Realizar un pago</h2>
+                  <h2 id="payment-options-title" className="text-xl font-black tracking-tight text-ink sm:text-2xl">Realizar un pago</h2>
+                  <p className="mt-1 text-sm leading-relaxed text-ink/60">Elige tu método de pago para confirmar tu pedido</p>
                 </div>
                 <button
                   type="button"
-                  onClick={() => setShowPaymentOptions(false)}
+                  onClick={closePaymentOptions}
                   aria-label="Cerrar opciones de pago"
-                  className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-ink/5 text-ink/60 transition hover:bg-ink/10"
+                  className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-ink/5 text-ink/60 transition hover:bg-ink/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/30"
                 >
                   <CloseIcon className="h-4 w-4" />
                 </button>
@@ -158,65 +174,173 @@ export function SplashScreen({ settings, isOpen, isLoading, onEnter, onSecret }:
 
               <div className="mt-5 space-y-3">
                 {paymentMethods.map((payment) => {
-                  const mercadoPagoLink = payment.id === "mercadopago"
-                    ? payment.details.match(/https?:\/\/[^\s]+/i)?.[0]?.replace(/[),.;]+$/, "")
-                    : null;
-                  const transferLines = payment.details.split(/\r?\n/);
-                  const clabeLines = transferLines.filter((line) => /\bclabe\b/i.test(line));
-                  const clabe = [...clabeLines, ...transferLines.filter((line) => !clabeLines.includes(line))]
-                    .flatMap((line) => line.match(/(?:\d[\d\s-]?){17}\d/g) ?? [])
-                    .map((value) => value.replace(/\D/g, ""))
-                    .find((value) => value.length === 18);
-
+                  const isMercadoPago = payment.id === "mercadopago";
+                  const isExpanded = expandedPayment === payment.id;
+                  const panelId = `public-payment-details-${payment.id}`;
+                  const link = isMercadoPago ? mercadoPagoLink(payment.details) : null;
+                  const transferData = isMercadoPago ? null : parseTransferData(payment.details);
+                  const extraPaymentDetails = isMercadoPago
+                    ? payment.details.replace(link ?? "", "").trim()
+                    : "";
                   return (
-                    <article key={payment.id} className="rounded-xl border border-ink/10 bg-white p-4">
-                      <div className="flex items-center gap-3">
-                        <PaymentIcon
-                          id={payment.id}
-                          className={payment.id === "mercadopago" ? "w-9" : "h-9 w-9"}
-                        />
-                        <h3 className="font-bold text-ink">{payment.label}</h3>
-                      </div>
-                      {payment.details.trim() ? (
-                        <p className="mt-3 whitespace-pre-line break-words text-sm leading-relaxed text-ink/75">
-                          {payment.details}
-                        </p>
-                      ) : (
-                        <p className="mt-3 text-sm text-ink/60">
-                          Solicita los datos de pago directamente al negocio.
-                        </p>
-                      )}
-                      {payment.id === "transferencia" && clabe && (
-                        <div className="mt-3">
-                          <button
-                            type="button"
-                            onClick={() => void copyClabe(clabe)}
-                            className="inline-flex items-center gap-2 rounded-full border border-ink/15 bg-surface px-3.5 py-2 text-sm font-bold text-ink transition hover:border-ink/40"
-                          >
-                            <CopyIcon className="h-4 w-4" />
-                            {clabeCopyFeedback === "copied" ? "CLABE copiada" : "Copiar CLABE"}
-                          </button>
-                          {clabeCopyFeedback === "error" && (
-                            <p role="alert" className="mt-2 text-xs font-semibold text-red-700">
-                              No se pudo copiar. Selecciona y copia la CLABE manualmente.
-                            </p>
-                          )}
+                    <article
+                      key={payment.id}
+                      className={`overflow-hidden rounded-2xl border bg-white shadow-sm transition-colors duration-300 ${
+                        isExpanded
+                          ? isMercadoPago ? "border-sky-300 bg-sky-50/40" : "border-amber-300 bg-amber-50/40"
+                          : "border-ink/10 hover:border-ink/20"
+                      }`}
+                    >
+                      <button
+                        type="button"
+                        aria-expanded={isExpanded}
+                        aria-controls={panelId}
+                        onClick={() => setExpandedPayment(isExpanded ? null : payment.id)}
+                        className="flex min-h-[76px] w-full items-center gap-3 px-3.5 py-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ink/30 sm:px-4"
+                      >
+                        {isMercadoPago ? (
+                          <PaymentIcon id={payment.id} className="w-12 shrink-0 sm:w-14" />
+                        ) : (
+                          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-amber-100 text-amber-700">
+                            <BankIcon className="h-6 w-6" />
+                          </span>
+                        )}
+                        <span className="min-w-0 flex-1">
+                          <span className="block font-extrabold text-ink">
+                            {isMercadoPago ? payment.label : "Transferencia bancaria"}
+                          </span>
+                          <span className="mt-0.5 block text-xs leading-relaxed text-ink/60">
+                            {isMercadoPago
+                              ? "Paga en línea de forma segura con tarjeta, saldo o efectivo."
+                              : "Realiza tu pago desde tu aplicación bancaria."}
+                          </span>
+                        </span>
+                        <ChevronDownIcon className={`h-5 w-5 shrink-0 text-ink/55 transition-transform duration-300 ease-in-out ${isExpanded ? "rotate-180" : ""}`} />
+                      </button>
+
+                      <div
+                        id={panelId}
+                        aria-hidden={!isExpanded}
+                        inert={!isExpanded}
+                        data-open={isExpanded}
+                        className="payment-accordion-panel"
+                      >
+                        <div className="payment-accordion-inner">
+                          <div className={`px-3.5 pb-4 sm:px-4 ${isMercadoPago ? "text-sky-950" : "text-amber-950"}`}>
+                            {isMercadoPago ? (
+                              <div className="border-t border-sky-200/80 pt-3">
+                                <p className="text-sm leading-relaxed text-ink/70">
+                                  Completa tu pago en línea con el método que prefieras. Tu pedido se confirma al finalizar.
+                                </p>
+                                {extraPaymentDetails && (
+                                  <p className="mt-2 whitespace-pre-line break-words text-xs leading-relaxed text-ink/60">
+                                    {extraPaymentDetails}
+                                  </p>
+                                )}
+                                {link ? (
+                                  <>
+                                    <a
+                                      href={link}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="mt-3 flex min-h-12 items-center justify-center gap-2 rounded-xl bg-sky-600 px-4 py-3 text-sm font-extrabold text-white shadow-sm transition hover:bg-sky-700 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
+                                    >
+                                      Abrir Mercado Pago
+                                      <span aria-hidden="true">↗</span>
+                                    </a>
+                                    <div className="mt-2 flex min-w-0 items-center gap-2 rounded-xl border border-sky-200 bg-white/80 p-2">
+                                      <a
+                                        href={link}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="min-w-0 flex-1 break-all text-xs leading-relaxed text-ink/65 underline decoration-sky-300 underline-offset-2"
+                                      >
+                                        {link}
+                                      </a>
+                                      <button
+                                        type="button"
+                                        onClick={() => void copyPaymentValue(link, "mercadopago-link")}
+                                        aria-label="Copiar enlace de Mercado Pago"
+                                        className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-sky-100 text-sky-700 transition hover:bg-sky-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+                                      >
+                                        <CopyIcon className="h-4 w-4" />
+                                      </button>
+                                    </div>
+                                    <p aria-live="polite" className="mt-1 min-h-4 text-[0.68rem] text-ink/55">
+                                      {copiedPaymentField === "mercadopago-link" ? "Copiado" : "También puedes copiar el enlace y abrirlo en tu navegador."}
+                                    </p>
+                                    {paymentCopyError === "mercadopago-link" && (
+                                      <p role="alert" className="mt-1 text-xs font-semibold text-red-700">No se pudo copiar el enlace. Selecciónalo y cópialo manualmente.</p>
+                                    )}
+                                  </>
+                                ) : (
+                                  <p role="alert" className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">
+                                    El enlace de Mercado Pago aún no está configurado.
+                                  </p>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="border-t border-amber-200/80 pt-3">
+                                {transferData && (
+                                  <>
+                                    {[
+                                      { id: "bank", label: "Banco", value: transferData.bank },
+                                      { id: "holder", label: "Titular", value: transferData.holder },
+                                      { id: "account", label: "Cuenta", value: transferData.account },
+                                      { id: "clabe", label: "CLABE", value: transferData.clabe },
+                                    ].filter((row): row is { id: string; label: string; value: string } => Boolean(row.value))
+                                      .map((row) => {
+                                        const copyValue = row.id === "clabe" && row.value.length === 18
+                                          ? row.value.replace(/\D/g, "")
+                                          : row.value;
+                                        const formattedValue = row.id === "clabe" && row.value.replace(/\D/g, "").length === 18
+                                          ? formatClabe(row.value)
+                                          : row.value;
+                                        return (
+                                          <div key={row.id} className="mb-2 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-xl border border-amber-100 bg-white/85 p-2.5">
+                                            <div className="min-w-0">
+                                              <span className="block text-[0.65rem] font-semibold uppercase tracking-wide text-ink/50">{row.label}</span>
+                                              <span className={`mt-0.5 block break-words text-sm font-bold text-ink ${row.id === "clabe" ? "font-mono text-xs tracking-wide" : ""}`}>
+                                                {formattedValue}
+                                              </span>
+                                            </div>
+                                            <button
+                                              type="button"
+                                              onClick={() => void copyPaymentValue(copyValue, `transfer-${row.id}`)}
+                                              className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-lg bg-paper/70 px-2.5 text-xs font-bold text-ink/75 transition hover:bg-paper focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+                                            >
+                                              <CopyIcon className="h-3.5 w-3.5" />
+                                              {copiedPaymentField === `transfer-${row.id}` ? "Copiado" : "Copiar"}
+                                            </button>
+                                            {paymentCopyError === `transfer-${row.id}` && (
+                                              <p role="alert" className="col-span-2 text-xs font-semibold text-red-700">No se pudo copiar este dato. Selecciónalo y cópialo manualmente.</p>
+                                            )}
+                                          </div>
+                                        );
+                                      })}
+                                    {transferData.other.map((detail, index) => (
+                                      <p key={`${index}-${detail}`} className="mb-2 whitespace-pre-line break-words text-xs leading-relaxed text-ink/65">
+                                        {detail}
+                                      </p>
+                                    ))}
+                                  </>
+                                )}
+                                <p className="mt-2 rounded-xl bg-amber-100/70 px-3 py-2.5 text-sm leading-relaxed text-amber-950">
+                                  Realiza tu transferencia desde tu aplicación bancaria.
+                                </p>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      )}
-                      {mercadoPagoLink && (
-                        <a
-                          href={mercadoPagoLink}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="mt-3 inline-flex rounded-full bg-ink px-4 py-2 text-sm font-bold text-white transition hover:opacity-90"
-                        >
-                          Abrir Mercado Pago
-                        </a>
-                      )}
+                      </div>
                     </article>
                   );
                 })}
               </div>
+              <p className="mt-4 flex items-center justify-center gap-1.5 text-xs font-medium text-ink/50">
+                <LockIcon className="h-3.5 w-3.5" />
+                Realiza tus pagos de forma segura
+              </p>
             </section>
           </div>
         )}

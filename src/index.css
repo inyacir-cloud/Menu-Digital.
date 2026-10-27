@@ -207,3 +207,29 @@
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+.payment-accordion-panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 330ms ease-in-out;
+}
+.payment-accordion-panel[data-open="true"] {
+  grid-template-rows: 1fr;
+}
+.payment-accordion-inner {
+  min-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(-0.4rem);
+  transition: opacity 330ms ease-in-out, transform 330ms ease-in-out;
+}
+.payment-accordion-panel[data-open="true"] .payment-accordion-inner {
+  opacity: 1;
+  transform: translateY(0);
+}
+@media (prefers-reduced-motion: reduce) {
+  .payment-accordion-panel,
+  .payment-accordion-inner {
+    transition-duration: 0.01ms;
+  }
+}

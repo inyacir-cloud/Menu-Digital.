@@ -26,7 +26,7 @@ import { CloseIcon, PlusIcon } from "./components/icons";
 import { AdminBar } from "./components/admin/AdminBar";
 import { AdminLogin } from "./components/admin/AdminLogin";
 import { AdminPanel } from "./components/admin/AdminPanel";
-import { makeCouponNotification, NotificationCenter, type MenuNotification } from "./components/NotificationCenter";
+import { makeCouponNotification, type MenuNotification } from "./components/NotificationCenter";
 import { DEFAULT_BUSINESS_SCHEDULE, getEffectiveOpen } from "./utils/businessSchedule";
 import waterImage from "../a.webp";
 import notificationSound from "../noti.mp3";
@@ -387,7 +387,19 @@ export default function App() {
                 </p>
               </div>
             )}
-            <CategoryNav categories={navCategories} className={auth.authed ? "top-11" : "top-0"} />
+            <CategoryNav
+              categories={navCategories}
+              notifications={notifications}
+              onUseCoupon={(code) => {
+                setAppliedCode(code);
+                if (cart.count > 0) setCartOpen(true);
+                notify(`Cupón ${code} guardado; se aplicará al pagar`);
+              }}
+              onGoToCombos={goToCombos}
+              onGoToWater={goToWater}
+              stickyOffset={auth.authed ? 44 : 0}
+              className={auth.authed ? "top-11" : "top-0"}
+            />
 
             <div className="space-y-12 md:space-y-16">
               {store.categories.map((category) => (
@@ -482,19 +494,6 @@ export default function App() {
             </button>
           </section>
         </div>
-      )}
-
-      {view === "menu" && (
-        <NotificationCenter
-          notifications={notifications}
-          onUseCoupon={(code) => {
-            setAppliedCode(code);
-            if (cart.count > 0) setCartOpen(true);
-            notify(`Cupón ${code} guardado; se aplicará al pagar`);
-          }}
-          onGoToCombos={goToCombos}
-          onGoToWater={goToWater}
-        />
       )}
 
       {sheet && (

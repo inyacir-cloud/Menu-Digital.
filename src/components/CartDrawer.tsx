@@ -8,6 +8,7 @@ import { formatPrice } from "../utils/format";
 import { lineTotal, lineUnitPrice, shortSizeName } from "../utils/menu";
 import { buildOrderMessage, buildWhatsAppUrl } from "../utils/whatsapp";
 import { cn } from "../utils/cn";
+import { formatClabe, mercadoPagoLink, parseTransferData } from "../utils/payment";
 import {
   BagIcon,
   CheckIcon,
@@ -29,62 +30,6 @@ import { LocationPicker } from "./LocationPicker";
 
 const inputCls =
   "mt-1 w-full rounded-xl border bg-paper/40 px-3 py-2.5 text-sm text-ink outline-none transition placeholder:text-ink/40 focus:border-ink focus:bg-surface focus:ring-2 focus:ring-mustard/40";
-
-function transferClabe(details: string): string | null {
-  const lines = details.split(/\r?\n/);
-  const labeled = lines.filter((line) => /\bclabe\b/i.test(line));
-  const candidates = [...labeled, ...lines.filter((line) => !labeled.includes(line))]
-    .flatMap((line) => line.match(/(?:\d[\d\s-]?){17}\d/g) ?? [])
-    .map((value) => value.replace(/\D/g, ""))
-    .filter((value) => value.length === 18);
-
-  return candidates[0] ?? null;
-}
-
-function formatClabe(clabe: string): string {
-  return clabe.replace(/\D/g, "").replace(/(\d{3})(?=\d)/g, "$1 ");
-}
-
-interface TransferData {
-  bank: string | null;
-  holder: string | null;
-  account: string | null;
-  clabe: string | null;
-  other: string[];
-}
-
-function parseTransferData(details: string): TransferData {
-  const result: TransferData = { bank: null, holder: null, account: null, clabe: null, other: [] };
-
-  for (const line of details.split(/\r?\n/)) {
-    const cleaned = line.replace(/^[^\p{L}\p{N}]+/u, "").trim();
-    if (!cleaned) continue;
-
-    const labeledValue = cleaned.match(/^(banco|titular|beneficiario|clabe(?:\s+interbancaria)?|cuenta|n[uú]mero de cuenta)\s*[:\-]\s*(.*)$/i);
-    if (labeledValue) {
-      const [, label, value] = labeledValue;
-      if (/^banco$/i.test(label)) result.bank = value || null;
-      else if (/^(titular|beneficiario)$/i.test(label)) result.holder = value || null;
-      else if (/^clabe/i.test(label)) result.clabe = transferClabe(value) ?? (value.trim() || null);
-      else result.account = value || null;
-      continue;
-    }
-
-    const clabe = transferClabe(cleaned);
-    if (clabe && !result.clabe) {
-      result.clabe = clabe;
-      continue;
-    }
-
-    result.other.push(cleaned);
-  }
-
-  return result;
-}
-
-function mercadoPagoLink(details: string): string | null {
-  return details.match(/https?:\/\/[^\s]+/i)?.[0]?.replace(/[),.;]+$/, "") ?? null;
-}
 
 function TransferDetails({
   details,
@@ -229,6 +174,8 @@ export function CartDrawer({
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [attempted, setAttempted] = useState(false);
   const [sent, setSent] = useState(false);
+  const [isRendered, setIsRendered] = useState(open);
+  const [clearCartConfirmOpen, setClearCartConfirmOpen] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [copyErrorField, setCopyErrorField] = useState<string | null>(null);
   const [mapOpen, setMapOpen] = useState(false);
@@ -253,6 +200,9 @@ export function CartDrawer({
   const addressRef = useRef<HTMLTextAreaElement>(null);
   const paymentRef = useRef<HTMLFieldSetElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
+  const clearCartButtonRef = useRef<HTMLButtonElement>(null);
+  const cancelClearCartRef = useRef<HTMLButtonElement>(null);
+  const clearCartConfirmRef = useRef(false);
   const stepRef = useRef(step);
   const historyEntryRef = useRef(false);
   const restoringHistoryRef = useRef(false);
@@ -272,13 +222,29 @@ export function CartDrawer({
   }, [childOverlayOpen]);
 
   const requestClose = useCallback(() => {
-    if (sentRef.current || !hasItemsRef.current || window.confirm("¿Seguro que quieres salir sin hacer tu pedido?")) {
+    if (sentRef.current) {
+      returnToSummaryRef.current = false;
+      onBrowseMenu();
+      return;
+    }
+
+    if (!hasItemsRef.current || window.confirm("¿Seguro que quieres salir sin hacer tu pedido?")) {
       returnToSummaryRef.current = false;
       onClose();
     }
-  }, [onClose]);
+  }, [onBrowseMenu, onClose]);
 
   // Bloquear scroll del fondo + cerrar con Escape
+  useEffect(() => {
+    if (open) {
+      setIsRendered(true);
+      return;
+    }
+
+    const timeout = window.setTimeout(() => setIsRendered(false), 300);
+    return () => window.clearTimeout(timeout);
+  }, [open]);
+
   useEffect(() => {
     if (!open) return;
     const prev = document.body.style.overflow;
@@ -287,7 +253,15 @@ export function CartDrawer({
     window.history.pushState({ ...(window.history.state ?? {}), egfCart: true }, "", window.location.href);
     historyEntryRef.current = true;
 
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && requestClose();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (clearCartConfirmRef.current) {
+        clearCartConfirmRef.current = false;
+        setClearCartConfirmOpen(false);
+        return;
+      }
+      requestClose();
+    };
     const onPopState = () => {
       if (childOverlayOpenRef.current) return;
       if (restoringHistoryRef.current) {
@@ -342,12 +316,23 @@ export function CartDrawer({
 
   // Al cerrar o abrir el panel se reinician los estados del asistente
   useEffect(() => {
-    if (!open) {
+    if (open) return;
+    clearCartConfirmRef.current = false;
+    setClearCartConfirmOpen(false);
+    const timeout = window.setTimeout(() => {
       setSent(false);
       setAttempted(false);
       setStep(1);
-    }
+    }, 320);
+    return () => window.clearTimeout(timeout);
   }, [open]);
+
+  useEffect(() => {
+    if (clearCartConfirmOpen && open) cancelClearCartRef.current?.focus();
+    else if (!open) return;
+    else if (clearCartButtonRef.current) clearCartButtonRef.current.focus();
+    else if (clearCartConfirmRef.current === false) closeRef.current?.focus();
+  }, [clearCartConfirmOpen, open]);
 
   const groups = useMemo(() => groupByCategory(cart.lines), [cart.lines]);
   const enabledPayments = useMemo(() => settings.payments.filter((p) => p.enabled), [settings.payments]);
@@ -392,6 +377,45 @@ export function CartDrawer({
 
   const browseMoreProducts = () => {
     onBrowseMenu();
+  };
+
+  const closeAndResetOrder = (removeItems: () => void) => {
+    returnToSummaryRef.current = false;
+    setAttempted(false);
+    onBrowseMenu();
+    window.setTimeout(() => {
+      removeItems();
+      onCustomerChange({ ...customer, notes: "", payment: "", cashAmount: "" });
+      onApplyCode(null);
+    }, 320);
+  };
+
+  const removeCartLine = (key: string) => {
+    const removesLastLine = cart.lines.length === 1;
+    if (removesLastLine) closeAndResetOrder(() => cart.removeLine(key));
+    else cart.removeLine(key);
+  };
+
+  const decrementCartLine = (key: string) => {
+    const line = cart.lines.find((current) => current.key === key);
+    const removesLastItem = cart.lines.length === 1 && line?.qty === 1;
+    if (removesLastItem) closeAndResetOrder(() => cart.decrementLine(key));
+    else cart.decrementLine(key);
+  };
+
+  const openClearCartConfirmation = () => {
+    clearCartConfirmRef.current = true;
+    setClearCartConfirmOpen(true);
+  };
+
+  const closeClearCartConfirmation = () => {
+    clearCartConfirmRef.current = false;
+    setClearCartConfirmOpen(false);
+  };
+
+  const confirmClearCart = () => {
+    closeClearCartConfirmation();
+    closeAndResetOrder(cart.clear);
   };
 
   const handleNextToStep2 = () => {
@@ -566,13 +590,16 @@ export function CartDrawer({
     </div>
   );
 
-  if (!open) return null;
+  if (!open && !isRendered) return null;
 
   return (
-    <div className="fixed inset-0 z-50" role="presentation">
+    <div className="fixed inset-0 z-50" role="presentation" aria-hidden={!open} inert={!open}>
       {/* Fondo */}
       <div
-        className="absolute inset-0 bg-ink/80"
+        className={cn(
+          "absolute inset-0 bg-ink/80 transition-opacity duration-300 ease-in-out motion-reduce:duration-0",
+          open ? "opacity-100" : "opacity-0",
+        )}
         onClick={requestClose}
         aria-hidden="true"
       />
@@ -582,7 +609,10 @@ export function CartDrawer({
         role="dialog"
         aria-modal="true"
         aria-labelledby="cart-title"
-        className="absolute inset-0 flex animate-fade flex-col bg-paper-light text-ink shadow-2xl md:inset-y-4 md:left-1/2 md:right-auto md:w-[calc(100%-2rem)] md:max-w-lg md:-translate-x-1/2 md:rounded-2xl md:overflow-hidden"
+        className={cn(
+          "absolute inset-0 flex flex-col bg-paper-light text-ink shadow-2xl transition-[opacity,transform] duration-300 ease-in-out motion-reduce:duration-0 md:inset-y-4 md:left-1/2 md:right-auto md:w-[calc(100%-2rem)] md:max-w-lg md:-translate-x-1/2 md:rounded-2xl md:overflow-hidden",
+          open ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0",
+        )}
       >
         {/* Encabezado */}
         <header className="border-b border-ink/10 bg-mustard px-5 py-4">
@@ -603,7 +633,7 @@ export function CartDrawer({
             <button
               ref={closeRef}
               type="button"
-              onClick={requestClose}
+              onClick={onBrowseMenu}
               aria-label="Cerrar"
               className="grid h-10 w-10 place-items-center rounded-full text-ink/70 transition hover:bg-ink/10 hover:text-ink"
             >
@@ -683,7 +713,7 @@ export function CartDrawer({
               <p className="mt-4 text-base font-bold">¡Pedido enviado!</p>
               <button
                 type="button"
-                onClick={requestClose}
+                onClick={onBrowseMenu}
                 className="mt-6 rounded-full bg-ink px-6 py-2.5 text-sm font-semibold text-paper transition hover:opacity-90 active:scale-[0.98]"
               >
                 Hacer otro pedido
@@ -742,7 +772,7 @@ export function CartDrawer({
                               <div className="flex items-center gap-0.5 rounded-full text-ink">
                                 <button
                                   type="button"
-                                  onClick={() => cart.decrementLine(l.key)}
+                                  onClick={() => decrementCartLine(l.key)}
                                   aria-label={`Quitar uno de ${l.name}`}
                                   className="grid h-7 w-7 place-items-center rounded-full bg-ink/5 transition hover:bg-ink/10"
                                 >
@@ -767,7 +797,7 @@ export function CartDrawer({
 
                               <button
                                 type="button"
-                                onClick={() => cart.removeLine(l.key)}
+                                onClick={() => removeCartLine(l.key)}
                                 aria-label={`Eliminar ${l.name}`}
                                 className="grid h-7 w-7 place-items-center rounded-full text-ink/40 transition hover:bg-red-50 hover:text-red-600"
                               >
@@ -1340,13 +1370,25 @@ export function CartDrawer({
             {/* Acciones del Wizard */}
             <div className="flex gap-2">
               {step === 1 && (
-                <button
-                  type="button"
-                  onClick={handleNextToStep2}
-                  className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-ink py-3.5 text-sm font-bold text-paper transition hover:opacity-90 active:scale-[0.98]"
-                >
-                  Siguiente: Entrega ➔
-                </button>
+                <>
+                  <button
+                    ref={clearCartButtonRef}
+                    type="button"
+                    onClick={openClearCartConfirmation}
+                    aria-label="Vaciar carrito"
+                    title="Vaciar carrito"
+                    className="grid h-[52px] w-[52px] shrink-0 place-items-center rounded-2xl bg-red-50 text-red-600 transition hover:bg-red-100 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2"
+                  >
+                    <TrashIcon className="h-5 w-5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleNextToStep2}
+                    className="flex h-[52px] flex-1 items-center justify-center gap-1.5 rounded-full bg-ink text-sm font-bold text-paper transition hover:opacity-90 active:scale-[0.98]"
+                  >
+                    Siguiente: Entrega ➔
+                  </button>
+                </>
               )}
 
               {step === 2 && (
@@ -1429,6 +1471,48 @@ export function CartDrawer({
           </footer>
         )}
       </aside>
+
+      {clearCartConfirmOpen && (
+        <div
+          className="fixed inset-0 z-[60] grid place-items-center animate-fade bg-ink/60 p-4 backdrop-blur-[2px] motion-reduce:animate-none"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) closeClearCartConfirmation();
+          }}
+        >
+          <section
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="clear-cart-title"
+            aria-describedby="clear-cart-description"
+            className="w-full max-w-sm animate-pop rounded-3xl bg-surface p-5 text-center shadow-2xl motion-reduce:animate-none sm:p-6"
+          >
+            <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-red-50 text-red-600">
+              <TrashIcon className="h-6 w-6" />
+            </span>
+            <h2 id="clear-cart-title" className="mt-4 text-lg font-extrabold text-ink">¿Vaciar carrito?</h2>
+            <p id="clear-cart-description" className="mt-1.5 text-sm leading-relaxed text-ink/65">
+              Se eliminarán todos los productos de tu pedido
+            </p>
+            <div className="mt-6 flex gap-2">
+              <button
+                ref={cancelClearCartRef}
+                type="button"
+                onClick={closeClearCartConfirmation}
+                className="min-h-11 flex-1 rounded-xl border border-ink/15 bg-white px-4 text-sm font-bold text-ink transition hover:bg-paper/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/30"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={confirmClearCart}
+                className="min-h-11 flex-1 rounded-xl bg-red-600 px-4 text-sm font-bold text-white transition hover:bg-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
+              >
+                Sí, vaciar
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
 
       {mapOpen && (
         <LocationPicker
